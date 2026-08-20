@@ -84,7 +84,11 @@ create table box_members (
   type_color  text not null check (type_color in
     ('green','teal','blue','plum','rose','terra','ochre','stone')),
   joined_at   timestamptz not null default now(),
-  primary key (box_id, user_id)
+  primary key (box_id, user_id),
+
+  -- 색은 정보다. 한 전보함에서 용지색이 겹치면 발신인을 색으로 읽을 수 없다.
+  -- 8색 중 4명이므로 언제나 남는 색이 있다.
+  unique (box_id, paper_color)
 );
 create index box_members_user on box_members (user_id);
 
@@ -418,9 +422,10 @@ create or replace function join_box(p_code text, p_paper text, p_type text)
 returns table (box_id uuid, box_name text)
 language plpgsql security definer set search_path = public as $$
 declare
-  v_uid  uuid := auth.uid();
-  v_norm text;
-  b      record;
+  v_uid   uuid := auth.uid();
+  v_norm  text;
+  v_paper text;
+  b       record;
   v_tries int;
 begin
   if v_uid is null then raise exception '로그인이 필요합니다.' using errcode='P0001'; end if;
@@ -454,9 +459,24 @@ begin
     raise exception '정원이 가득 찼습니다. (최대 4명)' using errcode='P0001';
   end if;
 
+  -- 고른 용지색이 이미 쓰이고 있으면 남은 색 중 첫 번째로 돌린다.
+  -- 참여자는 이 전보함의 멤버를 미리 볼 수 없으므로(RLS) 겹치는 것은 그 사람 잘못이 아니다.
+  if exists (select 1 from box_members m where m.box_id = b.id and m.paper_color = p_paper) then
+    -- with ordinality + order by 가 필요하다. limit 1 만 두면 어떤 색이 나올지
+    -- 플래너에 달린다 — 실제로 실행 계획에 따라 결과가 달라졌다.
+    select t.c into v_paper
+    from unnest(array['ivory','blush','sage','powder','lilac','wheat','clay','mist'])
+         with ordinality as t(c, ord)
+    where not exists (select 1 from box_members m where m.box_id = b.id and m.paper_color = t.c)
+    order by t.ord
+    limit 1;
+  else
+    v_paper := p_paper;
+  end if;
+
   perform set_config('olrw.internal', 'on', true);
   insert into box_members (box_id, user_id, paper_color, type_color)
-  values (b.id, v_uid, p_paper, p_type);
+  values (b.id, v_uid, v_paper, p_type);
 
   return query select b.id, b.name;
 end $$;

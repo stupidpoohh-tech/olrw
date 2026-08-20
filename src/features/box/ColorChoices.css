@@ -1,0 +1,20 @@
+.swatches { display: flex; flex-wrap: wrap; gap: 7px; }
+
+.swatch { width: 30px; height: 30px; border-radius: var(--radius-sm); position: relative;
+  border-style: solid; border-width: 1px; border-color: var(--divider);
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease); }
+.swatch:hover:not(:disabled) { transform: translateY(-1px); }
+.swatch.active { box-shadow: 0 0 0 1px var(--surface), 0 0 0 2px var(--ink); }
+
+.swatch.taken { opacity: .3; cursor: not-allowed; }
+/* 사용 중인 색에 사선 하나 — 흐림만으로는 이유가 안 보인다 */
+.swatch.taken::after { content: ''; position: absolute; inset: 0;
+  background: linear-gradient(to top right, transparent 46%, var(--ink-faded) 46%,
+    var(--ink-faded) 54%, transparent 54%); }
+
+.swatch-check { position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; font-size: 13px; line-height: 1; }
+.swatch-check.light { color: rgba(255, 255, 255, .95); }
+
+.type-preview { margin-top: 10px; width: 120px; }
+.type-preview img { width: 100%; height: auto; display: block; }

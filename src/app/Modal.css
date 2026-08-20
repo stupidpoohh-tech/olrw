@@ -1,0 +1,23 @@
+.modal-stage { position: fixed; inset: 0; z-index: 50; background: rgba(17, 17, 17, .28);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  overflow-y: auto; animation: fadeIn var(--t-base) ease both; }
+
+.modal-card { width: 100%; max-width: 400px; background: var(--surface);
+  border: 1px solid var(--divider); border-radius: var(--radius); padding: 20px;
+  box-shadow: var(--shadow-2); margin: auto;
+  animation: fadeUp var(--t-slow) var(--ease) both; }
+.modal-card.wide { max-width: 460px; }
+.modal-card:focus { outline: none; }
+
+.modal-title { font-size: 15px; color: var(--ink); font-weight: 500; margin-bottom: 4px; }
+.modal-sub { font-size: 12px; color: var(--ink-faded); margin: 0 0 18px; }
+
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+.modal-btns > button { flex: 0 0 auto; padding-left: 18px; padding-right: 18px; }
+
+.btn-ghost { border: 1px solid var(--divider); background: var(--surface);
+  border-radius: var(--radius-sm); padding: 12px 0; font-size: 14px; color: var(--ink-soft);
+  transition: border-color var(--t-fast) var(--ease); }
+.btn-ghost:hover { border-color: var(--ink-light); }
+
+.onb-tag { font-size: 10px; color: var(--ink-faded); font-weight: 400; margin-left: 4px; }
