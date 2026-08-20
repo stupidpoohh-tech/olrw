@@ -1,0 +1,31 @@
+/* 전역 기본 — docs/PORTING-SPEC.md §3 */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  word-break: keep-all;          /* 한글은 어절 단위로 끊는다 */
+}
+
+button, input, textarea, select { font: inherit; color: inherit; letter-spacing: inherit; }
+button { cursor: pointer; background: none; border: none; padding: 0; }
+
+/* 키보드 초점은 항상 보여야 한다. (docs/AUDIT.md §04-4) */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 장식체는 라틴 전용이다 — 코드 · VOL 번호 · 책등 · 금박 스탬프.
+   한글에 걸면 폴백이 튀므로 걸지 않는다. */
+.display { font-family: var(--font-display); font-optical-sizing: auto; }
+
+/* 숫자가 세로로 줄 맞아야 하는 곳 (권 번호, 글자 수, 기간) */
+.tnum { font-variant-numeric: tabular-nums; }

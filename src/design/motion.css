@@ -1,0 +1,79 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   모션 — docs/PORTING-SPEC.md §6
+   타임라인과 이징은 확정값이다. 느린 이징 금지 — 기계식 타자기는 반응이 빠르다.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 제본 애니메이션 (§6-2) — 총 5.8초 ────────────────────────────────────
+   0.0s  종이 12장이 사방에서 날아와 쌓임      playRoll
+   1.6s  결 맞추기
+   2.2s  표지가 좌우에서 감쌈                  playRoll
+   3.4s  금박 스탬프 + 흰 플래시 + 스파크 14개 playStamp
+   4.4s  완성                                  playReturn
+   5.8s  → onDone()                                                        */
+
+/* --final 의 ±2.5도가 핵심이다.
+   완벽히 정렬하면 인쇄물이 아니라 디지털처럼 보인다. */
+@keyframes pageFly {
+  0%   { opacity: 0; transform: translate(var(--x), var(--y)) rotate(var(--rot)) scale(.6); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: translate(0, 0) rotate(var(--final)) scale(1); }
+}
+
+/* 오버슈트로 툭 덮이는 느낌 — 0.7s cubic-bezier(.4, 1.4, .5, 1) */
+@keyframes coverWrapBack  { 0% { transform: translateX(-110%) rotate(-4deg); } 100% { transform: translateX(0) rotate(0); } }
+@keyframes coverWrapFront { 0% { transform: translateX( 110%) rotate( 4deg); } 100% { transform: translateX(0) rotate(0); } }
+
+/* 0.7s cubic-bezier(.3, 1.6, .4, 1) */
+@keyframes goldStampIn {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(3)    rotate(-12deg); filter: blur(4px); }
+  50%  { opacity: 1; transform: translate(-50%, -50%) scale(.9)   rotate(-2deg);  filter: blur(0); }
+  75%  {             transform: translate(-50%, -50%) scale(1.08) rotate(0); }
+  100% {             transform: translate(-50%, -50%) scale(1)    rotate(0); }
+}
+
+/* 스파크 14개 — 극좌표로 원형 방출. .9s ease-out */
+@keyframes sparkFly {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.5); }
+  10%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(.3); }
+}
+
+@keyframes flashWhite { 0%, 100% { opacity: 0; } 15% { opacity: 1; } }
+
+/* ── 그 밖의 모션 (§6-3) ─────────────────────────────────────────────────── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* .45s cubic-bezier(.2, .8, .2, 1) */
+@keyframes stampIn {
+  0%   { opacity: 0; transform: scale(1.4) rotate(-6deg); }
+  60%  { opacity: 1; transform: scale(.94) rotate(-2deg); }
+  100% {             transform: scale(1)   rotate(0); }
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* 제본을 건너뛸 때 결과 화면으로 넘어가는 0.4초 페이드 */
+@keyframes bindSkip { from { opacity: 0; } to { opacity: 1; } }
+
+.fade-up { animation: fadeUp var(--t-slow) var(--ease) both; }
+
+/* ── 접근성 ───────────────────────────────────────────────────────────────
+   기존 구현에 없던 누락 사항이다. (§6-2 / docs/AUDIT.md §04-4)
+
+   제본 애니메이션은 5.8초 동안 종이 12장과 스파크 14개가 움직인다.
+   전정 장애가 있는 사용자에게는 그냥 고통이다. 여기서는 전부 끄고,
+   ritual 쪽에서 타임라인을 건너뛰어 0.4초 페이드로 결과에 바로 도달시킨다.
+   (프로그래밍 쪽 분기는 useReducedMotion() 을 쓴다 — 이 CSS 는 안전망이다) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .fade-up { animation: fadeIn 0.4s ease both; }
+}
