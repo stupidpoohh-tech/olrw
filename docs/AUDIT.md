@@ -15,6 +15,20 @@
 
 ---
 
+## 0-1. 진행 상황 (이 문서 작성 이후)
+
+| 항목 | 상태 |
+|---|---|
+| 구 Firestore 규칙 잠금 | `legacy-firebase/firestore.rules` 작성 완료. **콘솔 게시는 수동 작업** |
+| 골격 결정 D1–D8 | `docs/decisions.md` 확정 — 봉인(G2)·함께 읽기(G3) 채택, 만남 일정(G1)·삭제 정책(G5) 미채택 |
+| 단계 1 스키마 + RLS + 서버 함수 | `supabase/migrations/0001_init.sql` 재작성. S1–S11 반영 |
+| 검증 | `supabase/tests/` — RLS 45케이스 + 동시 마감 5케이스, 전부 통과 |
+
+§04의 S1–S11은 **전부 새 마이그레이션에서 해결됐고 테스트로 고정했다.**
+구현하며 새로 발견한 것 한 건(S12)을 아래에 추가했다.
+
+---
+
 ## 1. 현황 파악
 
 ### 1-1. 지금 있는 것
@@ -175,6 +189,7 @@ match /codes/{code} { allow read: if signedIn(); }                 // ③
 | S9 | `deleted_at` 컬럼이 있으나 어떤 정책·쿼리도 쓰지 않는다 | soft delete가 이름만 있다 |
 | S10 | `join_box` RPC에 정원 초과 구분 메시지·코드 시도 제한이 없다 | 코드 브루트포스가 열려 있다 (32^8이라 당장 위험하진 않지만 rate limit은 필요) |
 | S11 | Storage(`covers`) 정책이 마이그레이션에 없다 | 문서에만 있고 코드로 남지 않는다 |
+| **S12** | **구현 중 발견.** SELECT 정책에 `deleted_at is null`을 넣으면 소프트 삭제가 아예 불가능하다 | UPDATE는 갱신된 행이 SELECT 정책에도 맞아야 통과한다. 회수가 행을 스스로 안 보이게 만들어 **자기 전보조차 지울 수 없었다.** 작성자에게는 자기가 회수한 행을 열어 두고, 읽기 경로인 `telegram_envelopes` 뷰가 걸러낸다 |
 
 **정리:** 쓰기 경로 중 **박스 생성 · 참여 · 제본**은 RLS로 풀 문제가 아니라 **`security definer` RPC 3개**로 닫아야 한다. 테이블 직접 INSERT는 `telegrams`만 남긴다.
 
