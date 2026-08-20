@@ -1,7 +1,8 @@
 # OLRW — Our love, rightly written (전보함)
 
-> 이 파일은 새 리포 **루트**에 둔다. Claude Code가 매 세션 자동으로 읽는다.
 > 제품 설계 정본은 `docs/PORTING-SPEC.md`. 값에 대한 판단이 필요하면 그 문서를 따른다.
+> **확정된 변경은 `docs/decisions.md`가 우선한다.** 스펙과 어긋나면 그쪽이 최신이다.
+> 진단 근거는 `docs/AUDIT.md`.
 
 ## 무엇을 만드는가
 
@@ -16,6 +17,8 @@
 5. **카피는 담백한 존댓말.** 이모지·감탄사 금지. 느낌표 최소.
 6. **반경 최대 6px.** 둥근 카드 금지 — 인쇄물 느낌 유지.
 7. **디자인 값은 협상 대상이 아니다.** §3·§4·§6의 hex·ms·이징을 그대로 쓴다. "개선"하지 않는다.
+8. **봉인을 우회하지 않는다.** 남의 이번 권 전보는 `telegram_envelopes` 뷰로만 읽는다. `telegrams`를 직접 조회해 본문을 꺼내는 코드를 쓰지 않는다.
+9. **쓰기는 정해진 문으로만.** 전보함 생성·참여·제본·탈퇴는 서버 함수(`create_box` `join_box` `close_volume` `leave_box`)로만 한다. 테이블에 직접 INSERT 하는 것은 `telegrams` 하나뿐이다.
 
 ## 스택
 
@@ -59,27 +62,47 @@ docs/PORTING-SPEC.md
 4. **스키마 변경은 항상 마이그레이션 파일로.** Studio에서 직접 수정 금지.
 5. **soft delete.** 전보/권 삭제는 `deleted_at`. 즉시 파기하지 않는다.
 
-## 작업 순서 (기능 동결 상태로 1:1 포팅 먼저)
+## 확정된 골격 변경 (docs/decisions.md)
 
-1. 스키마 + RLS 마이그레이션
-2. 디자인 토큰 · 색 시스템 (§3, §4) — 값 그대로
-3. 인증 → 온보딩 → 전보함 전환 바
-4. 타전실 → 수신함 → 서가
-5. 만남 마감 4단계 + 제본 애니메이션 (§6-2) — 타임라인 그대로
+포팅 도중 **아무 기능이나** 추가하지 않는다. 아래 두 가지만 예외이고, 이건 추가가 아니라
+원래 컨셉의 복원이다. 그 밖의 아이디어는 7단계 이후로 미룬다.
+
+- **D1 봉인 모드** — 남이 보낸 이번 권 전보는 만나기 전까지 봉투로만 보인다.
+  발신인 용지색 + 도착 시각 + 분량(short/medium/long). 본문은 `null`.
+  전보함 단위 설정(`boxes.sealed`), 기본값 봉인. **내 전보는 언제나 전문으로 보인다.**
+- **D2 함께 읽기** — 만남 마감이 5단계가 된다:
+  `confirm → 함께 읽기 → customize → binding → done`.
+  `begin_reading()`이 이번 권의 봉인을 풀고, 한 화면에 한 통씩 넘긴다(`playReturn`).
+  건너뛰기 허용. 건너뛰면 `volumes.read_together = false`로 남는다.
+- **D4 완충** — 마감 권한은 현행대로 누구나. 대신 confirm 단계에
+  "아직 봉인된 전보 N통이 지금 열립니다"를 띄운다. 한 번 열린 권은 다시 봉인되지 않는다.
+
+미채택: 만남 일정(`meetings`), 회수·내리기 삭제 정책. 스키마에 자리를 만들지 않았다.
+
+## 작업 순서
+
+1. ~~스키마 + RLS + 서버 함수~~ — 완료. `supabase/tests/run.sh`로 검증한다
+2. 디자인 토큰 · 색 시스템 (§3, §4) — 값 그대로 + 용지 테두리 스타일(비색상 단서)
+3. 인증 → 온보딩(봉인함/열린함 선택) → 전보함 전환 바
+4. 타전실 → 수신함(봉투 UI) → 서가
+5. 만남 마감 5단계 + 제본 애니메이션 (§6-2) — 타임라인 그대로 + reduced-motion 경로
 6. 사운드 (§6-1)
-7. **여기까지 끝난 뒤에야** 신기능 (§8)
-
-포팅 도중 기능을 추가하지 않는다. 추가하면 끝나지 않는다.
+7. **여기까지 끝난 뒤에야** 그 밖의 신기능
 
 ## 포팅과 함께 고칠 것 (기존 구현의 알려진 결함)
 
-- Firestore 규칙이 `signedIn()`만 검사해 느슨했음 → RLS로 제대로
-- 표지 base64가 문서에 인라인 → Storage
-- 상태 계층 이중 구현 → 인터페이스 하나
-- `prefers-reduced-motion` 미지원 → 제본 애니메이션 스킵 경로 추가
-- 용지색이 색 단서만 제공 → 테두리 스타일 등 비색상 단서 추가
-- 전보 0건에서 마감이 조용히 실패 → 막고 안내
-- 마감 권한이 전원에게 열려 있음 → 방장 전용 또는 동의 절차 (기획 결정 필요)
+스키마 쪽(RLS, 0건 마감, 동시 마감, 소유자 이양)은 1단계에서 이미 해결했다.
+남은 것은 전부 프런트엔드다 — 자세한 근거는 `docs/AUDIT.md` §04-3, §04-4.
+
+- 표지 base64가 문서에 인라인 → Storage (`covers/{box_id}/{volume_id}.jpg`)
+- 상태 계층 이중 구현 → `interface BoxStore` 하나
+- `prefers-reduced-motion` 미지원 → 제본 애니메이션 0.4초 페이드 경로
+- 용지색이 색 단서만 제공 → 테두리 스타일(실선/파선/이중선/점선) 추가
+- 한글 IME 조합 중 글자 수가 튀고 타건음이 과하게 울림 → `compositionstart/end`
+- 마감 완료 화면이 Promise를 동기로 취급해 "VOL.undefined" → await
+- 전송 실패가 조용함 → `catch`와 안내
+- `user-scalable=no` 제거, media query 추가, 폰트 self-host
+- `ritual.jsx`가 로드되지도 않는 `Noto Serif KR`/`Cormorant Garamond`를 씀 → Fraunces로 통일
 
 ## 명령
 
@@ -89,7 +112,12 @@ pnpm build
 pnpm typecheck
 supabase db push          # 로컬 → 원격 마이그레이션
 supabase gen types typescript --linked > src/lib/database.types.ts
+
+supabase/tests/run.sh              # RLS · 서버 함수 45케이스 (Supabase·Docker 불필요)
+supabase/tests/concurrency_test.sh # 동시 마감 5케이스
 ```
+
+**스키마를 건드리면 테스트를 돌린다.** 봉인·제본·소유자 이양은 눈으로 봐서는 깨진 걸 모른다.
 
 ## 커밋
 

@@ -1,0 +1,72 @@
+// ─────────────────────────────────────────────────────────────────────────
+// OLRW — 구 Firebase 프로젝트 긴급 잠금 규칙 (our-love-rightly-written)
+//
+// 목적: Supabase 이관이 끝날 때까지 데이터 노출을 막는다.
+// 적용: Firebase 콘솔 → Firestore Database → 규칙 → 전체 교체 → 게시
+//
+// 기존 규칙의 구멍 (docs/AUDIT.md §01):
+//   ① rooms read: signedIn()               → 로그인한 아무나 모든 전보함 열람
+//   ② rooms update: request.resource.data  → 초대 코드 없이 아무 방에나 자기를 멤버로 추가
+//   ③ codes read: signedIn()               → 초대 코드 전체 열거
+//
+// 이 규칙이 바꾸는 것:
+//   · 방 열람/수정은 "쓰기 전 상태(resource.data)"의 멤버에게만 — ②의 문이 닫힌다
+//   · codes 컬렉션 완전 차단 — ③이 닫힌다
+//   · users 문서는 본인만 — 남의 이메일·소속 방 목록을 못 읽는다
+//
+// 알면서 감수하는 것 (이관 중 기능 동결):
+//   · 코드로 새 전보함 참여 불가 (codes를 못 읽으므로)
+//   · 새 전보함 생성 불가
+//   기존 4명이 기존 방에서 전보를 주고받고 제본하는 것은 그대로 된다.
+//   이관이 끝나면 이 프로젝트는 폐기한다.
+// ─────────────────────────────────────────────────────────────────────────
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isMe(uid)  { return signedIn() && request.auth.uid == uid; }
+
+    // 사용자 문서 — 본인만. (참여자 이름은 rooms.members에 이미 복사돼 있어 여기서 읽을 필요가 없다)
+    match /users/{uid} {
+      allow read:   if isMe(uid);
+      allow create: if isMe(uid);
+      allow update: if isMe(uid);
+      allow delete: if false;
+    }
+
+    // 초대 코드 → 전보함 매핑. 이관 중 완전 차단.
+    match /codes/{code} {
+      allow read, write: if false;
+    }
+
+    match /rooms/{roomId} {
+      // 핵심: resource.data(쓰기 전 상태)만 본다.
+      // request.resource.data(쓰기 후 상태)를 보면 "나를 넣는 쓰기"가 스스로를 승인한다.
+      function amMember() {
+        return signedIn() && request.auth.uid in resource.data.memberUids;
+      }
+
+      allow read:   if amMember();
+      allow create: if false;                                  // 이관 중 새 방 생성 없음
+      allow update: if amMember()
+                     && request.resource.data.memberUids.hasOnly(resource.data.memberUids);
+                     // 멤버 추가 불가(참여는 동결), 나가기·색 변경·이름 변경·currentVol 증가는 허용
+      allow delete: if false;                                  // 마지막 멤버 자동 삭제도 동결
+
+      function roomMember() {
+        return signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.memberUids;
+      }
+
+      match /telegrams/{tgId} { allow read, write: if roomMember(); }
+      match /volumes/{volId}  { allow read, write: if roomMember(); }
+    }
+
+    // 그 밖의 모든 경로 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
