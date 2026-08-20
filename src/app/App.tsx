@@ -1,9 +1,18 @@
-import { ProofSheet } from '../design/ProofSheet';
+import { lazy, Suspense } from 'react';
+import { StoreProvider } from '../lib/storeContext';
+import { Shell } from './Shell';
 
-/**
- * 단계 2 시점의 App. 아직 화면이 없으므로 토큰 확인표를 띄운다.
- * 단계 3(인증 → 온보딩 → 전환 바)에서 실제 셸로 교체된다.
- */
+// 토큰 확인표는 ?proof 로만 연다. 본 번들에 싣지 않는다.
+const ProofSheet = lazy(() =>
+  import('../design/ProofSheet').then((m) => ({ default: m.ProofSheet })));
+
 export function App() {
-  return <ProofSheet />;
+  if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('proof')) {
+    return <Suspense fallback={null}><ProofSheet /></Suspense>;
+  }
+  return (
+    <StoreProvider>
+      <Shell />
+    </StoreProvider>
+  );
 }

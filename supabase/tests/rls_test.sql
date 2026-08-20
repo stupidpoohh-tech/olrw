@@ -54,9 +54,18 @@ select ok('하이픈 없는 코드로 참여된다',
 select as_user('33333333-3333-3333-3333-333333333333');
 select ok('소문자 코드로 참여된다',
           (select box_name from join_box(lower(:'code'),'powder','green')) = '퇴근길 전보함');
+
+-- 색은 정보다. 겹치면 발신인을 색으로 읽을 수 없다.
 select as_user('44444444-4444-4444-4444-444444444444');
-select ok('4번째 참여자까지 들어온다',
-          (select box_name from join_box(:'code','wheat','green')) is not null);
+select ok('이미 쓰이는 용지색을 고르면 남은 색으로 돌려준다',
+          (select box_name from join_box(:'code','ivory','green')) is not null);
+reset role;
+select ok('한 전보함 안에서 용지색이 겹치지 않는다',
+          (select count(distinct paper_color) from box_members) = 4);
+select ok('빈 색 중 목록 순서로 앞선 것을 준다 (ivory 요청 → sage)',
+          (select paper_color from box_members
+           where user_id = '44444444-4444-4444-4444-444444444444') = 'sage');
+set role authenticated;
 select as_user('99999999-9999-9999-9999-999999999999');
 select denied('정원 4명 상한이 5번째를 막는다',
               format('select join_box(%L,%L,%L)', :'code','sage','teal'));

@@ -25,6 +25,17 @@ supabase/tests/concurrency_test.sh # 동시 마감 5케이스
 | 소유자 이양 | 방장이 나가도 전보함이 잠기지 않는다 (S8) |
 | 동시 마감 | 둘이 같이 눌러도 권은 하나, 전보는 유실되지 않는다 |
 
+## 화면 쪽
+
+단계 3 화면은 브라우저로 확인한다. memoryStore 로 돌기 때문에 Supabase 없이 검증된다.
+
+```bash
+pnpm build && pnpm preview &
+pnpm ui:check                      # 인증 → 온보딩 → 전환 바, 17케이스
+SHOTS=/tmp/olrw pnpm ui:check      # 화면도 남긴다
+pnpm tint:check                    # §4-2 타자기색이 실제로 구분되는지 (D9)
+```
+
 ## 주의
 
 `harness.sql`은 **로컬 검증 전용**이다. 실제 Supabase에 적용하지 않는다 —
