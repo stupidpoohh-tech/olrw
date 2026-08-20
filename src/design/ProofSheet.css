@@ -1,0 +1,88 @@
+/* 토큰 확인표 전용 스타일. 프로덕션 화면에서는 쓰지 않는다. */
+
+.ps { max-width: 860px; margin: 0 auto; padding: 40px 20px 96px; }
+
+.ps-head { border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 8px; }
+.ps-title { font-family: var(--font-display); font-weight: 300; font-size: 30px;
+  letter-spacing: -.02em; color: var(--ink); margin: 0 0 4px; }
+.ps-sub { font-size: 13px; color: var(--ink-mid); margin: 0; }
+
+.ps-sec { margin-top: 44px; }
+.ps-sec-label { font-family: var(--font-display); font-size: 11px; letter-spacing: .22em;
+  text-transform: uppercase; color: var(--ink-faded); border-bottom: 1px solid var(--divider);
+  padding-bottom: 6px; margin-bottom: 18px; }
+.ps-note { font-size: 13px; color: var(--ink-mid); margin: 0 0 16px; max-width: 62ch; }
+
+/* 색 토큰 */
+.ps-tokens { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+.ps-token { border: 1px solid var(--divider); border-radius: var(--radius-sm); overflow: hidden;
+  background: var(--surface); }
+.ps-token-chip { height: 44px; border-bottom: 1px solid var(--divider); }
+.ps-token-meta { padding: 7px 9px; }
+.ps-token-name { font-size: 11px; color: var(--ink-soft); }
+.ps-token-hex { font-family: var(--font-display); font-size: 10.5px; color: var(--ink-faded);
+  letter-spacing: .04em; }
+
+/* 용지 */
+.ps-papers { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.ps-card { padding: 12px 14px; border-radius: var(--radius-sm); }
+.ps-card-meta { display: flex; align-items: center; gap: 6px; font-size: 11px;
+  opacity: .85; margin-bottom: 6px; }
+.ps-swatch { width: 14px; height: 14px; border-radius: 1px; flex: none; }
+.ps-card-body { font-size: 13.5px; line-height: 1.6; }
+.ps-card-edge { font-family: var(--font-display); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; opacity: .6; margin-top: 8px; }
+
+/* 4인 전보함 시뮬레이션 */
+.ps-room { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 620px) { .ps-room { grid-template-columns: repeat(2, 1fr); } }
+.ps-gray { filter: grayscale(1); }
+.ps-split { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+@media (max-width: 720px) { .ps-split { grid-template-columns: 1fr; } }
+.ps-split-label { font-size: 11.5px; color: var(--ink-faded); margin-bottom: 8px;
+  letter-spacing: .04em; }
+
+/* 타자기색 */
+.ps-types { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+.ps-type { text-align: center; }
+.ps-type img { width: 100%; height: auto; display: block; }
+.ps-type-name { display: flex; align-items: center; justify-content: center; gap: 5px;
+  font-size: 11.5px; color: var(--ink-mid); margin-top: 4px; }
+.ps-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+/* 표지 */
+.ps-spines { display: flex; gap: 8px; align-items: flex-end; padding: 16px 14px;
+  background: var(--bg-soft); border: 1px solid var(--divider); border-radius: var(--radius-sm); }
+.ps-spine { width: 42px; height: 150px; position: relative; box-shadow: var(--shadow-2);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.ps-spine::after { content: ''; position: absolute; inset: 5px; border: 1px solid var(--gold); }
+.ps-spine-vol { font-family: var(--font-display); font-size: 11px; color: var(--gold-light);
+  letter-spacing: .06em; }
+.ps-spine-name { font-size: 9.5px; color: var(--gold-light); opacity: .82;
+  writing-mode: vertical-rl; letter-spacing: .1em; }
+
+/* 모션 */
+.ps-motion { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.ps-motion-box { width: 96px; height: 62px; background: var(--surface);
+  border: 1px solid var(--divider); border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 11px; color: var(--ink-mid); letter-spacing: .1em; }
+.ps-replay { border: 1px solid var(--divider); background: var(--surface);
+  padding: 7px 14px; border-radius: var(--radius-sm); font-size: 12.5px; color: var(--ink-soft);
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
+.ps-replay:hover { border-color: var(--ink-light); color: var(--ink); }
+
+.ps-stop { color: var(--accent); font-weight: 600; letter-spacing: .04em; }
+
+/* 확인표에서 문제를 드러내는 블록 */
+.ps-warn { border-left: 3px solid var(--accent); background: var(--accent-soft);
+  padding: 12px 16px; margin: 0 0 18px; max-width: 62ch; }
+.ps-warn p { font-size: 13px; line-height: 1.7; color: var(--ink-soft); margin: 0 0 8px; }
+.ps-warn p:last-child { margin-bottom: 0; }
+.ps-warn b { color: var(--ink); font-weight: 600; }
+.ps-warn-label { font-family: var(--font-display); font-size: 10.5px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 7px; }
+
+/* 책등 라벨이 VOL 번호와 겹치지 않게 */
+.ps-spine { justify-content: flex-start; padding-top: 14px; }
+.ps-spine-name { margin-top: 6px; max-height: 96px; overflow: hidden; }
