@@ -10,7 +10,8 @@
     "typecheck": "tsc -b --noEmit",
     "db:test": "supabase/tests/run.sh && supabase/tests/concurrency_test.sh",
     "tint:check": "node tools/tint-check.mjs",
-    "ui:check": "node tools/ui-check.mjs"
+    "ui:check": "node tools/ui-check.mjs",
+    "ui:check4": "node tools/ui-check-transmit.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",

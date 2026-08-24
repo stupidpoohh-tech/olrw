@@ -59,7 +59,9 @@
 /* 제본을 건너뛸 때 결과 화면으로 넘어가는 0.4초 페이드 */
 @keyframes bindSkip { from { opacity: 0; } to { opacity: 1; } }
 
-.fade-up { animation: fadeUp var(--t-slow) var(--ease) both; }
+/* backwards 다. both 로 두면 애니메이션이 끝난 뒤에도 transform 이 남아
+   이 요소가 position:fixed 자식의 기준 박스가 된다 — 펼친 책이 잘렸다. */
+.fade-up { animation: fadeUp var(--t-slow) var(--ease) backwards; }
 
 /* ── 접근성 ───────────────────────────────────────────────────────────────
    기존 구현에 없던 누락 사항이다. (§6-2 / docs/AUDIT.md §04-4)
@@ -75,5 +77,5 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .fade-up { animation: fadeIn 0.4s ease both; }
+  .fade-up { animation: fadeIn 0.4s ease backwards; }
 }

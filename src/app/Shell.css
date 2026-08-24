@@ -47,3 +47,10 @@
 
 .memory-notice { font-size: 11px; color: var(--ink-light); line-height: 1.6;
   margin: 26px 0 0; padding-top: 12px; border-top: 1px solid var(--divider-soft); }
+
+/* 단계 5 자리 */
+.ritual-stub { text-align: center; padding: 20px 0 26px; }
+.ritual-stub-vol { font-size: 28px; color: var(--ink-light); letter-spacing: .04em;
+  margin-bottom: 12px; }
+.ritual-stub p { font-size: 13px; color: var(--ink-mid); margin: 0 0 6px; }
+.ritual-stub-warn { color: var(--accent) !important; font-size: 12.5px !important; }

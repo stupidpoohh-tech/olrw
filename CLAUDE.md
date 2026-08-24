@@ -82,9 +82,9 @@ docs/PORTING-SPEC.md
 ## 작업 순서
 
 1. ~~스키마 + RLS + 서버 함수~~ — 완료. `supabase/tests/run.sh`로 검증한다
-2. 디자인 토큰 · 색 시스템 (§3, §4) — 값 그대로 + 용지 테두리 스타일(비색상 단서)
-3. 인증 → 온보딩(봉인함/열린함 선택) → 전보함 전환 바
-4. 타전실 → 수신함(봉투 UI) → 서가
+2. ~~디자인 토큰 · 색 시스템 (§3, §4)~~ — 완료. 용지 테두리 스타일(비색상 단서) 포함
+3. ~~인증 → 온보딩(봉인함/열린함 선택) → 전보함 전환 바~~ — 완료. `pnpm ui:check`
+4. ~~타전실 → 수신함(봉투 UI) → 서가~~ — 완료. `pnpm ui:check4`
 5. 만남 마감 5단계 + 제본 애니메이션 (§6-2) — 타임라인 그대로 + reduced-motion 경로
 6. 사운드 (§6-1)
 7. **여기까지 끝난 뒤에야** 그 밖의 신기능
@@ -98,10 +98,11 @@ docs/PORTING-SPEC.md
 - 상태 계층 이중 구현 → `interface BoxStore` 하나
 - `prefers-reduced-motion` 미지원 → 제본 애니메이션 0.4초 페이드 경로
 - 용지색이 색 단서만 제공 → 테두리 스타일(실선/파선/이중선/점선) 추가
-- 한글 IME 조합 중 글자 수가 튀고 타건음이 과하게 울림 → `compositionstart/end`
+- ~~한글 IME 조합 중 글자 수가 튀고 타건음이 과하게 울림~~ — 해결. 타건음은 `keydown`,
+  글자 수는 입력값, 자르기는 `compositionend`. 해머 자리는 `KeyboardEvent.code`
 - 마감 완료 화면이 Promise를 동기로 취급해 "VOL.undefined" → await
-- 전송 실패가 조용함 → `catch`와 안내
-- `user-scalable=no` 제거, media query 추가, 폰트 self-host
+- ~~전송 실패가 조용함~~ — 해결. `catch` 하고 종이 아래에 알린다
+- ~~`user-scalable=no` 제거, 폰트 self-host~~ — 완료. media query 는 아직
 - `ritual.jsx`가 로드되지도 않는 `Noto Serif KR`/`Cormorant Garamond`를 씀 → Fraunces로 통일
 
 ## 명령
@@ -113,8 +114,13 @@ pnpm typecheck
 supabase db push          # 로컬 → 원격 마이그레이션
 supabase gen types typescript --linked > src/lib/database.types.ts
 
-supabase/tests/run.sh              # RLS · 서버 함수 45케이스 (Supabase·Docker 불필요)
-supabase/tests/concurrency_test.sh # 동시 마감 5케이스
+supabase/tests/run.sh              # RLS · 서버 함수 (Supabase·Docker 불필요)
+supabase/tests/concurrency_test.sh # 동시 마감
+
+pnpm build && pnpm preview &       # 아래 셋은 미리보기 서버가 떠 있어야 한다
+pnpm ui:check                      # 인증 · 온보딩 · 전환 바
+pnpm ui:check4                     # 타전실 · 수신함(봉투) · 서가
+pnpm tint:check                    # §4-2 타자기색이 실제로 구분되는지 (D9)
 ```
 
 **스키마를 건드리면 테스트를 돌린다.** 봉인·제본·소유자 이양은 눈으로 봐서는 깨진 걸 모른다.

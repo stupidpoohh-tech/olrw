@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import './Modal.css';
 
 interface Props { title: string; onClose: () => void; children: ReactNode; wide?: boolean }
@@ -19,13 +20,14 @@ export function Modal({ title, onClose, children, wide = false }: Props) {
     };
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div className="modal-stage" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className={`modal-card ${wide ? 'wide' : ''}`} ref={card} tabIndex={-1}
         role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal-title">{title}</div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
