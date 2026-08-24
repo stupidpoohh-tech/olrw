@@ -26,11 +26,6 @@
 .tour-card.bl { left: 16px; }
 .tour-card.br { right: 16px; }
 
-.tour-tag {
-  margin: 0 0 4px;
-  font-size: 10px; letter-spacing: .2em;
-  color: var(--ink-faded);
-}
 .tour-title {
   margin: 0 0 6px;
   font-size: 14px; font-weight: 500; color: var(--ink);
@@ -43,12 +38,6 @@
 .tour-actions {
   display: flex; align-items: center; justify-content: flex-end; gap: 10px;
 }
-.tour-skip {
-  font-size: 11.5px; color: var(--ink-faded);
-  background: none; border: none; padding: 4px 2px;
-}
-.tour-skip:hover { color: var(--ink-mid); }
-
 .tour-next {
   font-size: 12px; color: var(--surface);
   background: var(--ink); border: none; padding: 6px 12px;

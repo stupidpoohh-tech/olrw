@@ -33,6 +33,8 @@ const shot = async (n) => { if (SHOTS) { await page.waitForTimeout(400); await p
 const signUp = async (name, email) => {
   // 로그인 앞에 소개 화면은 없다 (D12). 곧장 AuthScreen 으로.
   // 랜딩이 없어졌다 (D12). 하단(MakerMark)의 "계정 만들기" 링크로 들어간다.
+  // 하단 링크를 가리는 투어 카드를 먼저 닫는다.
+  while (await page.$('.tour-next')) { await page.click('.tour-next'); await page.waitForTimeout(200); }
   await page.waitForSelector('.maker-auth-link', { timeout: 8000 });
   await page.locator('.maker-auth-link', { hasText: '계정 만들기' }).click();
   await page.waitForSelector('.auth', { timeout: 5000 });
@@ -160,7 +162,8 @@ await page.fill('.paper-input', '');
 
 console.log('\n━━━ 봉인 (D1) ━━━');
 await page.click('.link:has-text("로그아웃")');
-await page.waitForSelector('.maker-auth-link', { timeout: 5000 });
+while (await page.$('.tour-next')) { await page.click('.tour-next'); await page.waitForTimeout(200); }
+  await page.waitForSelector('.maker-auth-link', { timeout: 5000 });
 await signUp('재이', 'b@olrw.test');
 await page.waitForSelector('.onb-tabs-row', { timeout: 5000 });
 await page.click('.onb-tab >> nth=1');
@@ -203,7 +206,7 @@ await shot('05-archive-empty');
 // 제본된 권을 하나 만들어 서가를 확인한다 (단계 5 UI 전이라 저장소를 직접 부른다)
 await page.evaluate(() => {
   const db = JSON.parse(localStorage.getItem('olrw.memory.v1'));
-  const box = db.boxes[0];
+  const box = db.boxes.find((b) => b.members.some((m) => m.userId === db.sessionUserId));
   const live = db.telegrams.filter((t) => t.boxId === box.id && !t.deletedAt);
   db.volumes.push({
     id: 'v-test', boxId: box.id, vol: box.currentVol, title: '봄날의 출퇴근',

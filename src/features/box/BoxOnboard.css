@@ -50,9 +50,14 @@
 .onb-error { font-size: 12.5px; color: var(--accent); margin: 0;
   border-left: 2px solid var(--accent); padding-left: 9px; }
 
-.onb-primary { background: var(--ink); color: var(--bg); border-radius: var(--radius-sm);
-  padding: 12px 0; font-size: 14px; transition: opacity var(--t-fast) var(--ease); }
-.onb-primary:hover:not(:disabled) { opacity: .86; }
+.onb-primary {
+  background: var(--ink); color: var(--bg);
+  border: none; border-radius: var(--radius);
+  padding: 14px 20px;
+  font-size: 14px; font-weight: 500; letter-spacing: -.005em;
+  transition: opacity var(--t-fast) ease, background var(--t-fast) ease;
+}
+.onb-primary:hover:not(:disabled) { background: var(--ink-soft); }
 .onb-primary:disabled { opacity: .45; cursor: default; }
 
 .onb-cancel { display: block; margin: 16px auto 0; font-size: 12.5px; color: var(--ink-faded); }

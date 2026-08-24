@@ -51,8 +51,14 @@ const shot = async (name) => {
  */
 const openSignUp = async () => {
   if (await page.$('.auth')) return;
+  // 화면에 뜬 투어 카드를 먼저 닫는다. 카드는 하단에 위치라 링크를 가릴 수 있다.
+  while (await page.$('.tour-next')) {
+    await page.click('.tour-next');
+    await page.waitForTimeout(200);
+  }
   await page.waitForSelector('.maker-auth-link', { timeout: 8000 });
-  await page.locator('.maker-auth-link', { hasText: '계정 만들기' }).click();
+  while (await page.$('.tour-next')) { await page.click('.tour-next'); await page.waitForTimeout(200); }
+await page.locator('.maker-auth-link', { hasText: '계정 만들기' }).click();
   await page.waitForSelector('.auth', { timeout: 5000 });
 };
 const signUp = async (name, email) => {
@@ -84,7 +90,9 @@ ok('안내 투어가 함께 뜬다', await page.isVisible('.tour-card'));
 await shot('01-home');
 
 console.log('\n━━━ 인증으로 들어가고 나오기 ━━━');
-// 배너의 "로그인" 링크 — 게스트 세션이 종료되고 AuthScreen 이 뜬다.
+// 하단 링크를 가리는 투어 카드를 먼저 닫는다.
+while (await page.$('.tour-next')) { await page.click('.tour-next'); await page.waitForTimeout(200); }
+// MakerMark 의 "로그인" 링크 — 게스트 세션이 종료되고 AuthScreen 이 뜬다.
 await page.locator('.maker-auth-link', { hasText: '로그인' }).click();
 await page.waitForSelector('.auth', { timeout: 5000 });
 ok('로그인을 누르면 로그인 탭으로 열린다',
@@ -92,7 +100,7 @@ ok('로그인을 누르면 로그인 탭으로 열린다',
 ok('주소에 자국이 남는다', await page.evaluate(() => location.hash) === '#login');
 await page.click('.auth-back');
 await page.waitForSelector('.maker-auth-link', { timeout: 5000 });
-ok('돌아가기로 게스트 홈으로 돌아온다', await page.isVisible('.onb-tabs-row'));
+ok('돌아가기로 게스트 홈(타전실)으로 돌아온다', await page.isVisible('.paper'));
 
 await page.locator('.maker-auth-link', { hasText: '계정 만들기' }).click();
 await page.waitForSelector('.auth', { timeout: 5000 });

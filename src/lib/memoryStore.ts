@@ -156,17 +156,29 @@ export function createMemoryStore(): BoxStore {
 
     async enterAsGuest() {
       // 매번 새 사용자를 만든다. 이전 체험 계정과 데이터가 섞이지 않게.
-      // 표시 이름은 짧은 익명 라벨. 상대에게 보일 일이 없어 예쁘게 붙일 이유가 없다.
       const stamp = uuid().slice(0, 4).toUpperCase();
       const guest: User = {
         id: uuid(),
         email: `guest-${stamp}@olrw.local`,
-        password: uuid(),   // 다시 로그인할 수 없게, 예측 불가한 값으로 채운다
+        password: uuid(),
         displayName: '체험 사용자',
         isGuest: true,
       };
       db.users.push(guest);
       db.sessionUserId = guest.id;
+
+      // 체험 진입자는 온보딩 폼 앞에서 멈추지 않고 곧장 타전실을 본다.
+      // 데모 전보함 하나를 즉시 마련해 둔다. 이름/모드/색은 기본값 — 나중에 바꿀 수 있다.
+      let code = genCode();
+      while (db.boxes.some((b) => b.inviteCode === code)) code = genCode();
+      const now = new Date().toISOString();
+      db.boxes.push({
+        id: uuid(), name: '체험 전보함',
+        inviteCode: code, ownerId: guest.id, currentVol: 1, sealed: true,
+        readingStartedAt: null, createdAt: now,
+        members: [{ userId: guest.id, paper: 'ivory', type: 'steel', joinedAt: now }],
+      });
+
       emitSession();
     },
 

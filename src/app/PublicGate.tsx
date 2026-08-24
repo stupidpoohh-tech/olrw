@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { AuthScreen } from '../features/auth/AuthScreen';
 import { useStore } from '../lib/storeContext';
 import { toUserMessage } from '../lib/errors';
-import { resetTour } from '../features/tour/GuestTour';
 
 /**
  * 로그인하지 않은 사람이 보는 것.
@@ -42,7 +41,6 @@ export function PublicGate() {
   useEffect(() => {
     if (view.screen !== 'guest' || entering) return;
     setEntering(true);
-    resetTour();
     void store.enterAsGuest().catch((e: unknown) => {
       setError(toUserMessage(e, '체험 모드를 열지 못했습니다.'));
       setEntering(false);

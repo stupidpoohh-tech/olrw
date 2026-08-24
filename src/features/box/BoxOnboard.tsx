@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { PAPER_COLORS, type PaperId } from '../../design/colors';
 import { TYPEWRITERS, type TypeId } from '../../design/typewriters';
 import { useStore } from '../../lib/storeContext';
@@ -31,12 +31,18 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<{ boxId: string; inviteCode: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const nameRef = useRef<HTMLInputElement | null>(null);
 
   const switchTab = (t: Tab) => { setTab(t); setError(''); setCreated(null); };
 
   const create = async (e: FormEvent) => {
     e.preventDefault();
     if (busy) return;
+    if (!name.trim()) {
+      setError('전보함 이름을 넣어 주세요. 예: 퇴근길 전보함');
+      nameRef.current?.focus();
+      return;
+    }
     setError(''); setBusy(true);
     try {
       setCreated(await store.createBox({ name, paper, type, sealed }));
@@ -123,6 +129,7 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
           <div className="onb-field">
             <div className="onb-field-label">전보함 이름</div>
             <input className="onb-input" type="text" value={name} maxLength={20}
+              ref={nameRef}
               placeholder="예) 퇴근길 전보함, 우리 셋"
               onChange={(e) => setName(e.target.value)} />
           </div>
@@ -154,7 +161,7 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
 
           {colorFields}
           {error && <p className="onb-error" role="alert">{error}</p>}
-          <button className="onb-primary" type="submit" disabled={busy || !name.trim()}>
+          <button className="onb-primary" type="submit" disabled={busy}>
             {busy ? '만드는 중…' : '전보함 만들기'}
           </button>
         </form>
