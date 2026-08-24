@@ -85,8 +85,8 @@ docs/PORTING-SPEC.md
 2. ~~디자인 토큰 · 색 시스템 (§3, §4)~~ — 완료. 용지 테두리 스타일(비색상 단서) 포함
 3. ~~인증 → 온보딩(봉인함/열린함 선택) → 전보함 전환 바~~ — 완료. `pnpm ui:check`
 4. ~~타전실 → 수신함(봉투 UI) → 서가~~ — 완료. `pnpm ui:check4`
-5. 만남 마감 5단계 + 제본 애니메이션 (§6-2) — 타임라인 그대로 + reduced-motion 경로
-6. 사운드 (§6-1)
+5. ~~만남 마감 5단계 + 제본 애니메이션 (§6-2)~~ — 완료. `pnpm ui:check5`
+6. 사운드 (§6-1) — `src/lib/sounds.ts` 안만 채우면 된다. 호출 지점은 이미 있다
 7. **여기까지 끝난 뒤에야** 그 밖의 신기능
 
 ## 포팅과 함께 고칠 것 (기존 구현의 알려진 결함)
@@ -96,11 +96,13 @@ docs/PORTING-SPEC.md
 
 - 표지 base64가 문서에 인라인 → Storage (`covers/{box_id}/{volume_id}.jpg`)
 - 상태 계층 이중 구현 → `interface BoxStore` 하나
-- `prefers-reduced-motion` 미지원 → 제본 애니메이션 0.4초 페이드 경로
+- ~~`prefers-reduced-motion` 미지원~~ — 해결. `useReducedMotion()` 이 5.8초 타임라인을
+  건너뛴다. CSS 로 애니메이션만 꺼 두면 그동안 빈 화면을 본다
 - 용지색이 색 단서만 제공 → 테두리 스타일(실선/파선/이중선/점선) 추가
 - ~~한글 IME 조합 중 글자 수가 튀고 타건음이 과하게 울림~~ — 해결. 타건음은 `keydown`,
   글자 수는 입력값, 자르기는 `compositionend`. 해머 자리는 `KeyboardEvent.code`
-- 마감 완료 화면이 Promise를 동기로 취급해 "VOL.undefined" → await
+- ~~마감 완료 화면이 Promise를 동기로 취급해 "VOL.undefined"~~ — 해결. 제본은
+  애니메이션과 나란히 돌고, 애니메이션이 끝날 때 결과를 기다린다
 - ~~전송 실패가 조용함~~ — 해결. `catch` 하고 종이 아래에 알린다
 - ~~`user-scalable=no` 제거, 폰트 self-host~~ — 완료. media query 는 아직
 - `ritual.jsx`가 로드되지도 않는 `Noto Serif KR`/`Cormorant Garamond`를 씀 → Fraunces로 통일
@@ -120,6 +122,7 @@ supabase/tests/concurrency_test.sh # 동시 마감
 pnpm build && pnpm preview &       # 아래 셋은 미리보기 서버가 떠 있어야 한다
 pnpm ui:check                      # 인증 · 온보딩 · 전환 바
 pnpm ui:check4                     # 타전실 · 수신함(봉투) · 서가
+pnpm ui:check5                     # 만남 마감 5단계 · 제본 애니메이션
 pnpm tint:check                    # §4-2 타자기색이 실제로 구분되는지 (D9)
 ```
 

@@ -308,8 +308,9 @@ export function createSupabaseStore(): BoxStore {
       }));
     },
 
-    async uploadCover(boxId, volumeId, file) {
-      const path = `${boxId}/${volumeId}.jpg`;
+    async uploadCover(boxId, file) {
+      const name = globalThis.crypto?.randomUUID?.() ?? `c${Date.now()}`;
+      const path = `${boxId}/${name}.jpg`;
       const { error } = await db.storage.from(COVERS)
         .upload(path, file, { contentType: 'image/jpeg', upsert: true });
       if (error) throw error;

@@ -205,14 +205,17 @@ ok('제본된 권은 전문이 보인다', (await page.textContent('.book')).inc
 await shot('07-book');
 await page.keyboard.press('Escape');
 
-console.log('\n━━━ 마감 완충 (D4) ━━━');
+console.log('\n━━━ 마감으로 이어진다 ━━━');
+// 마감 의식 자체는 pnpm ui:check5 가 본다. 여기서는 타전실에서 열리는지만 확인한다.
 await page.click('.nav-btn >> nth=0');
 await type('테스트 전보 STOP');
 await send();
 await page.click('.meet');
-await page.waitForSelector('[role=dialog]');
-ok('마감 전에 이번 권 통수를 알려준다', (await page.textContent('.ritual-stub')).includes('1통'));
+await page.waitForSelector('.rt-card', { timeout: 5000 });
+ok('타전실에서 만남 마감이 열린다', (await page.textContent('.rt-title')).includes('이번 권을 닫습니다'));
 await page.keyboard.press('Escape');
+await page.waitForSelector('.rt-card', { state: 'detached', timeout: 3000 });
+ok('Escape 로 닫힌다', true);
 
 ok('페이지 오류가 없다', pageErrors.length === 0, pageErrors.join(' / '));
 console.log(failed ? `\n━━━ 실패 ${failed}건 ━━━` : '\n━━━ 전부 통과 ━━━');

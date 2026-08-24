@@ -56,6 +56,9 @@
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* 제본 중 진행 문구가 숨 쉬듯 흐려졌다 밝아진다 */
+@keyframes pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
 /* 제본을 건너뛸 때 결과 화면으로 넘어가는 0.4초 페이드 */
 @keyframes bindSkip { from { opacity: 0; } to { opacity: 1; } }
 
