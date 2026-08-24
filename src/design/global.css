@@ -20,11 +20,19 @@ body {
 /* 앱 껍데기 — 푸터(MakerMark)는 아래에 붙고, .app 이 남은 높이를 가져간다. */
 #root { min-height: 100dvh; display: flex; flex-direction: column; }
 
+/* 가로 넘침 방지선. 무엇 하나라도 문서를 옆으로 넓히면 iOS 사파리가 화면
+   전체를 축소(shrink-to-fit)해 "폭이 이상하고 타이핑하면 늘어나는" 증상이 된다.
+   clip 은 스크롤 컨테이너를 만들지 않아 자식의 position: fixed 를 깨지 않는다. */
+html, body, #root { max-width: 100%; overflow-x: clip; }
+
 /* 타전실에서만 루트 높이를 못박는다. min-height 만으로는 전보가 쌓일 때 페이지가
    늘어나 타자기와 종이가 화면 밖으로 밀려난다 — 스크롤은 3구역 안에서만 일어난다. */
 /* svh(최소 뷰포트)를 쓴다. dvh 는 사파리 툴바가 접히고 펼쳐질 때마다 바뀌어
-   입력에 포커스할 때마다 화면이 출렁였다. */
-html[data-fixed], html[data-fixed] body { height: 100svh; overflow: hidden; }
+   입력에 포커스할 때마다 화면이 출렁였다.
+   overflow: hidden 은 body 에만 건다 — html 에 걸면 iOS 사파리가 키보드와
+   함께 배율을 이상하게 잡는다. */
+html[data-fixed], html[data-fixed] body { height: 100svh; }
+html[data-fixed] body { overflow: hidden; }
 html[data-fixed] #root { height: 100svh; min-height: 0; }
 
 button, input, textarea, select { font: inherit; color: inherit; letter-spacing: inherit; }
