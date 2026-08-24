@@ -8,11 +8,15 @@
 .maker-text { font-size: 12px; color: var(--ink-light); letter-spacing: -.005em; }
 .maker-name { font-weight: 500; color: var(--ink-faded); letter-spacing: .04em; }
 
-.maker-home {
+.maker-home, .maker-mute {
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px;
   border: 1px solid var(--divider); border-radius: var(--radius);
   color: var(--ink-light); text-decoration: none;
+  background: none;
   transition: color var(--t-fast) ease, border-color var(--t-fast) ease;
 }
-.maker-home:hover { color: var(--ink-mid); border-color: var(--ink-faint); }
+.maker-home:hover, .maker-mute:hover { color: var(--ink-mid); border-color: var(--ink-faint); }
+
+/* 음소거 상태는 액센트로 아주 약하게 알린다 — 조용히 하고 있다는 표시. */
+.maker-mute[aria-pressed="true"] { color: var(--accent); border-color: var(--accent-soft); }

@@ -18,7 +18,7 @@ import type {
 const KEY = 'olrw.memory.v1';
 const CODE_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-interface User { id: Uuid; email: string; password: string; displayName: string }
+interface User { id: Uuid; email: string; password: string; displayName: string; isGuest?: boolean }
 interface MemberRow { userId: Uuid; paper: PaperId; type: TypeId; joinedAt: string }
 interface BoxRow {
   id: Uuid; name: string; inviteCode: string; ownerId: Uuid;
@@ -76,7 +76,9 @@ export function createMemoryStore(): BoxStore {
   const listeners = new Set<(s: Session | null) => void>();
   const sessionOf = (): Session | null => {
     const u = db.users.find((x) => x.id === db.sessionUserId);
-    return u ? { userId: u.id, email: u.email, displayName: u.displayName } : null;
+    if (!u) return null;
+    const base = { userId: u.id, email: u.email, displayName: u.displayName };
+    return u.isGuest ? { ...base, isGuest: true } : base;
   };
 
   /**
@@ -149,6 +151,22 @@ export function createMemoryStore(): BoxStore {
       const u = db.users.find((x) => x.email === mail);
       if (!u || u.password !== password) throw new Error('이메일 또는 비밀번호가 일치하지 않습니다.');
       db.sessionUserId = u.id;
+      emitSession();
+    },
+
+    async enterAsGuest() {
+      // 매번 새 사용자를 만든다. 이전 체험 계정과 데이터가 섞이지 않게.
+      // 표시 이름은 짧은 익명 라벨. 상대에게 보일 일이 없어 예쁘게 붙일 이유가 없다.
+      const stamp = uuid().slice(0, 4).toUpperCase();
+      const guest: User = {
+        id: uuid(),
+        email: `guest-${stamp}@olrw.local`,
+        password: uuid(),   // 다시 로그인할 수 없게, 예측 불가한 값으로 채운다
+        displayName: '체험 사용자',
+        isGuest: true,
+      };
+      db.users.push(guest);
+      db.sessionUserId = guest.id;
       emitSession();
     },
 

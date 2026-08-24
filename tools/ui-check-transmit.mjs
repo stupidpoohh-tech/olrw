@@ -50,11 +50,13 @@ const send = async () => {
 await page.goto(`http://localhost:${PORT}/`, { timeout: 8000, waitUntil: 'networkidle' });
 await page.evaluate(() => localStorage.clear());
 
-// 타건음이 몇 번 울리는지 센다. playKey 는 oscillator 를 정확히 하나 만든다.
+// 타건음이 몇 번 울리는지 센다. strike 계열(강철·참나무·이끼)은 활자 노이즈로
+// bufferSource 를 정확히 하나 만든다. 이 테스트는 기본 타자기(강철)로 도니 안전하다.
+// oscillator 로 세면 강철의 금속 잔향까지 세서 결과가 부풀려진다.
 await page.addInitScript(() => {
   window.__osc = 0;
-  const orig = AudioContext.prototype.createOscillator;
-  AudioContext.prototype.createOscillator = function (...a) { window.__osc++; return orig.apply(this, a); };
+  const orig = AudioContext.prototype.createBufferSource;
+  AudioContext.prototype.createBufferSource = function (...a) { window.__osc++; return orig.apply(this, a); };
 });
 await page.reload({ waitUntil: 'networkidle' });
 

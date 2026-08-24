@@ -86,7 +86,8 @@ const data = await page.evaluate(async ({ soundsSrc, twSrc, shapeNames }) => {
     const bellR = await render(snd.SYNTHS.playBell(t.voice));
     const probes = {};
     for (const f of [1500, 1900, 2200, 2900, 2250, 2850, 3300, 4350]) probes[f] = mag(bellR, f);
-    voices.push({ id: t.id, label: t.label, keyCentroid: Math.round(c / 5),
+    voices.push({ id: t.id, label: t.label, kind: t.voice.key.kind,
+                  keyCentroid: Math.round(c / 5),
                   bell: t.voice.bell, bellMag: probes, off: mag(bellR, 700) });
   }
   return { shape, voices };
@@ -111,7 +112,7 @@ for (const [name, spec] of Object.entries(SHAPE)) {
 
 console.log('\n━━━ 네 대가 다르게 들리는가 (D9) ━━━\n');
 for (const v of data.voices) {
-  console.log(`  ${v.id.padEnd(6)} ${v.label.padEnd(4)} 타건 무게중심 ${String(v.keyCentroid).padStart(4)}Hz   벨 ${v.bell.join(' / ')}Hz`);
+  console.log(`  ${v.id.padEnd(6)} ${v.label.padEnd(4)} [${v.kind.padEnd(6)}] 타건 무게중심 ${String(v.keyCentroid).padStart(4)}Hz   벨 ${v.bell.join(' / ')}Hz`);
 }
 console.log('');
 
@@ -124,11 +125,16 @@ for (const v of data.voices) {
 }
 
 const by = Object.fromEntries(data.voices.map((v) => [v.id, v.keyCentroid]));
-ok('설탕이 강철보다 높게 친다', by.sugar > by.steel, `${by.sugar}Hz > ${by.steel}Hz`);
+// 설탕은 이제 bubble — 다른 종류의 소리다. 정체성이 실제로 다른지 kind 로 검증한다.
+// 나머지 셋(strike)은 여전히 강철 > 이끼 > 참나무 순서를 유지해야 한다.
+const kinds = Object.fromEntries(data.voices.map((v) => [v.id, v.kind]));
+ok('설탕은 버블이다 (다른 종류의 소리)', kinds.sugar === 'bubble', `sugar.kind = ${kinds.sugar}`);
+ok('강철·참나무·이끼는 스트라이크다', kinds.steel === 'strike' && kinds.oak === 'strike' && kinds.moss === 'strike');
 ok('강철이 이끼보다 높게 친다', by.steel > by.moss, `${by.steel}Hz > ${by.moss}Hz`);
 ok('이끼가 참나무보다 높게 친다', by.moss > by.oak, `${by.moss}Hz > ${by.oak}Hz`);
-const spread = Math.max(...Object.values(by)) - Math.min(...Object.values(by));
-ok('네 타건음이 충분히 벌어져 있다', spread >= 400, `가장 높은 것과 낮은 것의 차이 ${spread}Hz`);
+const strikeCentroids = ['steel', 'moss', 'oak'].map((id) => by[id]);
+const spread = Math.max(...strikeCentroids) - Math.min(...strikeCentroids);
+ok('세 스트라이크가 충분히 벌어져 있다', spread >= 400, `가장 높은 것과 낮은 것의 차이 ${spread}Hz`);
 
 console.log(failed ? `\n━━━ 실패 ${failed}건 ━━━` : '\n━━━ 전부 통과 ━━━');
 process.exit(failed ? 1 : 0);
