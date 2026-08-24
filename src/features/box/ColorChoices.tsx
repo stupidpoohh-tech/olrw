@@ -1,5 +1,5 @@
 import { PAPER_COLORS, type PaperId } from '../../design/colors';
-import { paperSwatchStyle } from '../../design/paper';
+import { getPaper } from '../../design/colors';
 import { TYPEWRITERS, getTypewriter, type TypeId } from '../../design/typewriters';
 import './ColorChoices.css';
 
@@ -25,11 +25,9 @@ export function PaperChoices({ value, onChange, taken = [] }: PaperProps) {
             title={isTaken ? `${p.label} — 다른 참여자가 쓰고 있어요` : p.label}
             disabled={isTaken}
             className={`swatch paper ${value === p.id ? 'active' : ''} ${isTaken ? 'taken' : ''}`}
-            style={paperSwatchStyle(p.id)}
+            style={{ background: getPaper(p.id).bg, borderColor: getPaper(p.id).edge }}
             onClick={() => onChange(p.id)}
-          >
-            {value === p.id && <span className="swatch-check" style={{ color: p.ink }}>✓</span>}
-          </button>
+          />
         );
       })}
     </div>

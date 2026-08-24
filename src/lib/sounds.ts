@@ -40,15 +40,15 @@ function noise(ctx: BaseAudioContext, seconds: number, amp: (t: number) => numbe
  */
 export const key = (v: Voice): Synth => {
   switch (v.key.kind) {
-    case 'bubble': return bubble(v.key);
-    case 'rustle': return rustle(v.key);
-    default:       return strike(v.key);
+    case 'bubble':  return bubble(v.key);
+    case 'droplet': return droplet(v.key);
+    default:        return strike(v.key);
   }
 };
 
 type Strike = Extract<Voice['key'], { kind: 'strike' }>;
 type Bubble = Extract<Voice['key'], { kind: 'bubble' }>;
-type Rustle = Extract<Voice['key'], { kind: 'rustle' }>;
+type Droplet = Extract<Voice['key'], { kind: 'droplet' }>;
 
 const strike = (k: Strike): Synth => (ctx, out, t0) => {
   const src = ctx.createBufferSource();
@@ -142,98 +142,42 @@ const bubble = (k: Bubble): Synth => (ctx, out, t0) => {
 };
 
 /**
- * 나뭇잎에 파묻힌 타자기(이끼).
+ * 이끼 타자기 — 숲속 물방울 (ASMR).
  *
- * 이 타자기만 예외로 실제 녹음을 쓴다 — 사용자가 준 잎사귀·이슬 녹음에서
- * 실제 사건 구간만 골라 편집했다. 나머지 타자기는 여전히 §6-1 합성이다.
+ * 실제 녹음을 쓰던 시도는 접었다(원본이 너무 조용해 잡음만 커졌다). 대신
+ * 설탕(버블)처럼 순수 합성으로, 타자기 소리를 흉내내지 않고 그저 듣기 좋은
+ * 소리를 만든다 — 이끼 낀 샘에 물이 똑 떨어지는 '블뤼입'.
  *
- * 원본 잎사귀 녹음은 33초 중 실제 스침이 두 군데(21.8~23.2s · 28.2~28.9s)에만
- * 있는 아주 조용한 녹음이라(피크 3.8%), 그 사건들만 잘라 디노이즈·정규화한
- * **고정 슬롯 스프라이트**로 만들었다. 랜덤 오프셋으로 아무 데나 자르면
- * 대부분 무음이 나온다 — 그게 처음 버전이 망가진 이유였다.
- *
- * leaf.wav — 0.35s 슬롯 4개. 각 슬롯은 스침 한 번이고 시작 40ms 안에 어택이
- *   있다. 매 타건마다 슬롯 하나를 골라 통째로 재생한다. JS 페이드 없음 —
- *   페이드는 파일에 구워져 있고, WAV 라 인코더 지연도 없어 타건과 맞는다.
- * dew.wav — 0.40s 슬롯 2개 (작은 방울 · 큰 방울). 30% 확률로 얹는다.
- *
- * 첫 재생 순간에는 디코딩이 안 끝났을 수 있다. 그동안은 합성 폴백.
+ * 구조: ① sine 이 420Hz 근방에서 250Hz 로 잠깐 가라앉았다가 700Hz 로 부드럽게
+ *        미끄러진다. 고전적인 물방울 처프 — 아래로만 떨어지는 설탕의 pluck 과
+ *        움직임 방향이 다르다.
+ *       ② 그 아래 아주 옅은 lowpass 노이즈 한 겹 — 물의 촉촉함.
  */
+const droplet = (k: Droplet): Synth => (ctx, out, t0) => {
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  const from = k.start[0] + Math.random() * (k.start[1] - k.start[0]);
+  // 살짝 가라앉았다가 (30ms) 위로 미끄러진다 (110ms)
+  o.frequency.setValueAtTime(from, t0);
+  o.frequency.exponentialRampToValueAtTime(k.dip, t0 + 0.03);
+  o.frequency.exponentialRampToValueAtTime(k.rise * (0.92 + Math.random() * 0.16), t0 + 0.14);
+  // 부드러운 어택, 긴 꼬리 — 때리는 소리가 아니라 떨어지는 소리
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+  o.connect(g).connect(out);
+  o.start(t0);
+  o.stop(t0 + 0.2);
 
-const LEAF_SLOTS = 4;
-const LEAF_SLOT_DUR = 0.35;
-const DEW_SLOTS = 2;
-const DEW_SLOT_DUR = 0.40;
-/** 파일은 피크 ~0.6 로 정규화되어 있다. 강철 타건(피크 ~0.2)과 나란해지게 줄인다. */
-const LEAF_GAIN = 0.4;
-const DEW_GAIN = 0.6;
-const DEW_CHANCE = 0.3;
-
-// 브라우저가 열리자마자 파일은 받아 둔다. 첫 클릭 전에는 AudioContext 가
-// 없어 디코딩은 못하므로 raw bytes 만 캐시.
-type Bytes = ArrayBuffer;
-const fetchBytes = (url: string): Promise<Bytes> =>
-  fetch(url).then((r) => r.arrayBuffer());
-
-let leafBytes: Promise<Bytes> | null = null;
-let dewBytes:  Promise<Bytes> | null = null;
-let leafBuf: AudioBuffer | null = null;
-let dewBuf:  AudioBuffer | null = null;
-let decoding = false;
-
-// SSR 안전: window 가 있을 때만 fetch 시작. 실패해도 조용히 폴백된다.
-if (typeof window !== 'undefined') {
-  leafBytes = fetchBytes('/sounds/moss/leaf.wav').catch(() => new ArrayBuffer(0));
-  dewBytes  = fetchBytes('/sounds/moss/dew.wav').catch(() => new ArrayBuffer(0));
-}
-
-async function ensureBuffers(ctx: BaseAudioContext): Promise<void> {
-  if (decoding || (leafBuf && dewBuf)) return;
-  if (!leafBytes || !dewBytes) return;
-  decoding = true;
-  try {
-    const [lb, db] = await Promise.all([leafBytes, dewBytes]);
-    if (!leafBuf && lb.byteLength > 0) leafBuf = await ctx.decodeAudioData(lb.slice(0));
-    if (!dewBuf  && db.byteLength > 0) dewBuf  = await ctx.decodeAudioData(db.slice(0));
-  } catch { /* 디코딩 실패 = 폴백으로 조용히 */ }
-  finally { decoding = false; }
-}
-
-const rustle = (k: Rustle): Synth => (ctx, out, t0) => {
-  // 백그라운드로 디코딩을 걸어 둔다. 다음 키부터는 샘플이 뜬다.
-  void ensureBuffers(ctx);
-
-  if (leafBuf) {
-    const slot = Math.floor(Math.random() * LEAF_SLOTS);
+  if (k.moist > 0) {
     const src = ctx.createBufferSource();
-    src.buffer = leafBuf;
-    const g = ctx.createGain();
-    g.gain.value = LEAF_GAIN;
-    src.connect(g).connect(out);
-    // 슬롯 통째로, t0 에서 바로. 어택은 파일 안에 있다.
-    src.start(t0, slot * LEAF_SLOT_DUR, LEAF_SLOT_DUR);
-  } else {
-    // 폴백 합성 — 디코딩이 끝나기 전 첫 키 한두 번
-    const src = ctx.createBufferSource();
-    const decayRate = 3 / k.leaf.duration;
-    src.buffer = noise(ctx, k.leaf.duration, (t) => Math.exp(-t * decayRate) * k.leaf.amp);
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.frequency.value = k.leaf.band[0] + Math.random() * (k.leaf.band[1] - k.leaf.band[0]);
-    bp.Q.value = 1.3;
-    src.connect(bp).connect(out);
+    src.buffer = noise(ctx, 0.09, (t) => Math.exp(-t * 40) * k.moist);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1400;
+    src.connect(lp).connect(out);
     src.start(t0);
-  }
-
-  // 이슬방울 — 이따금, 확실히 들리게.
-  if (dewBuf && Math.random() < DEW_CHANCE) {
-    const slot = Math.floor(Math.random() * DEW_SLOTS);
-    const src = ctx.createBufferSource();
-    src.buffer = dewBuf;
-    const g = ctx.createGain();
-    g.gain.value = DEW_GAIN;
-    src.connect(g).connect(out);
-    src.start(t0 + 0.01, slot * DEW_SLOT_DUR, DEW_SLOT_DUR);
   }
 };
 

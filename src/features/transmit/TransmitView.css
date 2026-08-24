@@ -38,11 +38,14 @@
 .paper-type { position: relative; min-height: 108px; padding: 14px 0 10px; }
 /* 진짜 입력은 화면 밖에 두고, 잉크는 아래에서 그린다. 커서 · STOP 표시를 위해서다. */
 .paper-input { position: absolute; inset: 0; width: 100%; height: 100%;
+  overflow-wrap: anywhere;
   opacity: 0; resize: none; border: none; background: none;
   font-size: 15px; line-height: 1.8; caret-color: transparent; }
 .paper-input:focus { outline: none; }
 .paper-ink { font-size: 15px; line-height: 1.8; white-space: pre-wrap;
-  word-break: keep-all; pointer-events: none; }
+  /* keep-all 은 공백 없는 자모 연속(IME 장난·ㅋㅋ 연타)을 못 끊어 종이 밖으로 샌다.
+     anywhere 가 넘치는 경우에만 긴급 줄바꿈을 허용한다. */
+  word-break: keep-all; overflow-wrap: anywhere; pointer-events: none; }
 .paper-ghost { opacity: .38; }
 .paper-caret { display: inline-block; width: 7px; height: 1px; vertical-align: -1px;
   margin-left: 1px; background: currentColor; animation: caret 1.05s steps(2) infinite; }

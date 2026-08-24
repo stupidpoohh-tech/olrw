@@ -1,10 +1,12 @@
-.swatches { display: flex; flex-wrap: wrap; gap: 7px; }
-
-.swatch { width: 30px; height: 30px; border-radius: var(--radius-sm); position: relative;
-  border-style: solid; border-width: 1px; border-color: var(--divider);
-  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease); }
+/* 용지색 고르기 — 피커에서는 테두리 스타일 차이를 걷어내고 색만 조용히 보여준다.
+   실선/파선 같은 비색상 단서(§4-1)는 실제 전보 용지에서 그대로 산다. */
+.swatches { display: flex; gap: 6px; }
+.swatch { flex: 1; aspect-ratio: 1; max-width: 44px; min-width: 0;
+  border-radius: var(--radius-sm); position: relative;
+  border: 1px solid; /* 색은 인라인(용지의 edge 색) */
+  transition: box-shadow var(--t-fast) var(--ease), transform var(--t-fast) var(--ease); }
 .swatch:hover:not(:disabled) { transform: translateY(-1px); }
-.swatch.active { box-shadow: 0 0 0 1px var(--surface), 0 0 0 2px var(--ink); }
+.swatch.active { box-shadow: 0 0 0 1px var(--bg), 0 0 0 2.5px var(--ink); }
 
 .swatch.taken { opacity: .3; cursor: not-allowed; }
 /* 사용 중인 색에 사선 하나 — 흐림만으로는 이유가 안 보인다 */
@@ -12,31 +14,21 @@
   background: linear-gradient(to top right, transparent 46%, var(--ink-faded) 46%,
     var(--ink-faded) 54%, transparent 54%); }
 
-.swatch-check { position: absolute; inset: 0; display: flex; align-items: center;
-  justify-content: center; font-size: 13px; line-height: 1; }
-.swatch-check.light { color: rgba(255, 255, 255, .95); }
-
-/* 타자기 고르기 — 색 견본이 아니라 그림이다. 네 대가 한눈에 다르다. */
+/* 타자기 고르기 — 고른 한 대만 색이 있다. 나머지는 흑백으로 물러난다. */
 .machines { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 2px; }
-.machine { border: none; background: none; padding: 4px 4px 6px;
-  background: var(--surface); padding: 8px 8px 6px;
-  display: flex; flex-direction: column; gap: 4px; align-items: center;
-  transition: border-color var(--t-fast) var(--ease); }
-.machine:hover .machine-name { color: var(--ink-mid); }
-.machine.active { }
-.machine.active img {
-  /* 활성 타자기는 사진만으로 알린다 — 얇은 밑줄 대신 사진 아래 잉크 점 */
-}
+.machine { border: none; background: none; padding: 4px 2px 6px;
+  display: flex; flex-direction: column; gap: 5px; align-items: center; }
+.machine img { width: 100%; height: auto; display: block;
+  filter: grayscale(1); opacity: .4;
+  transition: filter var(--t-slow, 0.25s) var(--ease), opacity var(--t-slow, 0.25s) var(--ease); }
+.machine:hover img { opacity: .65; }
+.machine.active img { filter: none; opacity: 1; }
+.machine-name { display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11.5px; color: var(--ink-light);
+  transition: color var(--t-fast) var(--ease); }
 .machine.active .machine-name { color: var(--ink); font-weight: 500; }
-.machine.active .machine-name::before {
-  content: ''; display: inline-block;
-  width: 10px; height: 1px; background: var(--ink);
-  margin-right: 6px; vertical-align: middle;
-}
-.machine img { width: 100%; height: auto; display: block; }
-.machine-name { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px;
-  font-size: 11.5px; color: var(--ink-mid); }
-.machine.active .machine-name { color: var(--ink); }
-.machine-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.machine-dot { width: 7px; height: 7px; border-radius: 50%; flex: none;
+  opacity: .35; transition: opacity var(--t-fast) var(--ease); }
+.machine.active .machine-dot { opacity: 1; }
 .machine-note { font-size: 11px; color: var(--ink-faded); margin: 4px 0 0; line-height: 1.5; }
 .machine-note b { color: var(--ink-mid); font-weight: 500; }
