@@ -136,21 +136,19 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
 
           <div className="onb-field">
             <div className="onb-field-header">
-              <div className="onb-field-label">언제 열어볼까요?</div>
+              <div className="onb-field-label">언제 열어볼까요</div>
               <span className="onb-field-aside">나중에 바꿀 수 있습니다</span>
             </div>
             <div className="onb-seg" role="radiogroup" aria-label="언제 열어볼까요">
               <button type="button" role="radio" aria-checked={sealed}
                 className={`onb-seg-btn ${sealed ? 'active' : ''}`}
                 onClick={() => setSealed(true)}>
-                <span className="onb-seg-head"><LockIcon closed />봉인함</span>
-                <span className="onb-seg-sub">지정한 날 함께 열어요</span>
+                <MailIcon />봉인함
               </button>
               <button type="button" role="radio" aria-checked={!sealed}
                 className={`onb-seg-btn ${sealed ? '' : 'active'}`}
                 onClick={() => setSealed(false)}>
-                <span className="onb-seg-head"><LockIcon />열린함</span>
-                <span className="onb-seg-sub">지금 바로 열 수 있어요</span>
+                <MailIcon open />열린함
               </button>
             </div>
             <p className="onb-seg-desc">
@@ -191,16 +189,24 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
   );
 }
 
-/** 자물쇠. 닫히면 고리가 몸통에 붙고, 열리면 한쪽이 들린다. */
-function LockIcon({ closed = false }: { closed?: boolean }) {
+/** 봉투. 봉인은 덮개가 덮여 있고(안쪽 V), 열린함은 덮개가 위로 젖혀져 있다. */
+function MailIcon({ open = false }: { open?: boolean }) {
   return (
-    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false">
-      <rect x="3.2" y="7" width="9.6" height="6.6" rx="1.4"
-        fill="none" stroke="currentColor" strokeWidth="1.3" />
-      <path
-        d={closed ? 'M5.6 7V5.2a2.4 2.4 0 0 1 4.8 0V7' : 'M5.6 7V5.2a2.4 2.4 0 0 1 4.8 0'}
-        fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"
-      />
+    <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"
+      focusable="false" fill="none" stroke="currentColor" strokeWidth="1.4"
+      strokeLinecap="round" strokeLinejoin="round">
+      {open ? (
+        <>
+          {/* 몸통은 위가 트여 있고, 덮개가 그 위로 솟는다 */}
+          <path d="M2.7 8.8v5a1.8 1.8 0 0 0 1.8 1.8h11a1.8 1.8 0 0 0 1.8-1.8v-5" />
+          <path d="M2.7 8.8 10 3.5l7.3 5.3" />
+        </>
+      ) : (
+        <>
+          <rect x="2.7" y="5.2" width="14.6" height="10.4" rx="1.8" />
+          <path d="M3.2 6.1 10 11.1l6.8-5" />
+        </>
+      )}
     </svg>
   );
 }
