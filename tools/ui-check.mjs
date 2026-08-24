@@ -149,7 +149,7 @@ ok('남은 자리를 알려준다', (await page.textContent('.boxbar-open')).inc
 await shot('05-two-members');
 
 await page.click('.boxbar-switch');
-await page.click('text=내 색 · 이름 설정');
+await page.click('text=내 설정');
 await page.waitForSelector('[role=dialog]');
 ok('남이 쓰는 용지색이 잠긴다',
    (await page.$$('[role=dialog] .swatch.paper[disabled]')).length === 1);

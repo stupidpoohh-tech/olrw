@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { PAPER_COLORS, TYPE_COLORS, type PaperId, type TypeId } from '../../design/colors';
+import { PAPER_COLORS, type PaperId } from '../../design/colors';
+import { TYPEWRITERS, type TypeId } from '../../design/typewriters';
 import { useStore } from '../../lib/storeContext';
 import { toUserMessage } from '../../lib/errors';
 import { PaperChoices, TypeChoices } from './ColorChoices';
@@ -24,7 +25,7 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [paper, setPaper] = useState<PaperId>(PAPER_COLORS[0].id);
-  const [type, setType] = useState<TypeId>(TYPE_COLORS[0].id);
+  const [type, setType] = useState<TypeId>(TYPEWRITERS[0].id);
   const [sealed, setSealed] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -71,8 +72,10 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
         <PaperChoices value={paper} onChange={setPaper} />
       </div>
       <div className="onb-field">
-        <div className="onb-field-label">내 타자기 색</div>
-        <p className="onb-hint">어느 전보함에 있는지 구분하는 색입니다. 나만 봅니다.</p>
+        <div className="onb-field-label">내 타자기</div>
+        <p className="onb-hint">
+          어느 전보함에 있는지 알려주는 타자기입니다. 생김새도 소리도 다릅니다. 나만 봅니다.
+        </p>
         <TypeChoices value={type} onChange={setType} />
       </div>
     </>

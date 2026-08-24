@@ -1,40 +1,37 @@
 /**
- * 타자기 사운드가 실제로 소리를 내는지 잰다. (docs/PORTING-SPEC.md §6-1)
+ * 타자기 소리를 잰다. (docs/PORTING-SPEC.md §6-1, docs/decisions.md D9)
  *
  *   pnpm sound:check
  *
  * 합성 코드를 OfflineAudioContext 로 렌더링해서 파형을 직접 본다. 오디오는 조용히
- * 망가지기 쉽다 — 노드 연결 하나가 빠져도 화면은 멀쩡하고 소리만 안 난다.
+ * 망가진다 — 노드 연결 하나가 빠져도 화면은 멀쩡하고 소리만 안 난다.
+ *
+ * 두 가지를 본다.
+ *   1) 소리마다 들릴 만한 크기와 정해진 길이가 나오는가
+ *   2) **네 대의 타자기가 실제로 다르게 들리는가** — 벨은 지정한 주파수에서 가장 세고,
+ *      타건음의 무게중심은 강철에서 참나무로 갈수록 낮아져야 한다
  */
 import { chromium } from 'playwright';
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
 
-/**
- * 각 소리가 만족해야 할 것.
- *
- * probe 는 세기를 재 볼 주파수(Hz), tone 은 "이 주파수가 저 주파수보다 세야 한다"는 조건이다.
- * §6-1 이 지정한 주파수가 실제로 나오는지 본다 — 소리가 나기만 하면 통과인 검사는 의미가 없다.
- */
-const SPEC = {
-  playKey: { minPeak: 0.05, dur: [0.06, 0.15], probe: [300, 3000],
-             tone: [3000, 300], note: '타건음 · highpass 1200~2000Hz' },
-  playBell: { minPeak: 0.05, dur: [0.70, 0.90], probe: [500, 2200, 3300],
-              tone: [2200, 500], tone2: [3300, 500], note: '여백 벨 · sine 2200 + 3300Hz' },
-  playReturn: { minPeak: 0.05, dur: [0.40, 0.55], probe: [80, 500, 3000],
-                tone: [500, 3000], tone2: [80, 3000], note: '캐리지 슬라이드 800→300Hz + 80Hz 쿵' },
-  playRoll: { minPeak: 0.01, dur: [0.55, 0.65], probe: [300, 3000],
-              tone: [300, 3000], note: '종이 굴러가는 소리 · lowpass 600Hz' },
-  playStamp: { minPeak: 0.10, dur: [0.08, 0.14], probe: [120, 2000],
-               tone: [120, 2000], note: '도장 · square 180→60Hz' },
-};
-
-// 소스를 그대로 묶어 브라우저에 넣는다. 미리보기 서버도 필요 없다.
-const { outputFiles } = await build({
-  entryPoints: [fileURLToPath(new URL('../src/lib/sounds.ts', import.meta.url))],
+const bundle = async (rel) => (await build({
+  entryPoints: [fileURLToPath(new URL(rel, import.meta.url))],
   bundle: true, format: 'esm', write: false, platform: 'browser', target: 'es2022',
-});
-const source = outputFiles[0].text;
+  loader: { '.webp': 'dataurl' },
+})).outputFiles[0].text;
+
+const soundsSrc = await bundle('../src/lib/sounds.ts');
+const twSrc = await bundle('../src/design/typewriters.ts');
+
+/** 소리마다 만족해야 할 크기와 길이. 강철 기준으로 잰다. */
+const SHAPE = {
+  playKey:    { minPeak: 0.05, dur: [0.06, 0.15], note: '타건음' },
+  playBell:   { minPeak: 0.05, dur: [0.70, 0.90], note: '여백 벨' },
+  playReturn: { minPeak: 0.05, dur: [0.40, 0.55], note: '캐리지' },
+  playRoll:   { minPeak: 0.01, dur: [0.55, 0.65], note: '종이 (제본 공통)' },
+  playStamp:  { minPeak: 0.10, dur: [0.08, 0.14], note: '도장 (제본 공통)' },
+};
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
@@ -42,42 +39,58 @@ const browser = await chromium.launch({
 const page = await browser.newPage();
 await page.goto('about:blank');
 
-const results = await page.evaluate(async ({ source, names, probeFreqs }) => {
-  const mod = await import(URL.createObjectURL(new Blob([source], { type: 'text/javascript' })));
-  const out = {};
-  for (const name of names) {
-    const synth = mod.SYNTHS[name];
-    const RATE = 44100;
+const data = await page.evaluate(async ({ soundsSrc, twSrc, shapeNames }) => {
+  const load = (s) => import(URL.createObjectURL(new Blob([s], { type: 'text/javascript' })));
+  const snd = await load(soundsSrc);
+  const tw = await load(twSrc);
+  const RATE = 44100;
+
+  const render = async (synth) => {
     const ctx = new OfflineAudioContext(1, RATE * 1.2, RATE);
     synth(ctx, ctx.destination, 0);
-    const rendered = await ctx.startRendering();
-    const d = rendered.getChannelData(0);
-
-    let peak = 0, lastLoud = 0;
+    const d = (await ctx.startRendering()).getChannelData(0);
+    let peak = 0, last = 0;
     for (let i = 0; i < d.length; i++) {
       const v = Math.abs(d[i]);
       if (v > peak) peak = v;
-      if (v > 0.002) lastLoud = i;
+      if (v > 0.002) last = i;
     }
-    // 저역/고역 대충 비교: 인접 샘플 차이가 크면 고역이 세다
-    // Goertzel — 특정 주파수의 세기만 골라 잰다. FFT 를 끌어올 필요가 없다.
-    const mag = (freq) => {
-      const k = (2 * Math.PI * freq) / RATE;
-      const coeff = 2 * Math.cos(k);
-      let s1 = 0, s2 = 0;
-      for (let i = 0; i <= lastLoud; i++) { const s0 = d[i] + coeff * s1 - s2; s2 = s1; s1 = s0; }
-      return Math.sqrt(Math.max(0, s1 * s1 + s2 * s2 - coeff * s1 * s2)) / (lastLoud + 1);
-    };
-    const probes = {};
-    for (const f of probeFreqs[name]) probes[f] = +mag(f).toFixed(5);
-    out[name] = { peak: +peak.toFixed(4), duration: +(lastLoud / RATE).toFixed(3), probes };
+    return { d, peak, last };
+  };
+  const mag = (r, freq) => {
+    const k = (2 * Math.PI * freq) / RATE, coeff = 2 * Math.cos(k);
+    let s1 = 0, s2 = 0;
+    for (let i = 0; i <= r.last; i++) { const s0 = r.d[i] + coeff * s1 - s2; s2 = s1; s1 = s0; }
+    return Math.sqrt(Math.max(0, s1*s1 + s2*s2 - coeff*s1*s2)) / (r.last + 1);
+  };
+  /** 스펙트럼 무게중심 — 소리가 얼마나 "높은" 쪽인가. */
+  const centroid = (r) => {
+    let num = 0, den = 0;
+    for (let f = 100; f <= 6000; f += 100) { const m = mag(r, f); num += f * m; den += m; }
+    return den ? num / den : 0;
+  };
+
+  const steel = tw.TYPEWRITERS[0].voice;
+  const shape = {};
+  for (const name of shapeNames) {
+    const make = snd.SYNTHS[name] ?? snd.RITUAL_SYNTHS[name];
+    const r = await render(snd.SYNTHS[name] ? make(steel) : make);
+    shape[name] = { peak: +r.peak.toFixed(4), duration: +(r.last / RATE).toFixed(3) };
   }
-  return out;
-}, {
-  source,
-  names: Object.keys(SPEC),
-  probeFreqs: Object.fromEntries(Object.entries(SPEC).map(([k, v]) => [k, v.probe])),
-});
+
+  const voices = [];
+  for (const t of tw.TYPEWRITERS) {
+    // 랜덤 성분이 있으니 여러 번 내서 평균을 본다
+    let c = 0;
+    for (let i = 0; i < 5; i++) c += centroid(await render(snd.SYNTHS.playKey(t.voice)));
+    const bellR = await render(snd.SYNTHS.playBell(t.voice));
+    const probes = {};
+    for (const f of [1500, 1900, 2200, 2900, 2250, 2850, 3300, 4350]) probes[f] = mag(bellR, f);
+    voices.push({ id: t.id, label: t.label, keyCentroid: Math.round(c / 5),
+                  bell: t.voice.bell, bellMag: probes, off: mag(bellR, 700) });
+  }
+  return { shape, voices };
+}, { soundsSrc, twSrc, shapeNames: Object.keys(SHAPE) });
 
 await browser.close();
 
@@ -87,22 +100,35 @@ const ok = (label, cond, detail = '') => {
   if (!cond) failed++;
 };
 
-for (const [name, spec] of Object.entries(SPEC)) {
-  const r = results[name];
-  console.log(`\n${name}  (${spec.note})`);
-  console.log(`   peak ${r.peak}   길이 ${r.duration}s   `
-    + Object.entries(r.probes).map(([f, m]) => `${f}Hz ${m}`).join('  '));
-
-  ok(`들릴 만한 소리를 낸다`, r.peak >= spec.minPeak, `peak ${r.peak} ≥ ${spec.minPeak}`);
-  ok(`길이가 ${spec.dur[0]}~${spec.dur[1]}s 다`,
+console.log('━━━ 소리의 크기와 길이 (강철 기준) ━━━\n');
+for (const [name, spec] of Object.entries(SHAPE)) {
+  const r = data.shape[name];
+  console.log(`${name}  (${spec.note})   peak ${r.peak}  길이 ${r.duration}s`);
+  ok(`  들릴 만한 소리를 낸다`, r.peak >= spec.minPeak, `peak ${r.peak} ≥ ${spec.minPeak}`);
+  ok(`  길이가 ${spec.dur[0]}~${spec.dur[1]}s 다`,
      r.duration >= spec.dur[0] && r.duration <= spec.dur[1], `${r.duration}s`);
-
-  for (const pair of [spec.tone, spec.tone2].filter(Boolean)) {
-    const [strong, weak] = pair;
-    const a = r.probes[strong], b = r.probes[weak];
-    ok(`${strong}Hz 가 ${weak}Hz 보다 세다`, a > b * 1.5, `${a} vs ${b}`);
-  }
 }
+
+console.log('\n━━━ 네 대가 다르게 들리는가 (D9) ━━━\n');
+for (const v of data.voices) {
+  console.log(`  ${v.id.padEnd(6)} ${v.label.padEnd(4)} 타건 무게중심 ${String(v.keyCentroid).padStart(4)}Hz   벨 ${v.bell.join(' / ')}Hz`);
+}
+console.log('');
+
+for (const v of data.voices) {
+  const [f1, f2] = v.bell;
+  ok(`${v.label} 벨이 ${f1}Hz 에서 울린다`, v.bellMag[f1] > v.off * 3,
+     `${v.bellMag[f1].toFixed(5)} vs 700Hz ${v.off.toFixed(5)}`);
+  ok(`${v.label} 벨이 ${f2}Hz 에서도 울린다`, v.bellMag[f2] > v.off * 3,
+     `${v.bellMag[f2].toFixed(5)}`);
+}
+
+const by = Object.fromEntries(data.voices.map((v) => [v.id, v.keyCentroid]));
+ok('설탕이 강철보다 높게 친다', by.sugar > by.steel, `${by.sugar}Hz > ${by.steel}Hz`);
+ok('강철이 이끼보다 높게 친다', by.steel > by.moss, `${by.steel}Hz > ${by.moss}Hz`);
+ok('이끼가 참나무보다 높게 친다', by.moss > by.oak, `${by.moss}Hz > ${by.oak}Hz`);
+const spread = Math.max(...Object.values(by)) - Math.min(...Object.values(by));
+ok('네 타건음이 충분히 벌어져 있다', spread >= 400, `가장 높은 것과 낮은 것의 차이 ${spread}Hz`);
 
 console.log(failed ? `\n━━━ 실패 ${failed}건 ━━━` : '\n━━━ 전부 통과 ━━━');
 process.exit(failed ? 1 : 0);

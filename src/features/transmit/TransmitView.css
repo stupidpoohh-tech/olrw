@@ -2,26 +2,21 @@
 
 .stage { position: relative; padding-top: 6px; }
 
-.tw { position: relative; width: 100%; max-width: 300px; margin: 0 auto -14px;
+.tw { position: relative; width: 100%; max-width: 340px; margin: 0 auto -20px;
   z-index: 2; pointer-events: none; }
-.tw-img { width: 100%; height: auto; display: block;
-  transition: filter var(--t-slow) var(--ease);
-  /* 사진 배경이 순백이라 그대로 두면 페이지 위에 흰 사각형이 뜬다.
-     multiply 로 흰 배경을 페이지 색에 녹인다. 배경이 투명한 사진이 들어오면
-     (docs/typewriter-photos.md) 이 줄은 아무 일도 하지 않는다. */
-  mix-blend-mode: multiply; }
+/* 네 장 모두 배경이 투명하다. blend 로 흰 바탕을 녹일 필요가 없다. */
+.tw-img { width: 100%; height: auto; display: block; }
 
-/* 눌린 키 자리. 좌표는 keys.ts 가 사진 기준 백분율로 준다. */
+/* 눌린 키 자리. 좌표와 빛깔은 타자기마다 다르다 (design/typewriters.ts). */
 .tw-key { position: absolute; transform: translate(-50%, -50%);
   border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(255, 255, 255, .95), rgba(255, 255, 255, 0) 68%);
   animation: keyHit .16s ease-out both; }
 @keyframes keyHit {
   0%   { opacity: .85; transform: translate(-50%, -50%) scale(.55); }
   100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.35); }
 }
 
-.tw-bell { position: absolute; right: 12%; top: 16%; width: 10%; padding-bottom: 10%;
+.tw-bell { position: absolute; right: 14%; top: 20%; width: 8%; padding-bottom: 8%;
   border-radius: 50%; opacity: 0; }
 .tw-bell.ring { animation: bellGlint .7s ease-out both;
   background: radial-gradient(circle, rgba(255,255,255,.85), transparent 70%); }

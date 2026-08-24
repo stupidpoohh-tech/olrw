@@ -1,6 +1,6 @@
-import { PAPER_COLORS, TYPE_COLORS, type PaperId, type TypeId } from '../../design/colors';
+import { PAPER_COLORS, type PaperId } from '../../design/colors';
 import { paperSwatchStyle } from '../../design/paper';
-import { typewriterArt } from '../../design/typewriter';
+import { TYPEWRITERS, getTypewriter, type TypeId } from '../../design/typewriters';
 import './ColorChoices.css';
 
 interface PaperProps {
@@ -37,29 +37,30 @@ export function PaperChoices({ value, onChange, taken = [] }: PaperProps) {
 }
 
 export function TypeChoices({ value, onChange }: { value: TypeId; onChange: (id: TypeId) => void }) {
-  const art = typewriterArt(value);
+  const chosen = getTypewriter(value);
   return (
     <>
-      <div className="swatches" role="radiogroup" aria-label="타자기색">
-        {TYPE_COLORS.map((t) => (
+      <div className="machines" role="radiogroup" aria-label="타자기">
+        {TYPEWRITERS.map((t) => (
           <button
             key={t.id}
             type="button"
             role="radio"
             aria-checked={value === t.id}
-            aria-label={t.label}
-            title={t.label}
-            className={`swatch type ${value === t.id ? 'active' : ''}`}
-            style={{ background: t.tint, borderColor: t.tint }}
+            className={`machine ${value === t.id ? 'active' : ''}`}
             onClick={() => onChange(t.id)}
           >
-            {value === t.id && <span className="swatch-check light">✓</span>}
+            <img src={t.src} alt="" draggable={false} />
+            <span className="machine-name">
+              <span className="machine-dot" style={{ background: t.tint }} />
+              {t.label}
+            </span>
           </button>
         ))}
       </div>
-      <div className="type-preview">
-        <img src={art.src} alt="" style={art.filter ? { filter: art.filter } : undefined} />
-      </div>
+      <p className="machine-note">
+        고른 타자기에 따라 타건음과 벨소리가 달라집니다. 지금은 <b>{chosen.label}</b>입니다.
+      </p>
     </>
   );
 }

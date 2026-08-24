@@ -94,8 +94,9 @@ if (hit) {
   const tw = await (await page.$('.tw')).boundingBox();
   const rx = (box.x + box.width / 2 - tw.x) / tw.width * 100;
   const ry = (box.y + box.height / 2 - tw.y) / tw.height * 100;
-  // A 키는 사진 기준 x 28.2%, y 61.6% 다. 사진이 바뀌면 여기서 먼저 티가 난다.
-  ok('A 를 누르면 A 키 자리에 온다', Math.abs(rx - 28.2) < 1.5 && Math.abs(ry - 61.6) < 1.5,
+  // 기본 타자기(강철)의 A 는 x 26.0%, y 71.5% 다 (design/typewriters.ts).
+  // 사진이나 자리표가 바뀌면 여기서 먼저 티가 난다.
+  ok('A 를 누르면 A 키 자리에 온다', Math.abs(rx - 26.0) < 1.5 && Math.abs(ry - 71.5) < 1.5,
      `x ${rx.toFixed(1)}% y ${ry.toFixed(1)}%`);
 }
 await page.fill('.paper-input', '');

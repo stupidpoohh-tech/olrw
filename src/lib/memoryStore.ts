@@ -1,4 +1,5 @@
-import { pickPaper, type PaperId, type TypeId } from '../design/colors';
+import { pickPaper, type PaperId } from '../design/colors';
+import type { TypeId } from '../design/typewriters';
 import type { BoxStore } from './store';
 import type {
   Box, BoxSummary, Envelope, LengthBucket, Member, Session, Uuid, Volume, VolumePage,
@@ -166,7 +167,7 @@ export function createMemoryStore(): BoxStore {
         .map<BoxSummary>((b) => ({
           id: b.id, name: b.name, inviteCode: b.inviteCode,
           currentVol: b.currentVol, memberCount: b.members.length,
-          myType: b.members.find((m) => m.userId === uid)?.type ?? 'green',
+          myType: b.members.find((m) => m.userId === uid)?.type ?? 'steel',
           sealed: b.sealed,
         }));
     },
@@ -178,7 +179,7 @@ export function createMemoryStore(): BoxStore {
         id: b.id, name: b.name, inviteCode: b.inviteCode, ownerId: b.ownerId,
         currentVol: b.currentVol, sealed: b.sealed, readingStartedAt: b.readingStartedAt,
         memberCount: b.members.length,
-        myPaper: mine?.paper ?? 'ivory', myType: mine?.type ?? 'green',
+        myPaper: mine?.paper ?? 'ivory', myType: mine?.type ?? 'steel',
         members: toMembers(b),
       } satisfies Box;
     },

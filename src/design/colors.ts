@@ -52,36 +52,7 @@ export const PAPER_COLORS = [
   { id: 'mist',   label: '미스트',     bg: '#e9f1ec', edge: '#cee0d6', ink: '#374a41', edgeStyle: 'double', edgeWidth: 4 },
 ] as const satisfies readonly PaperColor[];
 
-/* ── 타자기색 — 전보함 구분 (개인 설정) ──────────────────────────────────── */
-
-export const TYPE_IDS = [
-  'green', 'teal', 'blue', 'plum', 'rose', 'terra', 'ochre', 'stone',
-] as const;
-export type TypeId = (typeof TYPE_IDS)[number];
-
-export interface TypeColor {
-  readonly id: TypeId;
-  readonly label: string;
-  /** UI 의 점 · 글로우에 쓰는 대표색 */
-  readonly tint: string;
-  /** 타자기 사진에 거는 CSS 필터 */
-  readonly filter: string;
-}
-
-/**
- * 원본 타자기 사진이 청록색이라 **채도를 먼저 낮추고 hue-rotate** 한다.
- * 순서를 바꾸면 색이 탁하고 촌스러워진다 — 1차 시안이 실제로 그렇게 실패했다. (§4-2)
- */
-export const TYPE_COLORS = [
-  { id: 'green', label: '세이지',     tint: '#8a9d8a', filter: 'saturate(.62) brightness(1.02)' },
-  { id: 'teal',  label: '틸',         tint: '#6f9296', filter: 'hue-rotate(18deg) saturate(.6) brightness(1.01)' },
-  { id: 'blue',  label: '블루그레이', tint: '#7286a0', filter: 'hue-rotate(48deg) saturate(.5)' },
-  { id: 'plum',  label: '플럼',       tint: '#8b7793', filter: 'hue-rotate(102deg) saturate(.42)' },
-  { id: 'rose',  label: '더스티로즈', tint: '#a8807f', filter: 'hue-rotate(150deg) saturate(.5) brightness(1.02)' },
-  { id: 'terra', label: '테라코타',   tint: '#ab7d63', filter: 'hue-rotate(178deg) saturate(.55) brightness(1.03)' },
-  { id: 'ochre', label: '오커',       tint: '#a9925f', filter: 'hue-rotate(205deg) saturate(.55) brightness(1.05)' },
-  { id: 'stone', label: '스톤',       tint: '#8d8a83', filter: 'saturate(.1) brightness(1.02)' },
-] as const satisfies readonly TypeColor[];
+/* 타자기는 이제 색이 아니라 물건이다 — src/design/typewriters.ts 를 본다. */
 
 /* ── 표지색 — 제본된 권 ──────────────────────────────────────────────────── */
 
@@ -109,27 +80,20 @@ export const COVER_COLORS = [
 /* ── 조회 ────────────────────────────────────────────────────────────────── */
 
 const paperById = new Map<string, PaperColor>(PAPER_COLORS.map((p) => [p.id, p]));
-const typeById  = new Map<string, TypeColor>(TYPE_COLORS.map((t) => [t.id, t]));
 const coverById = new Map<string, CoverColor>(COVER_COLORS.map((c) => [c.id, c]));
 
 export const DEFAULT_PAPER = PAPER_COLORS[0];
-export const DEFAULT_TYPE  = TYPE_COLORS[0];
 export const DEFAULT_COVER = COVER_COLORS[0];
 
 export const isPaperId = (v: unknown): v is PaperId => typeof v === 'string' && paperById.has(v);
-export const isTypeId  = (v: unknown): v is TypeId  => typeof v === 'string' && typeById.has(v);
 export const isCoverId = (v: unknown): v is CoverId => typeof v === 'string' && coverById.has(v);
 
 /** DB 는 문자열을 돌려준다. 모르는 값이 와도 화면이 깨지지 않게 기본값으로 떨어뜨린다. */
 export const getPaper = (id: string | null | undefined): PaperColor =>
   (id && paperById.get(id)) || DEFAULT_PAPER;
-export const getType = (id: string | null | undefined): TypeColor =>
-  (id && typeById.get(id)) || DEFAULT_TYPE;
 export const getCover = (id: string | null | undefined): CoverColor =>
   (id && coverById.get(id)) || DEFAULT_COVER;
 
 /** 새 참여자에게 아직 안 쓰인 색을 준다. 다 찼으면 순환한다. */
 export const pickPaper = (used: readonly string[] = []): PaperId =>
   (PAPER_COLORS.find((p) => !used.includes(p.id)) ?? PAPER_COLORS[used.length % PAPER_COLORS.length]!).id;
-export const pickType = (used: readonly string[] = []): TypeId =>
-  (TYPE_COLORS.find((t) => !used.includes(t.id)) ?? TYPE_COLORS[used.length % TYPE_COLORS.length]!).id;

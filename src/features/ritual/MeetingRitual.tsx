@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { CoverKind } from '../../design/colors';
 import { coverBackground } from '../../design/paper';
+import { getTypewriter } from '../../design/typewriters';
 import { period } from '../../lib/format';
 import { toUserMessage } from '../../lib/errors';
 import { useReducedMotion } from '../../lib/useReducedMotion';
@@ -198,6 +199,7 @@ export function MeetingRitual({ box, envelopes, onCancel, onArchived, reload }: 
           </div>
         ) : (
           <BindingAnimation
+            voice={getTypewriter(box.myType).voice}
             vol={box.currentVol}
             title={title}
             count={count}

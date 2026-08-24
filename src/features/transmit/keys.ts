@@ -5,38 +5,37 @@
  * 글자거나 'Process' 로 오는데, `code` 는 자판 배열과 무관하게 **누른 자리**를 그대로
  * 준다. 참조 구현은 한글이면 아무 자리나 반짝이게 했다. (docs/AUDIT.md §04-3)
  *
- * 좌표는 사진 크기에 대한 백분율이고, 지금 에셋(Olivetti Lettera 32, 1200×1200)에서
- * 키캡 중심을 직접 재서 넣은 값이다.
- *
- *   숫자열  y 52.8   x 29.8 부터 4.5 간격
- *   QWERTY  y 57.3   x 27.2 부터
- *   ASDF    y 61.6   x 28.2 부터
- *   ZXCV    y 66.2   x 29.4 부터
- *
- * **사진을 바꾸면 이 표를 다시 재야 한다.** docs/typewriter-photos.md 가 여덟 장의
- * 프레이밍을 픽셀 단위로 맞추라고 한 이유가 이것이다 — 프레이밍이 같으면 표는 그대로다.
+ * 좌표는 타자기마다 다르다. 네 대의 사진이 프레이밍이 서로 달라서, 자리표를
+ * `src/design/typewriters.ts` 의 `rows` 가 타자기별로 들고 있다.
  */
+import type { Typewriter } from '../../design/typewriters';
 
-export interface KeyPos { readonly x: number; readonly y: number }
+const ROWS: readonly (readonly string[])[] = [
+  ['Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0'],
+  ['KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP'],
+  ['KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK','KeyL'],
+  ['KeyZ','KeyX','KeyC','KeyV','KeyB','KeyN','KeyM','Comma','Period'],
+];
 
-/** 하이라이트 지름 (사진 폭에 대한 %). 키캡보다 살짝 작게 잡아 옆 키를 물지 않는다. */
-export const KEY_SIZE = 3.6;
+/** 자판에 자리가 있는 키인지. 스페이스·엔터 등은 해머를 움직이지 않는다. */
+const INDEX = new Map<string, readonly [row: number, col: number]>();
+ROWS.forEach((row, r) => row.forEach((code, c) => INDEX.set(code, [r, c] as const)));
 
-const row = (y: number, x0: number, codes: readonly string[]): [string, KeyPos][] =>
-  codes.map((code, i) => [code, { x: +(x0 + i * 4.5).toFixed(2), y }]);
+export interface KeyPos { readonly x: number; readonly y: number; readonly size: number }
 
-const LAYOUT = new Map<string, KeyPos>([
-  ...row(52.8, 29.8, ['Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0']),
-  ...row(57.3, 27.2, ['KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP']),
-  ...row(61.6, 28.2, ['KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK','KeyL']),
-  ...row(66.2, 29.4, ['KeyZ','KeyX','KeyC','KeyV','KeyB','KeyN','KeyM','Comma','Period']),
-]);
-
-/** 사진에 자리가 없는 키(스페이스·엔터 등)는 null. 해머는 움직이지 않는다. */
-export const keyPos = (code: string): KeyPos | null => LAYOUT.get(code) ?? null;
-
-/** 눈으로 자리를 확인할 때 쓴다. tools/ui-check-transmit.mjs 참고. */
-export const ALL_KEYS: readonly KeyPos[] = [...LAYOUT.values()];
+/** 자리가 없는 키는 null. */
+export function keyPos(tw: Typewriter, code: string): KeyPos | null {
+  const at = INDEX.get(code);
+  if (!at) return null;
+  const row = tw.rows[at[0]];
+  if (!row) return null;
+  return {
+    x: +(row.x0 + at[1] * row.gap).toFixed(2),
+    y: row.y,
+    // 하이라이트는 키캡보다 조금 작게. 간격에 비례하니 사진 크기가 달라도 맞는다.
+    size: +(row.gap * 0.78).toFixed(2),
+  };
+}
 
 /** 글자를 만들어 내는 키인가. 수식·이동 키에는 타건음을 내지 않는다. */
 export function isTypingKey(e: React.KeyboardEvent): boolean {
@@ -45,5 +44,9 @@ export function isTypingKey(e: React.KeyboardEvent): boolean {
   if (k === 'Backspace' || k === 'Delete') return true;
   if (k.length === 1) return true;
   // 한글 조합 중에는 key 가 'Process' 로 온다. code 로 판정한다.
-  return k === 'Process' || LAYOUT.has(e.code);
+  return k === 'Process' || INDEX.has(e.code);
 }
+
+/** 자리표를 눈으로 확인할 때 쓴다. tools/ui-check-transmit.mjs 참고. */
+export const allKeyPositions = (tw: Typewriter): KeyPos[] =>
+  [...INDEX.keys()].map((code) => keyPos(tw, code)).filter((p): p is KeyPos => p !== null);

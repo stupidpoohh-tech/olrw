@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { sounds } from '../../lib/sounds';
+import { getTypewriter } from '../../design/typewriters';
 import { toUserMessage } from '../../lib/errors';
 import type { Box, Envelope } from '../../lib/types';
 import { TelegramCard } from '../telegram/TelegramCard';
@@ -28,7 +29,7 @@ export function TransmitView({ box, envelopes, myId, onSent, onRetract, onOpenRi
     if (sending || !body) return;
     setError('');
     setSending(true);
-    sounds.playReturn();
+    sounds.playReturn(getTypewriter(box.myType).voice);
     try {
       // 캐리지가 돌아가는 동안 기다린다. 이 0.7초가 "타전했다"는 감각을 만든다.
       await new Promise((r) => setTimeout(r, 700));

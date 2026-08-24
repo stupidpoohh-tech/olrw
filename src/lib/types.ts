@@ -1,4 +1,5 @@
-import type { CoverId, CoverKind, PaperId, TypeId } from '../design/colors';
+import type { CoverId, CoverKind, PaperId } from '../design/colors';
+import type { TypeId } from '../design/typewriters';
 
 export type Uuid = string;
 /** ISO 8601 문자열. Date 객체를 도메인 경계 밖으로 내보내지 않는다. */

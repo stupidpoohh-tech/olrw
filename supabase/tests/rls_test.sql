@@ -43,22 +43,22 @@ select ok('가입 트리거가 프로필을 만든다', (select count(*) from pr
 
 set role authenticated;
 select as_user('11111111-1111-1111-1111-111111111111');
-select box_id as box, invite_code as code from create_box('퇴근길 전보함','ivory','green', true)
+select box_id as box, invite_code as code from create_box('퇴근길 전보함','ivory','steel', true)
 \gset
 select ok('[S1] ABCD-2345 형식 초대 코드가 체크를 통과한다',
           :'code' ~ '^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}$');
 
 select as_user('22222222-2222-2222-2222-222222222222');
 select ok('하이픈 없는 코드로 참여된다',
-          (select box_name from join_box(replace(:'code','-',''),'blush','green')) = '퇴근길 전보함');
+          (select box_name from join_box(replace(:'code','-',''),'blush','steel')) = '퇴근길 전보함');
 select as_user('33333333-3333-3333-3333-333333333333');
 select ok('소문자 코드로 참여된다',
-          (select box_name from join_box(lower(:'code'),'powder','green')) = '퇴근길 전보함');
+          (select box_name from join_box(lower(:'code'),'powder','steel')) = '퇴근길 전보함');
 
 -- 색은 정보다. 겹치면 발신인을 색으로 읽을 수 없다.
 select as_user('44444444-4444-4444-4444-444444444444');
 select ok('이미 쓰이는 용지색을 고르면 남은 색으로 돌려준다',
-          (select box_name from join_box(:'code','ivory','green')) is not null);
+          (select box_name from join_box(:'code','ivory','steel')) is not null);
 reset role;
 select ok('한 전보함 안에서 용지색이 겹치지 않는다',
           (select count(distinct paper_color) from box_members) = 4);
@@ -68,13 +68,13 @@ select ok('빈 색 중 목록 순서로 앞선 것을 준다 (ivory 요청 → s
 set role authenticated;
 select as_user('99999999-9999-9999-9999-999999999999');
 select denied('정원 4명 상한이 5번째를 막는다',
-              format('select join_box(%L,%L,%L)', :'code','sage','teal'));
+              format('select join_box(%L,%L,%L)', :'code','sage','oak'));
 
 \echo ''
 \echo '━━━ 침입 차단 ━━━'
 select denied('[S2] box_id를 알아도 직접 멤버가 될 수 없다',
   format('insert into box_members values (%L,%L,%L,%L)',
-         :'box','99999999-9999-9999-9999-999999999999','sage','teal'));
+         :'box','99999999-9999-9999-9999-999999999999','sage','oak'));
 select ok('[S2] 비멤버에게 전보함이 보이지 않는다', (select count(*) from boxes) = 0);
 
 \echo ''
@@ -214,11 +214,11 @@ select as_user('99999999-9999-9999-9999-999999999999');
 do $$
 declare i int; begin
   for i in 1..9 loop
-    begin perform join_box('ZZZZ-ZZZZ','sage','teal'); exception when others then null; end;
+    begin perform join_box('ZZZZ-ZZZZ','sage','oak'); exception when others then null; end;
   end loop;
 end $$;
 select denied('[S10] 시간당 10회를 넘는 코드 시도는 막힌다',
-  'select join_box(''ZZZZ-ZZZZ'',''sage'',''teal'')');
+  'select join_box(''ZZZZ-ZZZZ'',''sage'',''oak'')');
 
 \echo ''
 reset role;

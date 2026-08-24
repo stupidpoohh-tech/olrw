@@ -32,9 +32,9 @@ insert into auth.users (id,email,raw_user_meta_data) values
  ('22222222-2222-2222-2222-222222222222','b@x','{"display_name":"민서"}');
 set role authenticated;
 select as_user('11111111-1111-1111-1111-111111111111');
-select box_id as box, invite_code as code from create_box('t','ivory','green',true) \gset
+select box_id as box, invite_code as code from create_box('t','ivory','steel',true) \gset
 select as_user('22222222-2222-2222-2222-222222222222');
-select box_name from join_box(:'code','blush','green');
+select box_name from join_box(:'code','blush','steel');
 insert into telegrams (box_id,author_id,body,vol) values
  (:'box','22222222-2222-2222-2222-222222222222','하나 STOP',1),
  (:'box','22222222-2222-2222-2222-222222222222','둘 STOP',1);

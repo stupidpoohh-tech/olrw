@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import {
-  PAPER_COLORS, TYPE_COLORS, COVER_COLORS,
-  type PaperColor, type TypeColor,
-} from './colors';
+import { PAPER_COLORS, COVER_COLORS, type PaperColor } from './colors';
+import { TYPEWRITERS, type Typewriter } from './typewriters';
 import { paperStyle, paperSwatchStyle, coverBackground } from './paper';
 import './ProofSheet.css';
 
@@ -69,13 +67,13 @@ function Telegram({ paper, name, body }: { paper: PaperColor; name: string; body
   );
 }
 
-function TypewriterTint({ color }: { color: TypeColor }) {
+function Machine({ machine }: { machine: Typewriter }) {
   return (
     <div className="ps-type">
-      <img src="/assets/typewriter.png" alt="" style={{ filter: color.filter }} />
+      <img src={machine.src} alt="" />
       <div className="ps-type-name">
-        <span className="ps-dot" style={{ background: color.tint }} />
-        {color.label}
+        <span className="ps-dot" style={{ background: machine.tint }} />
+        {machine.label}
       </div>
     </div>
   );
@@ -155,26 +153,14 @@ export function ProofSheet() {
       </section>
 
       <section className="ps-sec">
-        <div className="ps-sec-label">§4-2 타자기색 — 전보함 구분</div>
+        <div className="ps-sec-label">타자기 — 전보함 구분 (D9)</div>
         <p className="ps-note">
-          §4-2 의 filter 값을 그대로 옮겼습니다. 이 색은 본인만 봅니다.
+          §4-2 는 사진 한 장에 필터를 걸어 여덟 색을 만들려 했지만, 여덟이 전부 같은
+          회색으로 나왔습니다(ΔE 1.0). 색 대신 네 대의 타자기로 바꿨습니다. 생김새도
+          소리도 다릅니다. 이 타자기는 본인만 봅니다.
         </p>
-        <div className="ps-warn">
-          <div className="ps-warn-label">작동하지 않습니다 — 결정이 필요합니다</div>
-          <p>
-            §4-2 는 원본 사진이 <b>채도 높은 청록색</b>이라고 전제하고 채도를 낮춘 뒤
-            hue-rotate 합니다. 그런데 번들에 담겨 온 사진은 <b>이미 채도가 0.084</b> 로
-            거의 무채색입니다. 낮출 채도가 없고, 무채색에 건 hue-rotate 는 아무 일도 하지 않습니다.
-          </p>
-          <p>
-            아래 여덟 장의 본체 평균색을 재보면 서로 <b>ΔE 1.0~6.4</b> 밖에 차이가 나지 않습니다.
-            ΔE 1 은 나란히 놓고도 거의 구분되지 않는 거리입니다. 즉 <b>전보함을 색으로 구분한다는
-            장치가 실제로는 동작하지 않습니다.</b> 참조 구현도 같은 사진을 썼으므로 기존 서비스에서도
-            줄곧 이랬을 것입니다.
-          </p>
-        </div>
         <div className="ps-types">
-          {TYPE_COLORS.map((t) => <TypewriterTint key={t.id} color={t} />)}
+          {TYPEWRITERS.map((t) => <Machine key={t.id} machine={t} />)}
         </div>
       </section>
 

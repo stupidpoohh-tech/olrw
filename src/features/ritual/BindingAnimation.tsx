@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { coverBackground } from '../../design/paper';
 import type { CoverKind } from '../../design/colors';
 import { sounds } from '../../lib/sounds';
+import type { Voice } from '../../design/typewriters';
 
 /**
  * 제본 애니메이션 — docs/PORTING-SPEC.md §6-2. 총 5.8초.
@@ -25,6 +26,8 @@ const STATUS = [
 ] as const;
 
 interface Props {
+  /** 캐리지 소리는 이 전보함의 타자기 것이다. 종이·도장은 공통이다. */
+  voice: Voice;
   vol: number;
   title: string;
   count: number;
@@ -33,7 +36,7 @@ interface Props {
   onDone: () => void;
 }
 
-export function BindingAnimation({ vol, title, count, coverKind, coverValue, onDone }: Props) {
+export function BindingAnimation({ voice, vol, title, count, coverKind, coverValue, onDone }: Props) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
@@ -42,11 +45,11 @@ export function BindingAnimation({ vol, title, count, coverKind, coverValue, onD
       setTimeout(() => setPhase(1), 1600),
       setTimeout(() => { setPhase(2); sounds.playRoll(); }, 2200),
       setTimeout(() => { setPhase(3); sounds.playStamp(); }, 3400),
-      setTimeout(() => { setPhase(4); sounds.playReturn(); }, 4400),
+      setTimeout(() => { setPhase(4); sounds.playReturn(voice); }, 4400),
       setTimeout(onDone, 5800),
     ];
     return () => timers.forEach(clearTimeout);
-  }, [onDone]);
+  }, [onDone, voice]);
 
   // 시작값을 미리 뽑아 CSS 변수로 넣는다.
   // --final 의 ±1.25도가 핵심이다. 완벽히 정렬하면 인쇄물이 아니라 디지털처럼 보인다.
