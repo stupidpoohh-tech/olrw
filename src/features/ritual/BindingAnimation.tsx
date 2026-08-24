@@ -96,6 +96,7 @@ export function BindingAnimation({ vol, title, count, coverKind, coverValue, onD
               background: cover, zIndex: 22,
               animation: 'coverWrapFront .7s cubic-bezier(.4,1.4,.5,1) both',
             }}>
+              {coverKind === 'photo' && <span className="bind-cover-scrim" />}
               <span className="bind-gold-edge" />
             </span>
           </>

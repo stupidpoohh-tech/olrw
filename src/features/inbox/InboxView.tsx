@@ -70,7 +70,7 @@ export function InboxView({ box, envelopes, myId }: Props) {
   );
 }
 
-function SealedEnvelope({ paper, author, sentAt, bucket }: {
+export function SealedEnvelope({ paper, author, sentAt, bucket }: {
   paper: PaperId; author: string; sentAt: string; bucket: LengthBucket;
 }) {
   const p = getPaper(paper);

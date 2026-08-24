@@ -32,8 +32,9 @@
 
 ```
 src/
-  app/            셸 · 라우팅 · 탭
+  app/            셸 · 라우팅 · 탭 · 공개 화면 문지기(PublicGate)
   features/
+    landing/      소개 화면 (로그인 앞)
     auth/         가입 · 로그인
     box/          온보딩 · 생성 · 참여 · 전환 바 · 멤버
     transmit/     타전실
@@ -83,7 +84,7 @@ docs/PORTING-SPEC.md
 
 1. ~~스키마 + RLS + 서버 함수~~ — 완료. `supabase/tests/run.sh`로 검증한다
 2. ~~디자인 토큰 · 색 시스템 (§3, §4)~~ — 완료. 용지 테두리 스타일(비색상 단서) 포함
-3. ~~인증 → 온보딩(봉인함/열린함 선택) → 전보함 전환 바~~ — 완료. `pnpm ui:check`
+3. ~~소개 → 인증 → 온보딩(봉인함/열린함 선택) → 전보함 전환 바~~ — 완료. `pnpm ui:check`
 4. ~~타전실 → 수신함(봉투 UI) → 서가~~ — 완료. `pnpm ui:check4`
 5. ~~만남 마감 5단계 + 제본 애니메이션 (§6-2)~~ — 완료. `pnpm ui:check5`
 6. ~~사운드 (§6-1)~~ — 완료. `pnpm sound:check`

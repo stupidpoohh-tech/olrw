@@ -31,6 +31,9 @@ page.on('pageerror', (e) => pageErrors.push(e.message));
 
 const shot = async (n) => { if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${SHOTS}/${n}.png` }); } };
 const signUp = async (name, email) => {
+  // 로그인 앞에 소개 화면이 선다.
+  if (await page.$('.lp')) await page.click('.lp-primary >> nth=0');
+  await page.waitForSelector('.auth', { timeout: 5000 });
   await page.click('.auth-tab >> nth=1');
   await page.fill('input[autocomplete="nickname"]', name);
   await page.fill('input[type=email]', email);
@@ -152,7 +155,7 @@ await page.fill('.paper-input', '');
 
 console.log('\n━━━ 봉인 (D1) ━━━');
 await page.click('.link:has-text("로그아웃")');
-await page.waitForSelector('.auth');
+await page.waitForSelector('.lp', { timeout: 5000 });
 await signUp('재이', 'b@olrw.test');
 await page.waitForSelector('text=첫 전보함을 엽니다');
 await page.click('.onb-tab >> nth=1');

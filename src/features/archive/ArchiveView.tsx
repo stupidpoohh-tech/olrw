@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { coverBackground, paperStyle, paperSwatchStyle } from '../../design/paper';
+import { cachedTint, coverTint, NEUTRAL_SPINE } from './coverTint';
 import { period, stamp } from '../../lib/format';
 import { toUserMessage } from '../../lib/errors';
 import { useStore } from '../../lib/storeContext';
@@ -66,13 +67,24 @@ export function ArchiveView({ boxId }: { boxId: string }) {
 
 function Spine({ volume, idx, onOpen }: { volume: Volume; idx: number; onOpen: () => void }) {
   const store = useStore();
-  const bg = volume.coverKind === 'photo'
-    ? coverBackground('photo', store.coverUrl(volume.coverValue))
-    : coverBackground('color', volume.coverValue);
+  const photo = volume.coverKind === 'photo' ? store.coverUrl(volume.coverValue) : null;
+
+  // 사진 표지의 책등 색. 계산될 때까지는 중립색으로 서 있는다.
+  const [tint, setTint] = useState<string>(() => (photo ? cachedTint(photo) ?? NEUTRAL_SPINE : ''));
+  useEffect(() => {
+    if (!photo || cachedTint(photo)) return;
+    let alive = true;
+    void coverTint(photo).then((v) => { if (alive) setTint(v); });
+    return () => { alive = false; };
+  }, [photo]);
+
+  const bg = photo ? tint : coverBackground('color', volume.coverValue);
 
   return (
     <button className="spine" data-h={idx % 5} style={{ background: bg }}
       onClick={onOpen} aria-label={`VOL.${volume.vol} 열기`}>
+      {/* 사진은 머리에 정사각 조각으로. 책등 전체에 깔면 세로 띠만 남는다. */}
+      {photo && <span className="spine-chip" style={{ backgroundImage: `url("${photo}")` }} />}
       <span className="spine-vol display tnum">VOL.{volume.vol}</span>
       {volume.title && <span className="spine-title">{volume.title}</span>}
       <span className="spine-count display tnum">{volume.pageCount}</span>
@@ -119,6 +131,19 @@ function BookOpen({ volume, onClose }: { volume: Volume; onClose: () => void }) 
       </div>
 
       <div className="book">
+        {volume.coverKind === 'photo' && (
+          <div className="book-cover" style={{
+            backgroundImage: `url("${store.coverUrl(volume.coverValue)}")`,
+          }}>
+            {/* §4-3: 사진 위 글자는 상하 어두운 스크림 + text-shadow 필수 */}
+            <span className="book-cover-scrim" />
+            <span className="book-cover-label">
+              <span className="display tnum">VOL.{volume.vol}</span>
+              {volume.title && <span className="book-cover-title">{volume.title}</span>}
+            </span>
+          </div>
+        )}
+
         <div className="book-title-page">
           <div className="book-vol display tnum">VOL.{volume.vol}</div>
           {volume.title && <div className="book-name">{volume.title}</div>}
