@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { sounds } from '../../lib/sounds';
-import { getTypewriter } from '../../design/typewriters';
+import { TYPE_IDS, getTypewriter, type TypeId } from '../../design/typewriters';
+import { useStore } from '../../lib/storeContext';
 import { toUserMessage } from '../../lib/errors';
 import type { Box, Envelope } from '../../lib/types';
 import { TelegramCard } from '../telegram/TelegramCard';
@@ -15,12 +16,36 @@ interface Props {
   onRetract: (id: string) => void | Promise<void>;
   onOpenRitual: () => void;
   send: (body: string) => Promise<void>;
+  /** 타자기를 바꾸면 전보함을 다시 읽는다. */
+  onChanged: () => void;
 }
 
-export function TransmitView({ box, envelopes, myId, onSent, onRetract, onOpenRitual, send, }: Props) {
+export function TransmitView({ box, envelopes, myId, onSent, onRetract, onOpenRitual, send, onChanged }: Props) {
+  const store = useStore();
   const [sending, setSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
   const [error, setError] = useState('');
+
+  /**
+   * 타자기는 좌우로 넘겨 바꾼다. 서버 왕복을 기다리면 손끝이 굼떠 보이므로
+   * 화면부터 바꾸고(낙관적) 저장은 뒤에서 한다. 저장이 실패하면 되돌린다.
+   */
+  const [localType, setLocalType] = useState<TypeId | null>(null);
+  useEffect(() => { setLocalType(null); }, [box.id, box.myType]);
+  const myType = localType ?? box.myType;
+
+  const stepType = (dir: -1 | 1) => {
+    const i = TYPE_IDS.indexOf(myType);
+    const next = TYPE_IDS[(i + dir + TYPE_IDS.length) % TYPE_IDS.length]!;
+    setLocalType(next);
+    sounds.playKey(getTypewriter(next).voice);   // 바뀐 소리를 바로 들려준다
+    void store.setMyColors(box.id, { type: next })
+      .then(onChanged)
+      .catch((e: unknown) => {
+        setLocalType(null);
+        setError(toUserMessage(e, '타자기를 바꾸지 못했습니다.'));
+      });
+  };
 
   const mine = envelopes.filter((e) => e.authorId === myId);
   const total = envelopes.length;
@@ -29,7 +54,7 @@ export function TransmitView({ box, envelopes, myId, onSent, onRetract, onOpenRi
     if (sending || !body) return;
     setError('');
     setSending(true);
-    sounds.playReturn(getTypewriter(box.myType).voice);
+    sounds.playReturn(getTypewriter(myType).voice);
     try {
       // 캐리지가 돌아가는 동안 기다린다. 이 0.7초가 "타전했다"는 감각을 만든다.
       await new Promise((r) => setTimeout(r, 700));
@@ -47,42 +72,48 @@ export function TransmitView({ box, envelopes, myId, onSent, onRetract, onOpenRi
 
   return (
     <div className="transmit fade-up">
+      {/* 1·2구역 — 타자기와 종이. 화면이 좁으면 타자기가 먼저 줄어든다. */}
       <Paper
         paper={box.myPaper}
-        typeColor={box.myType}
+        typeColor={myType}
         sending={sending}
         justSent={justSent}
         onSend={(body) => void handleSend(body)}
+        onStepType={stepType}
       />
 
       {error && <p className="transmit-error" role="alert">{error}</p>}
 
-      {mine.length > 0 && (
-        <section className="recent">
-          <h2 className="section-label display">최근 송신 · Recent · {mine.length}</h2>
-          <div className="recent-list">
-            {mine.map((e) => (
-              <TelegramCard
-                key={e.id}
-                id={e.id}
-                paper={box.myPaper}
-                author="나"
-                body={e.body ?? ''}
-                sentAt={e.createdAt}
-                mine
-                onRetract={(id) => void onRetract(id)}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* 3구역 — 내가 쓴 전보. 남은 높이를 다 쓰고 여기 안에서만 스크롤한다. */}
+      <section className="recent">
+        {mine.length > 0 ? (
+          <>
+            <h2 className="section-label display">최근 송신 · Recent · {mine.length}</h2>
+            <div className="recent-list">
+              {mine.map((e) => (
+                <TelegramCard
+                  key={e.id}
+                  id={e.id}
+                  paper={box.myPaper}
+                  author="나"
+                  body={e.body ?? ''}
+                  sentAt={e.createdAt}
+                  mine
+                  onRetract={(id) => void onRetract(id)}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="recent-empty">보낸 전보가 여기 쌓입니다.</p>
+        )}
+      </section>
 
       <button className="meet" onClick={onOpenRitual} disabled={total === 0}>
         <span className="meet-mark display" aria-hidden="true">⏎</span>
         만남 마감 — 이번 권 닫기
         <span className="meet-mark display" aria-hidden="true">⏎</span>
       </button>
-      {total === 0 && <p className="meet-hint">전보가 한 통이라도 쌓이면 권을 닫을 수 있습니다.</p>}
     </div>
   );
 }

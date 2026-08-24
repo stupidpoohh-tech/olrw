@@ -37,3 +37,10 @@
 
 /* 음소거 상태는 액센트로 아주 약하게 알린다 — 조용히 하고 있다는 표시. */
 .maker-mute[aria-pressed="true"] { color: var(--accent); border-color: var(--accent-soft); }
+
+
+/* 타전실은 한 화면 안에 세 구역이 들어가야 한다. 푸터가 자리를 양보한다. */
+html[data-fixed] .maker { padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px)); }
+html[data-fixed] .maker-auth { padding-bottom: 6px; font-size: 11.5px; }
+html[data-fixed] .maker-home, html[data-fixed] .maker-mute { width: 26px; height: 26px; }
+html[data-fixed] .maker-text { font-size: 11.5px; }

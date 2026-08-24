@@ -1,11 +1,38 @@
+/* 타전실 — 세 구역이 한 화면 안에 (1 타자기 · 2 종이 · 3 최근 송신) */
+.transmit { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+
 /* ── 타자기 + 물려 있는 종이 ─────────────────────────────────────────────── */
 
-.stage { position: relative; padding-top: 6px; }
+/* 1·2구역 묶음. 줄지 않는다 — 줄면 종이가 상자 밖으로 넘쳐 3구역을 덮는다.
+   남는 높이는 전부 3구역(.recent)이 가져간다. */
+.stage { position: relative; padding-top: 4px; flex: none;
+  display: flex; flex-direction: column; }
 
-.tw { position: relative; width: 100%; max-width: 340px; margin: 0 auto -20px;
-  z-index: 2; pointer-events: none; }
+/* 1구역 — 타자기. 한 화면에 담으려 한 단계 줄였고, 화면이 좁으면 여기가 먼저 준다. */
+.tw { position: relative; width: 100%; max-width: 218px; margin: 0 auto -14px;
+  z-index: 2;
+  /* 줄이지 않는다. 플렉스가 이 상자를 찌그러뜨리면 사진이 넘쳐 종이를 덮는다.
+     크기는 max-width 로만 정하고, 남는 높이는 3구역이 가져간다. */
+  flex: none;
+  touch-action: pan-y;   /* 세로 스크롤은 브라우저에, 가로는 우리가 */
+  user-select: none; -webkit-user-select: none; }
 /* 네 장 모두 배경이 투명하다. blend 로 흰 바탕을 녹일 필요가 없다. */
-.tw-img { width: 100%; height: auto; display: block; }
+.tw-img { width: 100%; height: auto; display: block; pointer-events: none; }
+
+/* 좌우로 넘길 수 있다는 표시 — 작고 반투명한 삼각형 둘. */
+.tw-step { position: absolute; top: 42%; transform: translateY(-50%);
+  width: 26px; height: 26px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink); opacity: .22; background: none; border: none;
+  transition: opacity var(--t-fast) var(--ease); }
+.tw-step:hover { opacity: .5; }
+.tw-step svg { width: 9px; height: 14px; display: block; }
+.tw-step.prev { left: -22px; }
+.tw-step.next { right: -22px; }
+@media (max-width: 400px) {
+  .tw-step.prev { left: -18px; }
+  .tw-step.next { right: -18px; }
+}
 
 /* 눌린 키 자리. 좌표와 빛깔은 타자기마다 다르다 (design/typewriters.ts). */
 .tw-key { position: absolute; transform: translate(-50%, -50%);
@@ -26,8 +53,9 @@
 
 /* ── 종이 ────────────────────────────────────────────────────────────────── */
 
-.paper-wrap { position: relative; z-index: 1; }
-.paper { border-radius: var(--radius-sm); padding: 16px 16px 12px;
+/* 2구역 — 종이. 줄지 않는다. */
+.paper-wrap { position: relative; z-index: 1; flex: none; }
+.paper { border-radius: var(--radius-sm); padding: 14px 16px 10px;
   box-shadow: var(--shadow-1); cursor: text; }
 
 .paper-head { display: flex; justify-content: space-between; align-items: baseline;
@@ -35,7 +63,7 @@
   opacity: .55; padding-bottom: 8px; border-bottom: 1px solid currentColor; }
 .paper-head > span:nth-child(2) { letter-spacing: .3em; }
 
-.paper-type { position: relative; min-height: 108px; padding: 14px 0 10px; }
+.paper-type { position: relative; min-height: 72px; padding: 10px 0 8px; }
 /* 진짜 입력은 화면 밖에 두고, 잉크는 아래에서 그린다. 커서 · STOP 표시를 위해서다. */
 .paper-input { position: absolute; inset: 0; width: 100%; height: 100%;
   overflow-wrap: anywhere;
@@ -52,9 +80,9 @@
 @keyframes caret { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
 .paper-input:focus + .paper-ink .paper-caret { opacity: 1; }
 
-.paper-foot { border-top: 1px solid currentColor; padding-top: 9px; }
+.paper-foot { border-top: 1px solid currentColor; padding-top: 8px; }
 .gauge { height: 2px; background: currentColor; opacity: .18; border-radius: 1px;
-  overflow: hidden; margin-bottom: 8px; }
+  overflow: hidden; margin-bottom: 7px; }
 .gauge-fill { height: 100%; background: currentColor; opacity: .9;
   transition: width var(--t-fast) linear; }
 .gauge-fill.warn { background: var(--accent); }
@@ -83,15 +111,23 @@
 
 /* ── 최근 송신 ───────────────────────────────────────────────────────────── */
 
+/* 3구역 — 내가 쓴 전보. 남은 높이를 다 쓰고 이 안에서만 스크롤한다.
+   페이지 전체가 스크롤되면 타자기와 종이가 화면 밖으로 밀려난다. */
+.recent { flex: 1 1 auto; min-height: 104px; display: flex; flex-direction: column;
+  margin-top: 10px; }
 .section-label { font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
-  color: var(--ink-faded); margin: 30px 0 10px; font-weight: 400; }
+  color: var(--ink-faded); margin: 0 0 6px; font-weight: 400; flex: none; }
 .recent-list { display: flex; flex-direction: column; gap: 8px;
-  max-height: 340px; overflow-y: auto; }
+  flex: 1; min-height: 0; overflow-y: auto;
+  /* iOS 관성 스크롤이 이 안에서 끝나게 */
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.recent-empty { margin: 0; font-size: 12px; color: var(--ink-light);
+  padding: 14px 0 0; }
 
 /* ── 만남 마감 ───────────────────────────────────────────────────────────── */
 
 .meet { display: flex; align-items: center; justify-content: center; gap: 12px;
-  width: 100%; margin-top: 30px; padding: 14px 0;
+  width: 100%; margin-top: 10px; padding: 11px 0; flex: none;
   border: 1px solid var(--ink); border-radius: var(--radius-sm);
   font-size: 13.5px; color: var(--ink);
   transition: background var(--t-base) var(--ease), color var(--t-base) var(--ease); }
@@ -99,3 +135,10 @@
 .meet:disabled { border-color: var(--divider); color: var(--ink-light); cursor: default; }
 .meet-mark { font-size: 11px; opacity: .5; }
 .meet-hint { font-size: 11.5px; color: var(--ink-faded); text-align: center; margin: 8px 0 0; }
+
+
+/* 세로가 짧은 기기 — 타자기가 먼저 자리를 내준다. 3구역은 최소 높이를 지킨다. */
+@media (max-height: 760px) {
+  .tw { max-width: 178px; }
+  .paper-type { min-height: 62px; }
+}
