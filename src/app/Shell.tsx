@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AuthScreen } from '../features/auth/AuthScreen';
+import { ArchiveView } from '../features/archive/ArchiveView';
+import { InboxView } from '../features/inbox/InboxView';
+import { TransmitView } from '../features/transmit/TransmitView';
 import { BoxBar } from '../features/box/BoxBar';
 import { BoxOnboard } from '../features/box/BoxOnboard';
 import { SettingsModal } from '../features/box/SettingsModal';
 import { useSession, useStore, usingMemoryStore } from '../lib/storeContext';
 import { toUserMessage } from '../lib/errors';
-import type { Box, BoxSummary } from '../lib/types';
+import type { Box, BoxSummary, Envelope } from '../lib/types';
 import { Modal } from './Modal';
 import './Shell.css';
 
@@ -22,11 +25,13 @@ export function Shell() {
 
   const [boxes, setBoxes] = useState<readonly BoxSummary[] | null>(null);
   const [box, setBox] = useState<Box | null>(null);
+  const [envelopes, setEnvelopes] = useState<readonly Envelope[]>([]);
   const [activeId, setActiveId] = useState<string | null>(
     () => { try { return localStorage.getItem(ACTIVE_KEY); } catch { return null; } },
   );
   const [tab, setTab] = useState<Tab>('transmit');
   const [addBox, setAddBox] = useState(false);
+  const [ritual, setRitual] = useState(false);
   const [settings, setSettings] = useState(false);
   const [error, setError] = useState('');
 
@@ -47,13 +52,34 @@ export function Shell() {
         if (next) localStorage.setItem(ACTIVE_KEY, next);
         else localStorage.removeItem(ACTIVE_KEY);
       } catch { /* 스토리지 못 씀 — 세션 동안만 유지된다 */ }
-      setBox(next ? await store.getBox(next) : null);
+      if (next) {
+        // 봉투와 전보함을 함께 가져온다. 타전실도 수신함도 같은 목록을 본다.
+        const [detail, list] = await Promise.all([store.getBox(next), store.listEnvelopes(next)]);
+        setBox(detail);
+        setEnvelopes(list);
+      } else {
+        setBox(null);
+        setEnvelopes([]);
+      }
     } catch (e) {
       setError(toUserMessage(e, '전보함을 불러오지 못했습니다.'));
     }
   }, [store, session, activeId, chooseActive]);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  /** 전보를 보내거나 회수한 뒤 목록만 다시 읽는다. 전보함까지 다시 읽을 이유는 없다. */
+  const reloadEnvelopes = useCallback(async () => {
+    if (!box) return;
+    try { setEnvelopes(await store.listEnvelopes(box.id)); }
+    catch (e) { setError(toUserMessage(e, '전보를 불러오지 못했습니다.')); }
+  }, [store, box]);
+
+  const retract = useCallback(async (id: string) => {
+    if (!window.confirm('이 전보를 회수합니다.\n한 번 회수하면 되돌릴 수 없습니다.')) return;
+    try { await store.deleteTelegram(id); await reloadEnvelopes(); }
+    catch (e) { setError(toUserMessage(e, '전보를 회수하지 못했습니다.')); }
+  }, [store, reloadEnvelopes]);
 
   if (!session) return <AuthScreen />;
 
@@ -113,8 +139,19 @@ export function Shell() {
       {error && <p className="shell-error" role="alert">{error}</p>}
 
       <main className="main">
-        {/* 단계 4에서 타전실 · 수신함 · 서가가 들어온다. */}
-        <Placeholder tab={tab} box={box} />
+        {tab === 'transmit' && (
+          <TransmitView
+            box={box}
+            envelopes={envelopes}
+            myId={session.userId}
+            send={(body) => store.sendTelegram(box.id, body)}
+            onSent={reloadEnvelopes}
+            onRetract={retract}
+            onOpenRitual={() => setRitual(true)}
+          />
+        )}
+        {tab === 'inbox' && <InboxView box={box} envelopes={envelopes} myId={session.userId} />}
+        {tab === 'archive' && <ArchiveView boxId={box.id} />}
       </main>
 
       {addBox && (
@@ -133,24 +170,24 @@ export function Shell() {
           onSaved={() => void refresh()}
         />
       )}
+      {ritual && (
+        <Modal title="만남 마감" onClose={() => setRitual(false)}>
+          <p className="modal-sub">단계 5에서 들어옵니다.</p>
+          <div className="ritual-stub">
+            <div className="ritual-stub-vol display tnum">VOL.{box.currentVol}</div>
+            <p>이번 권에 {envelopes.length}통이 쌓였습니다.</p>
+            {box.sealed && box.readingStartedAt === null && (
+              <p className="ritual-stub-warn">
+                아직 봉인된 전보 {envelopes.filter((e) => !e.unsealed).length}통이 지금 열립니다.
+              </p>
+            )}
+          </div>
+          <div className="modal-btns">
+            <button className="btn-ghost" onClick={() => setRitual(false)}>닫기</button>
+          </div>
+        </Modal>
+      )}
       {usingMemoryStore && <MemoryNotice />}
-    </div>
-  );
-}
-
-function Placeholder({ tab, box }: { tab: Tab; box: Box }) {
-  const label = TABS.find(([k]) => k === tab)?.[1] ?? '';
-  return (
-    <div className="placeholder fade-up">
-      <div className="placeholder-vol display tnum">VOL.{box.currentVol}</div>
-      <p className="placeholder-text">
-        {label}은 단계 4에서 들어옵니다.
-      </p>
-      <p className="placeholder-sub">
-        {box.sealed
-          ? '이 전보함은 봉인함입니다. 남이 보낸 이번 권 전보는 만나는 날 함께 열립니다.'
-          : '이 전보함은 열린함입니다. 전보가 도착하는 대로 읽습니다.'}
-      </p>
     </div>
   );
 }

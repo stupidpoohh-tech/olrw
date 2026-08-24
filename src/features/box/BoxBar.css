@@ -40,7 +40,7 @@
 .boxbar-menu { position: absolute; top: 100%; left: 0; z-index: 20; min-width: 250px;
   background: var(--surface); border: 1px solid var(--divider);
   border-radius: var(--radius-sm); box-shadow: var(--shadow-2); padding: 6px;
-  animation: fadeUp var(--t-base) var(--ease) both; }
+  animation: fadeUp var(--t-base) var(--ease) backwards; }
 .boxbar-menu-label { font-size: 10.5px; color: var(--ink-faded); letter-spacing: .1em;
   padding: 6px 8px 5px; }
 .boxbar-menu-item { display: flex; align-items: center; gap: 7px; width: 100%;

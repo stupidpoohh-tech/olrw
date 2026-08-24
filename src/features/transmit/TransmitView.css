@@ -1,0 +1,103 @@
+/* ── 타자기 + 물려 있는 종이 ─────────────────────────────────────────────── */
+
+.stage { position: relative; padding-top: 6px; }
+
+.tw { position: relative; width: 100%; max-width: 300px; margin: 0 auto -14px;
+  z-index: 2; pointer-events: none; }
+.tw-img { width: 100%; height: auto; display: block;
+  transition: filter var(--t-slow) var(--ease);
+  /* 사진 배경이 순백이라 그대로 두면 페이지 위에 흰 사각형이 뜬다.
+     multiply 로 흰 배경을 페이지 색에 녹인다. 배경이 투명한 사진이 들어오면
+     (docs/typewriter-photos.md) 이 줄은 아무 일도 하지 않는다. */
+  mix-blend-mode: multiply; }
+
+/* 눌린 키 자리. 좌표는 keys.ts 가 사진 기준 백분율로 준다. */
+.tw-key { position: absolute; transform: translate(-50%, -50%);
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, .95), rgba(255, 255, 255, 0) 68%);
+  animation: keyHit .16s ease-out both; }
+@keyframes keyHit {
+  0%   { opacity: .85; transform: translate(-50%, -50%) scale(.55); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.35); }
+}
+
+.tw-bell { position: absolute; right: 12%; top: 16%; width: 10%; padding-bottom: 10%;
+  border-radius: 50%; opacity: 0; }
+.tw-bell.ring { animation: bellGlint .7s ease-out both;
+  background: radial-gradient(circle, rgba(255,255,255,.85), transparent 70%); }
+@keyframes bellGlint {
+  0% { opacity: 0; transform: scale(.5); } 25% { opacity: .9; } 100% { opacity: 0; transform: scale(1.6); }
+}
+
+/* ── 종이 ────────────────────────────────────────────────────────────────── */
+
+.paper-wrap { position: relative; z-index: 1; }
+.paper { border-radius: var(--radius-sm); padding: 16px 16px 12px;
+  box-shadow: var(--shadow-1); cursor: text; }
+
+.paper-head { display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase;
+  opacity: .55; padding-bottom: 8px; border-bottom: 1px solid currentColor; }
+.paper-head > span:nth-child(2) { letter-spacing: .3em; }
+
+.paper-type { position: relative; min-height: 108px; padding: 14px 0 10px; }
+/* 진짜 입력은 화면 밖에 두고, 잉크는 아래에서 그린다. 커서 · STOP 표시를 위해서다. */
+.paper-input { position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; resize: none; border: none; background: none;
+  font-size: 15px; line-height: 1.8; caret-color: transparent; }
+.paper-input:focus { outline: none; }
+.paper-ink { font-size: 15px; line-height: 1.8; white-space: pre-wrap;
+  word-break: keep-all; pointer-events: none; }
+.paper-ghost { opacity: .38; }
+.paper-caret { display: inline-block; width: 7px; height: 1px; vertical-align: -1px;
+  margin-left: 1px; background: currentColor; animation: caret 1.05s steps(2) infinite; }
+@keyframes caret { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+.paper-input:focus + .paper-ink .paper-caret { opacity: 1; }
+
+.paper-foot { border-top: 1px solid currentColor; padding-top: 9px; }
+.gauge { height: 2px; background: currentColor; opacity: .18; border-radius: 1px;
+  overflow: hidden; margin-bottom: 8px; }
+.gauge-fill { height: 100%; background: currentColor; opacity: .9;
+  transition: width var(--t-fast) linear; }
+.gauge-fill.warn { background: var(--accent); }
+.gauge-fill.danger { background: var(--accent); }
+
+.paper-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.count { font-size: 11px; opacity: .6; }
+.count.warn, .count.danger { color: var(--accent); opacity: 1; }
+
+.send { border: 1px solid currentColor; border-radius: var(--radius-sm);
+  padding: 6px 16px; font-size: 12.5px; letter-spacing: .04em;
+  transition: opacity var(--t-fast) var(--ease); }
+.send:disabled { opacity: .35; cursor: default; }
+.send:not(:disabled):hover { opacity: .75; }
+
+/* 송신 도장 */
+.sent { position: absolute; top: 34%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 5; pointer-events: none;
+  font-size: 30px; letter-spacing: .3em; color: var(--accent);
+  border: 2px solid var(--accent); border-radius: var(--radius-sm);
+  padding: 6px 18px; opacity: .82;
+  animation: stampIn .45s cubic-bezier(.2, .8, .2, 1) backwards; }
+
+.transmit-error { font-size: 12.5px; color: var(--accent); margin: 14px 0 0;
+  border-left: 2px solid var(--accent); padding-left: 9px; }
+
+/* ── 최근 송신 ───────────────────────────────────────────────────────────── */
+
+.section-label { font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--ink-faded); margin: 30px 0 10px; font-weight: 400; }
+.recent-list { display: flex; flex-direction: column; gap: 8px;
+  max-height: 340px; overflow-y: auto; }
+
+/* ── 만남 마감 ───────────────────────────────────────────────────────────── */
+
+.meet { display: flex; align-items: center; justify-content: center; gap: 12px;
+  width: 100%; margin-top: 30px; padding: 14px 0;
+  border: 1px solid var(--ink); border-radius: var(--radius-sm);
+  font-size: 13.5px; color: var(--ink);
+  transition: background var(--t-base) var(--ease), color var(--t-base) var(--ease); }
+.meet:not(:disabled):hover { background: var(--ink); color: var(--bg); }
+.meet:disabled { border-color: var(--divider); color: var(--ink-light); cursor: default; }
+.meet-mark { font-size: 11px; opacity: .5; }
+.meet-hint { font-size: 11.5px; color: var(--ink-faded); text-align: center; margin: 8px 0 0; }

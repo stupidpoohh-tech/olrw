@@ -1,11 +1,11 @@
 .modal-stage { position: fixed; inset: 0; z-index: 50; background: rgba(17, 17, 17, .28);
   display: flex; align-items: center; justify-content: center; padding: 20px;
-  overflow-y: auto; animation: fadeIn var(--t-base) ease both; }
+  overflow-y: auto; animation: fadeIn var(--t-base) ease backwards; }
 
 .modal-card { width: 100%; max-width: 400px; background: var(--surface);
   border: 1px solid var(--divider); border-radius: var(--radius); padding: 20px;
   box-shadow: var(--shadow-2); margin: auto;
-  animation: fadeUp var(--t-slow) var(--ease) both; }
+  animation: fadeUp var(--t-slow) var(--ease) backwards; }
 .modal-card.wide { max-width: 460px; }
 .modal-card:focus { outline: none; }
 

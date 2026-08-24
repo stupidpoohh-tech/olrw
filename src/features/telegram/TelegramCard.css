@@ -1,0 +1,18 @@
+.tg { border-radius: var(--radius-sm); padding: 12px 14px 10px;
+  animation: fadeUp var(--t-slow) var(--ease) backwards; }
+
+.tg-head { display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; font-size: 11px; opacity: .8; margin-bottom: 7px; }
+.tg-from { display: inline-flex; align-items: center; gap: 6px; }
+.tg-swatch { width: 11px; height: 11px; border-radius: 1px;
+  border-style: solid; border-width: 1px; }
+.tg-no { font-size: 10px; letter-spacing: .08em; opacity: .7; }
+
+.tg-body { font-size: 14.5px; line-height: 1.75; margin: 0; white-space: pre-wrap; }
+.stop { color: var(--accent); font-weight: 600; letter-spacing: .04em; }
+
+.tg-foot { display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 9px; font-size: 10.5px; opacity: .62; }
+.tg-retract { font-size: 10.5px; opacity: .7; text-decoration: underline;
+  text-underline-offset: 2px; transition: opacity var(--t-fast) var(--ease); }
+.tg-retract:hover { opacity: 1; }
