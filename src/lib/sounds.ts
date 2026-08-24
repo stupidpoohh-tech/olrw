@@ -144,34 +144,88 @@ const bubble = (k: Bubble): Synth => (ctx, out, t0) => {
 /**
  * 나뭇잎에 파묻힌 타자기(이끼).
  *
- * 활자를 안 때린다 — 잎이 서로 스치는 짧은 shhh 가 메인이고, 그 위에
- * 이슬방울이 톡 하고 얹힌다. 잎: 노이즈 지수 감쇠 + bandpass 2.5~4kHz.
- * 방울: sine 3.5~4.2kHz 를 20ms 이하로 톡. 음정이 있지만 아주 짧아
- * 설탕(sine 이 내려가는 pluck) 과 성격이 다르다.
+ * 이 타자기만 예외로 실제 녹음을 쓴다 — 사용자가 잎사귀와 이슬 mp3 두 개를
+ * 지정했다. 나머지 타자기는 여전히 §6-1 합성을 따른다.
+ *
+ * 잎(leaf.mp3, ~3s 연속 스침): 매 타건마다 랜덤 오프셋에서 90~140ms 를 꺼내
+ *   짧은 페이드-인/아웃과 함께 재생. 늘 다르게 들리게 한다.
+ * 이슬(dew.mp3, ~260ms 한 방울): 확률적으로만(30%) 얹는다. 매 키마다 방울
+ *   소리가 나면 부담이다 — 자연스럽게 이따금 톡.
+ *
+ * 첫 재생 순간에는 아직 디코딩이 안 끝났을 수 있다. 그 경우 v.key 의 값들로
+ * 합성 폴백을 돌려 소리가 조용히 사라지지 않게 한다.
  */
-const rustle = (k: Rustle): Synth => (ctx, out, t0) => {
-  // 잎 스침 — 40ms 근방, 시작 진폭 amp 로 지수 감쇠. 노이즈가 메인이다.
-  const src = ctx.createBufferSource();
-  const decayRate = 3 / k.leaf.duration;   // duration 안에 상당히 감쇠
-  src.buffer = noise(ctx, k.leaf.duration, (t) => Math.exp(-t * decayRate) * k.leaf.amp);
-  const bp = ctx.createBiquadFilter();
-  bp.type = 'bandpass';
-  bp.frequency.value = k.leaf.band[0] + Math.random() * (k.leaf.band[1] - k.leaf.band[0]);
-  bp.Q.value = 1.3;   // 넓은 대역 — 딱딱한 소리가 아니라 부드러운 shhh
-  src.connect(bp).connect(out);
-  src.start(t0);
 
-  // 이슬방울 — 아주 짧은 sine 톡. 잎사귀 위에 얹히는 액센트.
-  const o = ctx.createOscillator();
-  const g = ctx.createGain();
-  o.type = 'sine';
-  o.frequency.value = k.dew.freq[0] + Math.random() * (k.dew.freq[1] - k.dew.freq[0]);
-  g.gain.setValueAtTime(0.0001, t0);
-  g.gain.exponentialRampToValueAtTime(k.dew.gain, t0 + 0.003);
-  g.gain.exponentialRampToValueAtTime(0.001, t0 + k.dew.duration);
-  o.connect(g).connect(out);
-  o.start(t0);
-  o.stop(t0 + k.dew.duration + 0.01);
+// 브라우저가 열리자마자 파일은 받아 둔다. AudioContext 가 없을 뿐 아니라
+// 첫 클릭 전이라 디코딩은 못하므로 raw bytes 만 캐시.
+type Bytes = ArrayBuffer;
+const fetchBytes = (url: string): Promise<Bytes> =>
+  fetch(url).then((r) => r.arrayBuffer());
+
+let leafBytes: Promise<Bytes> | null = null;
+let dewBytes:  Promise<Bytes> | null = null;
+let leafBuf: AudioBuffer | null = null;
+let dewBuf:  AudioBuffer | null = null;
+let decoding = false;
+
+// SSR 안전: window 가 있을 때만 fetch 시작. 실패해도 조용히 폴백된다.
+if (typeof window !== 'undefined') {
+  leafBytes = fetchBytes('/sounds/moss/leaf.mp3').catch(() => new ArrayBuffer(0));
+  dewBytes  = fetchBytes('/sounds/moss/dew.mp3').catch(() => new ArrayBuffer(0));
+}
+
+async function ensureBuffers(ctx: BaseAudioContext): Promise<void> {
+  if (decoding || (leafBuf && dewBuf)) return;
+  if (!leafBytes || !dewBytes) return;
+  decoding = true;
+  try {
+    const [lb, db] = await Promise.all([leafBytes, dewBytes]);
+    if (!leafBuf && lb.byteLength > 0) leafBuf = await ctx.decodeAudioData(lb.slice(0));
+    if (!dewBuf  && db.byteLength > 0) dewBuf  = await ctx.decodeAudioData(db.slice(0));
+  } catch { /* 디코딩 실패 = 폴백으로 조용히 */ }
+  finally { decoding = false; }
+}
+
+const rustle = (k: Rustle): Synth => (ctx, out, t0) => {
+  // 백그라운드로 디코딩을 걸어 둔다. 다음 키부터는 샘플이 뜬다.
+  void ensureBuffers(ctx);
+
+  if (leafBuf) {
+    const window = 0.09 + Math.random() * 0.05;   // 90~140ms 랜덤 슬라이스
+    const maxStart = Math.max(0, leafBuf.duration - window - 0.05);
+    const start = 0.05 + Math.random() * maxStart;
+    const leafSrc = ctx.createBufferSource();
+    leafSrc.buffer = leafBuf;
+    const gL = ctx.createGain();
+    gL.gain.setValueAtTime(0.0001, t0);
+    gL.gain.exponentialRampToValueAtTime(0.55, t0 + 0.006);
+    gL.gain.exponentialRampToValueAtTime(0.001, t0 + window);
+    leafSrc.connect(gL).connect(out);
+    leafSrc.start(t0, start, window);
+  }
+
+  // 이슬방울 — 30% 확률. 매 타건마다 톡톡거리면 부담이다.
+  if (dewBuf && Math.random() < 0.3) {
+    const dewSrc = ctx.createBufferSource();
+    dewSrc.buffer = dewBuf;
+    const gD = ctx.createGain();
+    gD.gain.value = 0.75;
+    dewSrc.connect(gD).connect(out);
+    dewSrc.start(t0 + 0.015);
+  }
+
+  // 폴백 합성 — 샘플이 아직 안 뜬 경우에만 (첫 키 한두 번)
+  if (!leafBuf) {
+    const src = ctx.createBufferSource();
+    const decayRate = 3 / k.leaf.duration;
+    src.buffer = noise(ctx, k.leaf.duration, (t) => Math.exp(-t * decayRate) * k.leaf.amp);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = k.leaf.band[0] + Math.random() * (k.leaf.band[1] - k.leaf.band[0]);
+    bp.Q.value = 1.3;
+    src.connect(bp).connect(out);
+    src.start(t0);
+  }
 };
 
 /** 여백 벨 — 두 배음을 동시에, 800ms 감쇠. 배음은 타자기가 정한다. */
