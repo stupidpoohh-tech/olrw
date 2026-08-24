@@ -25,7 +25,8 @@
 
 - Vite + React 18 + TypeScript (strict)
 - Supabase: Postgres + Auth + Storage + RLS
-- 배포: Vercel (GitHub 연동 자동배포). Preview = PR, Production = `main`
+- 배포: 정적 호스트 아무거나 (Cloudflare Pages · Vercel). GitHub 연동 자동배포.
+  Production = `main`, 그 밖의 가지 = 미리보기. 서버 코드 없음 — `dist/` 만 올라간다
 - 스타일: CSS 변수 + 모듈 CSS. UI 프레임워크 없음, 애니메이션 라이브러리 없음
 - 사운드: Web Audio API 합성 (오디오 파일 없음)
 

@@ -1,4 +1,4 @@
-# 연결하기 — Supabase · Vercel
+# 연결하기 — Supabase · 배포
 
 지금 앱은 **Supabase 없이도 돕니다.** 환경변수가 없으면 브라우저 안의 임시 저장소로
 떨어져서, 화면 아래에 그렇게 적혀 있습니다. 아래를 마치면 실제 계정과 실제 DB로 바뀝니다.
@@ -122,12 +122,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
 **Authentication** → **URL Configuration**
 
 - **Site URL** — `http://localhost:5173` (나중에 배포하면 배포 주소로 바꿉니다)
-- **Redirect URLs** — 배포 후 아래를 추가합니다
-  ```
-  https://<프로젝트>.vercel.app/**
-  https://*-<팀이름>.vercel.app/**
-  ```
-  두 번째 줄은 PR 미리보기 주소용입니다. 없으면 미리보기에서 로그인이 안 됩니다.
+- **Redirect URLs** — 배포한 뒤에 채웁니다. 주소 형태는 §7 맨 아래에 있습니다.
+  미리보기 주소까지 넣어야 미리보기에서도 로그인이 됩니다.
 
 ---
 
@@ -173,7 +169,34 @@ http://localhost:5173 을 엽니다.
 
 ---
 
-## 7. 배포 (Vercel)
+## 7. 배포
+
+전보함은 **정적 SPA** 입니다. 서버 코드가 없어서 `dist/` 를 올려 주는 곳이면
+어디든 똑같이 돕니다. 아래 둘 중 편한 쪽을 고르시면 됩니다 — 리포에는 양쪽 설정이
+모두 들어 있어서, 나중에 옮겨도 코드는 손댈 게 없습니다.
+
+### 가. Cloudflare Pages
+
+1. https://dash.cloudflare.com → **Compute (Workers & Pages)** → **Create**
+   → **Pages** 탭 → **Connect to Git** → 이 리포 선택
+2. 빌드 설정
+
+   | 항목 | 값 |
+   |---|---|
+   | Framework preset | `Vite` |
+   | Build command | `pnpm build` |
+   | Build output directory | `dist` |
+
+3. **Environment variables** 에 §3 의 두 값을 넣습니다.
+   **Production 과 Preview 양쪽에 다** 넣어야 합니다 — 따로 관리됩니다
+4. **Save and Deploy**
+
+Node 판본은 `.node-version`(22)이 잡아 줍니다. pnpm 은 `pnpm-lock.yaml` 을 보고
+알아서 씁니다. SPA 라우팅은 `public/_redirects` 가 처리합니다.
+
+`main` 에 푸시하면 Production, 다른 가지에 푸시하면 미리보기 주소가 생깁니다.
+
+### 나. Vercel
 
 1. https://vercel.com → **Add New** → **Project** → 이 리포 선택
 2. Framework Preset 은 **Vite** 로 잡힙니다. Build/Output 은 그대로 둡니다
@@ -181,10 +204,24 @@ http://localhost:5173 을 엽니다.
    **Production 과 Preview 양쪽에 다 체크**합니다
 4. **Deploy**
 
-이후 `main` 에 푸시하면 Production, PR 을 열면 Preview 주소가 자동으로 생깁니다.
-SPA 라우팅 설정(`vercel.json`)은 이미 들어 있습니다.
+SPA 라우팅은 `vercel.json` 이 처리합니다.
 
-배포가 끝나면 §4 의 **Site URL** 을 배포 주소로 바꾸고, **Redirect URLs** 도 넣습니다.
+### 어느 쪽이든, 배포가 끝나면
+
+§4 의 **Site URL** 을 배포 주소로 바꾸고 **Redirect URLs** 를 채웁니다.
+안 하면 배포된 주소에서 로그인이 안 됩니다.
+
+```
+# Cloudflare Pages
+https://<프로젝트>.pages.dev/**
+https://*.<프로젝트>.pages.dev/**
+
+# Vercel
+https://<프로젝트>.vercel.app/**
+https://*-<팀이름>.vercel.app/**
+```
+
+두 번째 줄은 미리보기 주소용입니다.
 
 ---
 
@@ -198,7 +235,7 @@ SPA 라우팅 설정(`vercel.json`)은 이미 들어 있습니다.
 | `권한이 없습니다. 다시 로그인해 주세요` | RLS 가 막고 있다 (정상 동작) | 로그아웃 후 다시 로그인 |
 | 전보함이 만들어지지 않는다 | 서버 함수가 없다 | SQL Editor 에서 `select create_box('t','ivory','steel',true);` 를 실행해 오류를 봅니다 |
 | 사진 표지만 안 올라간다 | Storage 정책이 없다 | §5 |
-| 미리보기 주소에서 로그인이 안 된다 | Redirect URL 미등록 | §4 의 `*-<팀이름>.vercel.app/**` |
+| 배포·미리보기 주소에서 로그인이 안 된다 | Redirect URL 미등록 | §7 맨 아래의 주소들을 §4 에 넣습니다 |
 
 ## 스키마를 고칠 때
 
