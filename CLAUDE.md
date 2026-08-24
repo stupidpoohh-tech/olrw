@@ -28,7 +28,9 @@
 - 배포: 정적 호스트 아무거나 (Cloudflare Pages · Vercel). GitHub 연동 자동배포.
   Production = `main`, 그 밖의 가지 = 미리보기. 서버 코드 없음 — `dist/` 만 올라간다
 - 스타일: CSS 변수 + 모듈 CSS. UI 프레임워크 없음, 애니메이션 라이브러리 없음
-- 사운드: 기본은 Web Audio API 합성. **예외 하나** — 이끼 타자기만 실제 녹음(public/sounds/moss/{leaf,dew}.mp3) 을 랜덤 오프셋으로 재생한다. 나머지 셋은 여전히 합성.
+- 사운드: 기본은 Web Audio API 합성. **예외 하나** — 이끼 타자기만 실제 녹음을 쓴다:
+  public/sounds/moss/{leaf,dew}.wav 고정 슬롯 스프라이트(잎 0.35s×4 · 이슬 0.40s×2)를
+  타건마다 슬롯 단위로 재생한다. WAV 인 이유: 인코더 지연이 없어 타건과 정확히 맞는다.
 
 ## 디렉터리
 
