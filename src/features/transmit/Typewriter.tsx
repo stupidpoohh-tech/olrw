@@ -1,25 +1,17 @@
-import { typewriterArt } from '../../design/typewriter';
-import type { TypeId } from '../../design/colors';
-import { KEY_SIZE, type KeyPos } from './keys';
+import type { Typewriter as Machine } from '../../design/typewriters';
+import type { KeyPos } from './keys';
 
 interface Props {
-  typeColor: TypeId;
+  machine: Machine;
   /** 지금 눌린 자리. id 가 바뀔 때마다 다시 반짝인다. */
   pressed: { pos: KeyPos; id: number } | null;
   bell: boolean;
 }
 
-export function Typewriter({ typeColor, pressed, bell }: Props) {
-  const art = typewriterArt(typeColor);
+export function Typewriter({ machine, pressed, bell }: Props) {
   return (
     <div className="tw">
-      <img
-        className="tw-img"
-        src={art.src}
-        alt="타자기"
-        style={art.filter ? { filter: art.filter } : undefined}
-        draggable={false}
-      />
+      <img className="tw-img" src={machine.src} alt={`${machine.label} 타자기`} draggable={false} />
       {pressed && (
         <span
           key={pressed.id}
@@ -28,8 +20,10 @@ export function Typewriter({ typeColor, pressed, bell }: Props) {
           style={{
             left: `${pressed.pos.x}%`,
             top: `${pressed.pos.y}%`,
-            width: `${KEY_SIZE}%`,
-            paddingBottom: `${KEY_SIZE}%`,
+            width: `${pressed.pos.size}%`,
+            paddingBottom: `${pressed.pos.size}%`,
+            // 빛도 타자기마다 다르다 — 강철은 흰빛, 참나무는 호박빛
+            background: `radial-gradient(circle, ${machine.glow}, transparent 68%)`,
           }}
         />
       )}

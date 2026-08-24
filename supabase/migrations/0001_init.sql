@@ -76,13 +76,15 @@ create table boxes (
 
 -- ── box_members ───────────────────────────────────────────────────────────
 -- paper_color: 공개(발신인 구분) / type_color: 개인 설정(본인만 봄)
+-- 컬럼 이름은 type_color 그대로 둔다. 값은 타자기 id 다 — 이름만 바꾸면 스키마가
+-- 흔들리고 얻는 게 없다.
 create table box_members (
   box_id      uuid not null references boxes(id) on delete cascade,
   user_id     uuid not null references profiles(id) on delete cascade,
   paper_color text not null check (paper_color in
     ('ivory','blush','sage','powder','lilac','wheat','clay','mist')),
-  type_color  text not null check (type_color in
-    ('green','teal','blue','plum','rose','terra','ochre','stone')),
+  -- 타자기. 색이 아니라 물건이다 — 네 대가 생김새도 소리도 다르다. (docs/decisions.md D9)
+  type_color  text not null check (type_color in ('steel','oak','sugar','moss')),
   joined_at   timestamptz not null default now(),
   primary key (box_id, user_id),
 

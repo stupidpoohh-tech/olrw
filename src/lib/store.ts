@@ -1,4 +1,5 @@
-import type { PaperId, TypeId } from '../design/colors';
+import type { PaperId } from '../design/colors';
+import type { TypeId } from '../design/typewriters';
 import type {
   Box, BoxSummary, CloseVolumeInput, CreateBoxInput, Envelope,
   JoinBoxInput, Session, Uuid, Volume, VolumePage,

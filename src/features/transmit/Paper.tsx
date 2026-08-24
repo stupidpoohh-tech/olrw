@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { PaperId, TypeId } from '../../design/colors';
+import type { PaperId } from '../../design/colors';
+import { getTypewriter, type TypeId } from '../../design/typewriters';
 import { paperStyle } from '../../design/paper';
 import { sounds } from '../../lib/sounds';
 import { FormattedText } from '../telegram/FormattedText';
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function Paper({ paper, typeColor, sending, justSent, onSend }: Props) {
+  const machine = getTypewriter(typeColor);
   const [text, setText] = useState('');
   const [pressed, setPressed] = useState<{ pos: KeyPos; id: number } | null>(null);
   const [bell, setBell] = useState(false);
@@ -50,14 +52,14 @@ export function Paper({ paper, typeColor, sending, justSent, onSend }: Props) {
     }
     if (!isTypingKey(e)) return;
 
-    sounds.playKey();
-    const pos = keyPos(e.code);
+    sounds.playKey(machine.voice);
+    const pos = keyPos(machine, e.code);
     if (pos) {
       setPressed({ pos, id: Date.now() + Math.random() });
       window.clearTimeout(pressTimer.current);
       pressTimer.current = window.setTimeout(() => setPressed(null), 130);
     }
-  }, [text, sending, onSend]);
+  }, [text, sending, onSend, machine]);
 
   /** 글자 수는 입력값에서 센다. 조합 중에는 자르지 않는다 — 자르면 조합이 깨진다. */
   const clamp = (v: string) => (composing.current ? v : v.slice(0, CHAR_LIMIT));
@@ -69,7 +71,7 @@ export function Paper({ paper, typeColor, sending, justSent, onSend }: Props) {
     // 벨은 한 통에 한 번만 울린다.
     if (!bellRung.current && next.length >= BELL_AT) {
       bellRung.current = true;
-      sounds.playBell();
+      sounds.playBell(machine.voice);
       setBell(true);
       window.clearTimeout(bellTimer.current);
       bellTimer.current = window.setTimeout(() => setBell(false), 700);
@@ -84,7 +86,7 @@ export function Paper({ paper, typeColor, sending, justSent, onSend }: Props) {
 
   return (
     <div className="stage">
-      <Typewriter typeColor={typeColor} pressed={pressed} bell={bell} />
+      <Typewriter machine={machine} pressed={pressed} bell={bell} />
 
       <div className="paper-wrap">
         <div className="paper" style={paperStyle(paper)} onClick={() => input.current?.focus()}>

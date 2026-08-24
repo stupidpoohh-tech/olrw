@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getType } from '../../design/colors';
+import { getTypewriter } from '../../design/typewriters';
 import { paperSwatchStyle } from '../../design/paper';
 import { useStore } from '../../lib/storeContext';
 import { toUserMessage } from '../../lib/errors';
@@ -64,7 +64,7 @@ export function BoxBar({ box, boxes, onSwitch, onAddBox, onSettings, onChanged }
     catch (e) { setError(toUserMessage(e)); }
   };
 
-  const myTint = getType(box.myType).tint;
+  const myTint = getTypewriter(box.myType).tint;
 
   return (
     <div className="boxbar" ref={ref}>
@@ -120,7 +120,7 @@ export function BoxBar({ box, boxes, onSwitch, onAddBox, onSettings, onChanged }
             <button key={b.id} role="menuitem"
               className={`boxbar-menu-item ${b.id === box.id ? 'active' : ''}`}
               onClick={() => { setOpen(false); onSwitch(b.id); }}>
-              <span className="boxbar-dot" style={{ background: getType(b.myType).tint }} />
+              <span className="boxbar-dot" style={{ background: getTypewriter(b.myType).tint }} />
               <span className="boxbar-menu-name">{b.name}</span>
               <span className="boxbar-menu-meta tnum">{b.memberCount}명 · VOL.{b.currentVol}</span>
             </button>
@@ -129,7 +129,7 @@ export function BoxBar({ box, boxes, onSwitch, onAddBox, onSettings, onChanged }
           <button role="menuitem" className="boxbar-menu-action"
             onClick={() => { setOpen(false); onAddBox(); }}>새 전보함 만들기 · 참여</button>
           <button role="menuitem" className="boxbar-menu-action"
-            onClick={() => { setOpen(false); onSettings(); }}>내 색 · 이름 설정</button>
+            onClick={() => { setOpen(false); onSettings(); }}>내 설정</button>
           <button role="menuitem" className="boxbar-menu-action"
             onClick={() => { setOpen(false); setDraft(box.name); setRenaming(true); }}>전보함 이름 변경</button>
           <button role="menuitem" className="boxbar-menu-action danger"

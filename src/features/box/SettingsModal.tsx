@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { PaperId, TypeId } from '../../design/colors';
+import type { PaperId } from '../../design/colors';
+import type { TypeId } from '../../design/typewriters';
 import { useStore } from '../../lib/storeContext';
 import { toUserMessage } from '../../lib/errors';
 import type { Box } from '../../lib/types';
@@ -32,7 +33,7 @@ export function SettingsModal({ box, displayName, onClose, onSaved }: Props) {
   };
 
   return (
-    <Modal title="내 색 · 이름" onClose={onClose}>
+    <Modal title="내 이름 · 용지 · 타자기" onClose={onClose}>
       <p className="modal-sub">‘{box.name}’ 전보함에서 쓰는 설정입니다.</p>
 
       <div className="onb-panel">
@@ -51,8 +52,10 @@ export function SettingsModal({ box, displayName, onClose, onSaved }: Props) {
         </div>
 
         <div className="onb-field">
-          <div className="onb-field-label">내 타자기 색</div>
-          <p className="onb-hint">어느 전보함에 있는지 구분하는 색입니다. 나만 봅니다.</p>
+          <div className="onb-field-label">내 타자기</div>
+          <p className="onb-hint">
+            어느 전보함에 있는지 알려주는 타자기입니다. 생김새도 소리도 다릅니다. 나만 봅니다.
+          </p>
           <TypeChoices value={type} onChange={setType} />
         </div>
 

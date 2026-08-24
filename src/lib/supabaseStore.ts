@@ -1,5 +1,6 @@
 import type { Session as AuthSession, SupabaseClient } from '@supabase/supabase-js';
-import { isPaperId, isTypeId, type PaperId, type TypeId } from '../design/colors';
+import { isPaperId, type PaperId } from '../design/colors';
+import { isTypeId, type TypeId } from '../design/typewriters';
 import { supabase } from './supabase';
 import type { BoxStore } from './store';
 import type {
@@ -9,7 +10,7 @@ import type {
 const COVERS = 'covers';
 
 const asPaper = (v: unknown): PaperId => (isPaperId(v) ? v : 'ivory');
-const asType = (v: unknown): TypeId => (isTypeId(v) ? v : 'green');
+const asType = (v: unknown): TypeId => (isTypeId(v) ? v : 'steel');
 const asBucket = (v: unknown): LengthBucket =>
   v === 'medium' || v === 'long' ? v : 'short';
 

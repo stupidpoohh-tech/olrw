@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { paperStyle, paperSwatchStyle } from '../../design/paper';
 import { stamp } from '../../lib/format';
 import { sounds } from '../../lib/sounds';
+import { getTypewriter } from '../../design/typewriters';
 import type { Box, Envelope } from '../../lib/types';
 import { FormattedText } from '../telegram/FormattedText';
 
@@ -22,6 +23,7 @@ interface Props {
 
 export function PhaseReading({ box, envelopes, onFinish }: Props) {
   const [i, setI] = useState(0);
+  const voice = getTypewriter(box.myType).voice;
   const pages = [...envelopes].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const page = pages[i];
 
@@ -30,10 +32,10 @@ export function PhaseReading({ box, envelopes, onFinish }: Props) {
 
   const next = () => {
     if (i + 1 >= pages.length) { onFinish(true); return; }
-    sounds.playReturn();
+    sounds.playReturn(voice);
     setI((n) => n + 1);
   };
-  const prev = () => { if (i > 0) { sounds.playReturn(); setI((n) => n - 1); } };
+  const prev = () => { if (i > 0) { sounds.playReturn(voice); setI((n) => n - 1); } };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
