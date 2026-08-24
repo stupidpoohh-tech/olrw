@@ -5,7 +5,8 @@
 .app, .pair { max-width: 460px; margin: 0 auto; padding: 0 16px 56px; }
 @media (min-width: 720px) { .app, .pair { padding-bottom: 80px; } }
 
-.header { display: flex; align-items: baseline; justify-content: space-between;
+.header-tools { display: flex; align-items: center; gap: 12px; }
+.header { display: flex; align-items: center; justify-content: space-between;
   gap: 12px; padding: 22px 0 14px; }
 .brand { font-size: 14px; font-weight: 400; color: var(--ink); letter-spacing: -.01em; margin: 0; }
 
@@ -78,3 +79,13 @@
 .app.app-fixed { flex: 1; min-height: 0; display: flex; flex-direction: column;
   padding-bottom: 6px; }
 .app.app-fixed .main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+
+/* 짧은 화면(사파리 툴바 펼침)에서는 상단 크롬을 압축해 세 구역이 겹치지 않게 한다. */
+@media (max-height: 720px) {
+  html[data-fixed] .header { padding: 10px 0 6px; }
+  html[data-fixed] .nav-btn { padding: 5px 14px 6px; }
+  html[data-fixed] .boxbar { padding: 6px 0 5px; margin-bottom: 8px; }
+  html[data-fixed] .boxbar-members { margin-top: 4px; }
+  html[data-fixed] .meet { margin-top: 8px; padding: 9px 0; }
+}

@@ -4,16 +4,12 @@ import { useSession, useStore } from '../lib/storeContext';
 import './MakerMark.css';
 
 /**
- * 만든 사람 표시 + 기기 단위 음소거 + (게스트일 때) 계정 진입.
- *
- * 앱 최하단 가운데. 상단에 배너가 없어지면서 로그인·가입 진입도 여기로 내려왔다.
- * 홈 화면을 한 뷰포트에 담기 위해서다.
+ * 만든 사람 표시 + (게스트일 때) 계정 진입.
+ * 음소거 버튼은 헤더 우측으로 올라갔다 (MuteButton).
  */
 export function MakerMark() {
-  const [muted, setMutedState] = useState<boolean>(() => isMuted());
   const session = useSession();
   const store = useStore();
-  useEffect(() => onMuteChange(setMutedState), []);
 
   const openAuth = (mode: 'signin' | 'signup') => {
     // 해시를 먼저 세우고 signOut. 순서가 뒤집히면 세션이 null 로 떨어진 순간
@@ -38,17 +34,6 @@ export function MakerMark() {
       )}
 
       <div className="maker-row">
-        <button
-          type="button"
-          className="maker-mute"
-          aria-pressed={muted}
-          aria-label={muted ? '소리 켜기' : '소리 끄기'}
-          title={muted ? '소리 켜기' : '소리 끄기'}
-          onClick={() => setMuted(!muted)}
-        >
-          <SpeakerIcon muted={muted} />
-        </button>
-
         <span className="maker-text">
           만든사람 <b className="maker-name">DADA</b>
         </span>
@@ -65,6 +50,24 @@ export function MakerMark() {
         </a>
       </div>
     </footer>
+  );
+}
+
+/** 기기 단위 음소거. 헤더 우측 상단에 선다. */
+export function MuteButton() {
+  const [muted, setMutedState] = useState<boolean>(() => isMuted());
+  useEffect(() => onMuteChange(setMutedState), []);
+  return (
+    <button
+      type="button"
+      className="mute-btn"
+      aria-pressed={muted}
+      aria-label={muted ? '소리 켜기' : '소리 끄기'}
+      title={muted ? '소리 켜기' : '소리 끄기'}
+      onClick={() => setMuted(!muted)}
+    >
+      <SpeakerIcon muted={muted} />
+    </button>
   );
 }
 

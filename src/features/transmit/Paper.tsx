@@ -88,17 +88,17 @@ export function Paper({ paper, typeColor, sending, justSent, onSend, onStepType 
 
   return (
     <div className="stage">
-      <Typewriter machine={machine} pressed={pressed} bell={bell} onStep={onStepType} />
+      {/* 목업(사용자 제공)을 따른다: 타자기가 종이 카드 안에 산다. 한 장의 인쇄물. */}
+      <div className="paper" style={paperStyle(paper)} onClick={() => input.current?.focus()}>
+        <div className="paper-head display">
+          <span>No.{String(450 + (text.length % 999)).padStart(4, '0')}</span>
+          <span>Telegram</span>
+          <span>Priority<i className="paper-dot" aria-hidden="true" /></span>
+        </div>
 
-      <div className="paper-wrap">
-        <div className="paper" style={paperStyle(paper)} onClick={() => input.current?.focus()}>
-          <div className="paper-head display">
-            <span>No.{String(450 + (text.length % 999)).padStart(4, '0')}</span>
-            <span>Telegram</span>
-            <span>Priority</span>
-          </div>
+        <Typewriter machine={machine} pressed={pressed} bell={bell} onStep={onStepType} />
 
-          <div className="paper-type">
+        <div className="paper-type">
             <textarea
               ref={input}
               className="paper-input"
@@ -124,14 +124,13 @@ export function Paper({ paper, typeColor, sending, justSent, onSend, onStepType 
             </div>
           </div>
 
-          <div className="paper-foot">
-            <div className="gauge"><div className={`gauge-fill ${level}`} style={{ width: `${ratio * 100}%` }} /></div>
-            <div className="paper-actions">
-              <span className={`count tnum ${level}`}>{text.length} / {CHAR_LIMIT}</span>
-              <button className="send" onClick={() => onSend(text.trim())} disabled={!canSend}>
-                {sending ? '송신 중…' : '송신'}
-              </button>
-            </div>
+        <div className="paper-foot">
+          <div className="gauge"><div className={`gauge-fill ${level}`} style={{ width: `${ratio * 100}%` }} /></div>
+          <div className="paper-actions">
+            <span className={`count tnum ${level}`}>{text.length} / {CHAR_LIMIT}</span>
+            <button className="send" onClick={() => onSend(text.trim())} disabled={!canSend}>
+              {sending ? '송신 중…' : '송신'}
+            </button>
           </div>
         </div>
       </div>

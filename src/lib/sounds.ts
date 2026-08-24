@@ -158,24 +158,24 @@ const droplet = (k: Droplet): Synth => (ctx, out, t0) => {
   const g = ctx.createGain();
   o.type = 'sine';
   const from = k.start[0] + Math.random() * (k.start[1] - k.start[0]);
-  // 살짝 가라앉았다가 (30ms) 위로 미끄러진다 (110ms)
+  // 느리게 가라앉았다가 (45ms) 둥글게 떠오른다 (240ms 까지) — 급한 처프가 날카로움을 만든다
   o.frequency.setValueAtTime(from, t0);
-  o.frequency.exponentialRampToValueAtTime(k.dip, t0 + 0.03);
-  o.frequency.exponentialRampToValueAtTime(k.rise * (0.92 + Math.random() * 0.16), t0 + 0.14);
-  // 부드러운 어택, 긴 꼬리 — 때리는 소리가 아니라 떨어지는 소리
+  o.frequency.exponentialRampToValueAtTime(k.dip, t0 + 0.045);
+  o.frequency.exponentialRampToValueAtTime(k.rise * (0.94 + Math.random() * 0.12), t0 + 0.24);
+  // 어택 16ms · 꼬리 300ms — 때리는 소리가 아니라 물이 받아들이는 소리
   g.gain.setValueAtTime(0.0001, t0);
-  g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.008);
-  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+  g.gain.exponentialRampToValueAtTime(0.12, t0 + 0.016);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.30);
   o.connect(g).connect(out);
   o.start(t0);
-  o.stop(t0 + 0.2);
+  o.stop(t0 + 0.32);
 
   if (k.moist > 0) {
     const src = ctx.createBufferSource();
-    src.buffer = noise(ctx, 0.09, (t) => Math.exp(-t * 40) * k.moist);
+    src.buffer = noise(ctx, 0.12, (t) => Math.exp(-t * 25) * k.moist);
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.value = 1400;
+    lp.frequency.value = 900;
     src.connect(lp).connect(out);
     src.start(t0);
   }
