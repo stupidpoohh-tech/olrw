@@ -143,12 +143,14 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
               <button type="button" role="radio" aria-checked={sealed}
                 className={`onb-seg-btn ${sealed ? 'active' : ''}`}
                 onClick={() => setSealed(true)}>
-                <MailIcon />봉인함
+                <span className="onb-seg-head"><MailIcon />봉인함</span>
+                <span className="onb-seg-sub">지정한 날 함께 열어요</span>
               </button>
               <button type="button" role="radio" aria-checked={!sealed}
                 className={`onb-seg-btn ${sealed ? '' : 'active'}`}
                 onClick={() => setSealed(false)}>
-                <MailIcon open />열린함
+                <span className="onb-seg-head"><MailIcon open />열린함</span>
+                <span className="onb-seg-sub">지금 바로 열 수 있어요</span>
               </button>
             </div>
             <p className="onb-seg-desc">
