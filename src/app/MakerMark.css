@@ -1,0 +1,18 @@
+.maker {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 30px 16px calc(30px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--divider-soft);
+  margin-top: 34px;
+}
+
+.maker-text { font-size: 12px; color: var(--ink-light); letter-spacing: -.005em; }
+.maker-name { font-weight: 500; color: var(--ink-faded); letter-spacing: .04em; }
+
+.maker-home {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  border: 1px solid var(--divider); border-radius: var(--radius);
+  color: var(--ink-light); text-decoration: none;
+  transition: color var(--t-fast) ease, border-color var(--t-fast) ease;
+}
+.maker-home:hover { color: var(--ink-mid); border-color: var(--ink-faint); }
