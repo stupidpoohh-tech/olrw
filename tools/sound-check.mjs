@@ -125,16 +125,20 @@ for (const v of data.voices) {
 }
 
 const by = Object.fromEntries(data.voices.map((v) => [v.id, v.keyCentroid]));
-// 설탕은 이제 bubble — 다른 종류의 소리다. 정체성이 실제로 다른지 kind 로 검증한다.
-// 나머지 셋(strike)은 여전히 강철 > 이끼 > 참나무 순서를 유지해야 한다.
+// 네 대가 각자 다른 종류의 소리를 낸다. 설탕은 버블, 이끼는 잎사귀 스침(러슬),
+// 강철·참나무는 여전히 스트라이크(강철이 위).
 const kinds = Object.fromEntries(data.voices.map((v) => [v.id, v.kind]));
-ok('설탕은 버블이다 (다른 종류의 소리)', kinds.sugar === 'bubble', `sugar.kind = ${kinds.sugar}`);
-ok('강철·참나무·이끼는 스트라이크다', kinds.steel === 'strike' && kinds.oak === 'strike' && kinds.moss === 'strike');
-ok('강철이 이끼보다 높게 친다', by.steel > by.moss, `${by.steel}Hz > ${by.moss}Hz`);
-ok('이끼가 참나무보다 높게 친다', by.moss > by.oak, `${by.moss}Hz > ${by.oak}Hz`);
-const strikeCentroids = ['steel', 'moss', 'oak'].map((id) => by[id]);
-const spread = Math.max(...strikeCentroids) - Math.min(...strikeCentroids);
-ok('세 스트라이크가 충분히 벌어져 있다', spread >= 400, `가장 높은 것과 낮은 것의 차이 ${spread}Hz`);
+ok('설탕은 버블이다 (물방울)', kinds.sugar === 'bubble', `sugar.kind = ${kinds.sugar}`);
+ok('이끼는 러슬이다 (나뭇잎 스침)', kinds.moss === 'rustle', `moss.kind = ${kinds.moss}`);
+ok('강철·참나무는 스트라이크다', kinds.steel === 'strike' && kinds.oak === 'strike');
+ok('강철이 참나무보다 높게 친다', by.steel > by.oak, `${by.steel}Hz > ${by.oak}Hz`);
+ok('이끼가 잎사귀 대역(2500Hz 위)에서 소리를 낸다', by.moss > 2500, `${by.moss}Hz`);
+const allCentroids = [by.steel, by.oak, by.sugar, by.moss];
+const spread = Math.max(...allCentroids) - Math.min(...allCentroids);
+ok('네 대의 무게중심이 충분히 벌어져 있다', spread >= 500,
+   `가장 높은 것과 낮은 것의 차이 ${spread}Hz`);
+ok('네 대 모두 서로 다른 무게중심을 가진다',
+   new Set(allCentroids).size === 4, `[${allCentroids.join(', ')}]`);
 
 console.log(failed ? `\n━━━ 실패 ${failed}건 ━━━` : '\n━━━ 전부 통과 ━━━');
 process.exit(failed ? 1 : 0);

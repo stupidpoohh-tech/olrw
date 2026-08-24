@@ -38,11 +38,17 @@ function noise(ctx: BaseAudioContext, seconds: number, amp: (t: number) => numbe
  * bubble (설탕/푸딩): 활자가 아니라 물방울이다. sine 이 짧게 미끄러지며 떨어지고
  *   그 위에 짧은 반짝(tinkle)이 하나 붙는다. 다른 셋과 성격이 아예 다르다.
  */
-export const key = (v: Voice): Synth =>
-  v.key.kind === 'bubble' ? bubble(v.key) : strike(v.key);
+export const key = (v: Voice): Synth => {
+  switch (v.key.kind) {
+    case 'bubble': return bubble(v.key);
+    case 'rustle': return rustle(v.key);
+    default:       return strike(v.key);
+  }
+};
 
 type Strike = Extract<Voice['key'], { kind: 'strike' }>;
 type Bubble = Extract<Voice['key'], { kind: 'bubble' }>;
+type Rustle = Extract<Voice['key'], { kind: 'rustle' }>;
 
 const strike = (k: Strike): Synth => (ctx, out, t0) => {
   const src = ctx.createBufferSource();
@@ -133,6 +139,39 @@ const bubble = (k: Bubble): Synth => (ctx, out, t0) => {
   t.connect(tg).connect(out);
   t.start(t0);
   t.stop(t0 + 0.05);
+};
+
+/**
+ * 나뭇잎에 파묻힌 타자기(이끼).
+ *
+ * 활자를 안 때린다 — 잎이 서로 스치는 짧은 shhh 가 메인이고, 그 위에
+ * 이슬방울이 톡 하고 얹힌다. 잎: 노이즈 지수 감쇠 + bandpass 2.5~4kHz.
+ * 방울: sine 3.5~4.2kHz 를 20ms 이하로 톡. 음정이 있지만 아주 짧아
+ * 설탕(sine 이 내려가는 pluck) 과 성격이 다르다.
+ */
+const rustle = (k: Rustle): Synth => (ctx, out, t0) => {
+  // 잎 스침 — 40ms 근방, 시작 진폭 amp 로 지수 감쇠. 노이즈가 메인이다.
+  const src = ctx.createBufferSource();
+  const decayRate = 3 / k.leaf.duration;   // duration 안에 상당히 감쇠
+  src.buffer = noise(ctx, k.leaf.duration, (t) => Math.exp(-t * decayRate) * k.leaf.amp);
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = k.leaf.band[0] + Math.random() * (k.leaf.band[1] - k.leaf.band[0]);
+  bp.Q.value = 1.3;   // 넓은 대역 — 딱딱한 소리가 아니라 부드러운 shhh
+  src.connect(bp).connect(out);
+  src.start(t0);
+
+  // 이슬방울 — 아주 짧은 sine 톡. 잎사귀 위에 얹히는 액센트.
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  o.frequency.value = k.dew.freq[0] + Math.random() * (k.dew.freq[1] - k.dew.freq[0]);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(k.dew.gain, t0 + 0.003);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + k.dew.duration);
+  o.connect(g).connect(out);
+  o.start(t0);
+  o.stop(t0 + k.dew.duration + 0.01);
 };
 
 /** 여백 벨 — 두 배음을 동시에, 800ms 감쇠. 배음은 타자기가 정한다. */
