@@ -53,7 +53,7 @@ async function seed(page, { sealed = true } = {}) {
   await signUp('민서', 'a@olrw.test');
   await page.waitForSelector('.onb-tabs-row', { timeout: 5000 });
   await page.fill('.onb-input', '퇴근길 전보함');
-  if (!sealed) await page.click('.onb-mode >> nth=1');
+  if (!sealed) await page.click('.onb-seg-btn >> nth=1');
   await page.click('button[type=submit]:has-text("전보함 만들기")');
   await page.waitForSelector('.onb-code');
   const code = (await page.textContent('.onb-code')).trim();

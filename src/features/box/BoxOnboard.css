@@ -7,11 +7,9 @@
 }
 .onb-tabs { display: flex; gap: 18px; }
 .onb-quota {
-  padding: 4px 10px; margin-bottom: 6px;
-  font-size: 11px; letter-spacing: .04em;
-  color: var(--ink-mid); background: var(--surface-2);
-  border: 1px solid var(--divider);
-  border-radius: var(--radius);
+  margin-bottom: 9px;
+  font-size: 12px; letter-spacing: .02em;
+  color: var(--ink-faded);
   white-space: nowrap;
 }
 .onb-field-header {
@@ -37,15 +35,15 @@
 .onb-code-input { letter-spacing: .22em; text-align: center; font-size: 17px; }
 
 /* 봉인함 / 열린함 */
-.onb-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-@media (max-width: 420px) { .onb-modes { grid-template-columns: 1fr; } }
-.onb-mode { text-align: left; border: 1px solid var(--divider); background: var(--surface); padding: 10px 12px;
-  border-radius: var(--radius-sm); padding: 11px 13px; display: flex; flex-direction: column;
-  gap: 4px; transition: border-color var(--t-fast) var(--ease); }
-.onb-mode:hover { border-color: var(--ink-light); }
-.onb-mode.active { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-.onb-mode-name { font-size: 13.5px; color: var(--ink); font-weight: 500; }
-.onb-mode-desc { font-size: 11.5px; color: var(--ink-mid); line-height: 1.5; }
+
+/* 봉인/열린 — 얇은 세그먼트 한 줄 + 설명은 아래 한 줄 */
+.onb-seg { display: grid; grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--divider); border-radius: var(--radius); overflow: hidden; }
+.onb-seg-btn { padding: 9px 0; font-size: 13.5px; color: var(--ink-mid);
+  background: none; transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
+.onb-seg-btn + .onb-seg-btn { border-left: 1px solid var(--divider); }
+.onb-seg-btn.active { background: var(--ink); color: var(--bg); font-weight: 500; }
+.onb-seg-desc { margin: 0; font-size: 12px; color: var(--ink-faded); line-height: 1.55; }
 
 .onb-error { font-size: 12.5px; color: var(--accent); margin: 0;
   border-left: 2px solid var(--accent); padding-left: 9px; }

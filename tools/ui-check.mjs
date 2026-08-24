@@ -127,7 +127,7 @@ ok('로그인하고 나면 주소의 자국이 지워진다',
    await page.evaluate(() => location.hash) === '');
 
 console.log('\n━━━ 전보함 만들기 (D1 봉인) ━━━');
-ok('봉인함이 기본값이다', (await page.getAttribute('.onb-mode >> nth=0', 'aria-pressed')) === 'true');
+ok('봉인함이 기본값이다', (await page.getAttribute('.onb-seg-btn >> nth=0', 'aria-checked')) === 'true');
 await page.fill('.onb-input', '퇴근길 전보함');
 await page.click('.swatches[aria-label="용지색"] button >> nth=0');   // ivory
 await shot('02-create');
@@ -188,7 +188,7 @@ await page.click('.boxbar-switch');
 await page.click('text=새 전보함 만들기 · 참여');
 await page.waitForSelector('[role=dialog]');
 await page.fill('[role=dialog] .onb-input', '주말 전보함');
-await page.click('[role=dialog] .onb-mode >> nth=1');                 // 열린함
+await page.click('[role=dialog] .onb-seg-btn >> nth=1');              // 열린함
 await page.click('[role=dialog] button[type=submit]:has-text("전보함 만들기")');
 await page.waitForSelector('[role=dialog] .onb-code');
 await page.click('[role=dialog] >> text=전보함 열기');

@@ -58,21 +58,16 @@ export type KeyProfile =
     }
   | {
       /**
-       * 나뭇잎에 파묻힌 타자기(이끼). 활자를 안 때린다 — 잎이 서로 스치는
-       * 짧은 shhh 위에 이슬방울이 톡 하고 얹힌다. 소음질감이라 설탕의 sine 톤과
-       * 절대 겹치지 않는다.
+       * 이끼 타자기 — 숲속 물방울(ASMR). 타자기 소리를 흉내내지 않는다.
+       * sine 이 살짝 가라앉았다가 위로 미끄러지는 고전적인 물방울 처프('블뤼입')에
+       * 아주 옅은 촉촉한 노이즈가 깔린다. 설탕(버블: 아래로만 떨어지는 pluck +
+       * 높은 tinkle)과는 움직임의 방향이 달라 절대 겹치지 않는다.
        */
-      readonly kind: 'rustle';
-      readonly leaf: {
-        readonly band: readonly [number, number];
-        readonly duration: number;
-        readonly amp: number;
-      };
-      readonly dew: {
-        readonly freq: readonly [number, number];
-        readonly gain: number;
-        readonly duration: number;
-      };
+      readonly kind: 'droplet';
+      readonly start: readonly [number, number];   // 시작 주파수 범위(Hz)
+      readonly dip: number;    // 잠깐 가라앉는 바닥
+      readonly rise: number;   // 위로 미끄러져 닿는 목표
+      readonly moist: number;  // 촉촉한 노이즈 레이어의 크기 (0 이면 없음)
     };
 
 export interface Voice {
@@ -168,14 +163,16 @@ export const TYPEWRITERS = [
       { y: 70.5, x0: 25.7, gap: 5.26 },
       { y: 77.5, x0: 28.0, gap: 5.25 },
     ],
-    // 나뭇잎에 파묻혔다 (D9 · 후속). 잎은 더 가볍고 높은 대역으로 (bandpass 3~4.5kHz,
-    // amp 0.16 · 70ms) — 진짜 잎사귀가 서로 스치는 부드러운 shhh. 이슬방울은 잎 위쪽
-    // 대역(4.6~5.6kHz sine)에 gain 0.15 로 크게 얹어 확실히 들리게 한다.
+    // 숲속 물방울 (사용자 지정: 타자기 소리가 아니라 듣기 좋은 ASMR 로).
+    // 420Hz 근방에서 잠깐 가라앉았다가 700Hz 로 미끄러지는 '블뤼입' —
+    // 이끼 낀 샘에 물이 똑 떨어지는 소리.
     voice: {
       key: {
-        kind: 'rustle',
-        leaf: { band: [3000, 4500], duration: 0.070, amp: 0.16 },
-        dew:  { freq: [4600, 5600], gain: 0.15, duration: 0.030 },
+        kind: 'droplet',
+        start: [360, 480],
+        dip: 250,
+        rise: 700,
+        moist: 0.035,
       },
       bell: [1900, 2850],
       carriage: { from: 700, to: 260, thud: 70 },

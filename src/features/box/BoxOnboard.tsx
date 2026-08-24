@@ -139,24 +139,19 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
               <div className="onb-field-label">언제 열어볼까요</div>
               <span className="onb-field-aside">나중에 바꿀 수 있습니다</span>
             </div>
-            <div className="onb-modes">
-              <button type="button"
-                className={`onb-mode ${sealed ? 'active' : ''}`}
-                aria-pressed={sealed}
-                onClick={() => setSealed(true)}>
-                <span className="onb-mode-name">봉인함</span>
-                <span className="onb-mode-desc">
-                  남이 보낸 전보는 만나는 날 함께 엽니다. 그전에는 봉투만 보입니다.
-                </span>
-              </button>
-              <button type="button"
-                className={`onb-mode ${sealed ? '' : 'active'}`}
-                aria-pressed={!sealed}
-                onClick={() => setSealed(false)}>
-                <span className="onb-mode-name">열린함</span>
-                <span className="onb-mode-desc">도착하는 대로 읽습니다.</span>
-              </button>
+            <div className="onb-seg" role="radiogroup" aria-label="언제 열어볼까요">
+              <button type="button" role="radio" aria-checked={sealed}
+                className={`onb-seg-btn ${sealed ? 'active' : ''}`}
+                onClick={() => setSealed(true)}>봉인함</button>
+              <button type="button" role="radio" aria-checked={!sealed}
+                className={`onb-seg-btn ${sealed ? '' : 'active'}`}
+                onClick={() => setSealed(false)}>열린함</button>
             </div>
+            <p className="onb-seg-desc">
+              {sealed
+                ? '남이 보낸 전보는 만나는 날 함께 엽니다. 그전에는 봉투만 보입니다.'
+                : '도착하는 대로 읽습니다.'}
+            </p>
           </div>
 
           {colorFields}
