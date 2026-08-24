@@ -144,20 +144,33 @@ const bubble = (k: Bubble): Synth => (ctx, out, t0) => {
 /**
  * 나뭇잎에 파묻힌 타자기(이끼).
  *
- * 이 타자기만 예외로 실제 녹음을 쓴다 — 사용자가 잎사귀와 이슬 mp3 두 개를
- * 지정했다. 나머지 타자기는 여전히 §6-1 합성을 따른다.
+ * 이 타자기만 예외로 실제 녹음을 쓴다 — 사용자가 준 잎사귀·이슬 녹음에서
+ * 실제 사건 구간만 골라 편집했다. 나머지 타자기는 여전히 §6-1 합성이다.
  *
- * 잎(leaf.mp3, ~3s 연속 스침): 매 타건마다 랜덤 오프셋에서 90~140ms 를 꺼내
- *   짧은 페이드-인/아웃과 함께 재생. 늘 다르게 들리게 한다.
- * 이슬(dew.mp3, ~260ms 한 방울): 확률적으로만(30%) 얹는다. 매 키마다 방울
- *   소리가 나면 부담이다 — 자연스럽게 이따금 톡.
+ * 원본 잎사귀 녹음은 33초 중 실제 스침이 두 군데(21.8~23.2s · 28.2~28.9s)에만
+ * 있는 아주 조용한 녹음이라(피크 3.8%), 그 사건들만 잘라 디노이즈·정규화한
+ * **고정 슬롯 스프라이트**로 만들었다. 랜덤 오프셋으로 아무 데나 자르면
+ * 대부분 무음이 나온다 — 그게 처음 버전이 망가진 이유였다.
  *
- * 첫 재생 순간에는 아직 디코딩이 안 끝났을 수 있다. 그 경우 v.key 의 값들로
- * 합성 폴백을 돌려 소리가 조용히 사라지지 않게 한다.
+ * leaf.wav — 0.35s 슬롯 4개. 각 슬롯은 스침 한 번이고 시작 40ms 안에 어택이
+ *   있다. 매 타건마다 슬롯 하나를 골라 통째로 재생한다. JS 페이드 없음 —
+ *   페이드는 파일에 구워져 있고, WAV 라 인코더 지연도 없어 타건과 맞는다.
+ * dew.wav — 0.40s 슬롯 2개 (작은 방울 · 큰 방울). 30% 확률로 얹는다.
+ *
+ * 첫 재생 순간에는 디코딩이 안 끝났을 수 있다. 그동안은 합성 폴백.
  */
 
-// 브라우저가 열리자마자 파일은 받아 둔다. AudioContext 가 없을 뿐 아니라
-// 첫 클릭 전이라 디코딩은 못하므로 raw bytes 만 캐시.
+const LEAF_SLOTS = 4;
+const LEAF_SLOT_DUR = 0.35;
+const DEW_SLOTS = 2;
+const DEW_SLOT_DUR = 0.40;
+/** 파일은 피크 ~0.6 로 정규화되어 있다. 강철 타건(피크 ~0.2)과 나란해지게 줄인다. */
+const LEAF_GAIN = 0.4;
+const DEW_GAIN = 0.6;
+const DEW_CHANCE = 0.3;
+
+// 브라우저가 열리자마자 파일은 받아 둔다. 첫 클릭 전에는 AudioContext 가
+// 없어 디코딩은 못하므로 raw bytes 만 캐시.
 type Bytes = ArrayBuffer;
 const fetchBytes = (url: string): Promise<Bytes> =>
   fetch(url).then((r) => r.arrayBuffer());
@@ -170,8 +183,8 @@ let decoding = false;
 
 // SSR 안전: window 가 있을 때만 fetch 시작. 실패해도 조용히 폴백된다.
 if (typeof window !== 'undefined') {
-  leafBytes = fetchBytes('/sounds/moss/leaf.mp3').catch(() => new ArrayBuffer(0));
-  dewBytes  = fetchBytes('/sounds/moss/dew.mp3').catch(() => new ArrayBuffer(0));
+  leafBytes = fetchBytes('/sounds/moss/leaf.wav').catch(() => new ArrayBuffer(0));
+  dewBytes  = fetchBytes('/sounds/moss/dew.wav').catch(() => new ArrayBuffer(0));
 }
 
 async function ensureBuffers(ctx: BaseAudioContext): Promise<void> {
@@ -191,31 +204,16 @@ const rustle = (k: Rustle): Synth => (ctx, out, t0) => {
   void ensureBuffers(ctx);
 
   if (leafBuf) {
-    const window = 0.09 + Math.random() * 0.05;   // 90~140ms 랜덤 슬라이스
-    const maxStart = Math.max(0, leafBuf.duration - window - 0.05);
-    const start = 0.05 + Math.random() * maxStart;
-    const leafSrc = ctx.createBufferSource();
-    leafSrc.buffer = leafBuf;
-    const gL = ctx.createGain();
-    gL.gain.setValueAtTime(0.0001, t0);
-    gL.gain.exponentialRampToValueAtTime(0.55, t0 + 0.006);
-    gL.gain.exponentialRampToValueAtTime(0.001, t0 + window);
-    leafSrc.connect(gL).connect(out);
-    leafSrc.start(t0, start, window);
-  }
-
-  // 이슬방울 — 30% 확률. 매 타건마다 톡톡거리면 부담이다.
-  if (dewBuf && Math.random() < 0.3) {
-    const dewSrc = ctx.createBufferSource();
-    dewSrc.buffer = dewBuf;
-    const gD = ctx.createGain();
-    gD.gain.value = 0.75;
-    dewSrc.connect(gD).connect(out);
-    dewSrc.start(t0 + 0.015);
-  }
-
-  // 폴백 합성 — 샘플이 아직 안 뜬 경우에만 (첫 키 한두 번)
-  if (!leafBuf) {
+    const slot = Math.floor(Math.random() * LEAF_SLOTS);
+    const src = ctx.createBufferSource();
+    src.buffer = leafBuf;
+    const g = ctx.createGain();
+    g.gain.value = LEAF_GAIN;
+    src.connect(g).connect(out);
+    // 슬롯 통째로, t0 에서 바로. 어택은 파일 안에 있다.
+    src.start(t0, slot * LEAF_SLOT_DUR, LEAF_SLOT_DUR);
+  } else {
+    // 폴백 합성 — 디코딩이 끝나기 전 첫 키 한두 번
     const src = ctx.createBufferSource();
     const decayRate = 3 / k.leaf.duration;
     src.buffer = noise(ctx, k.leaf.duration, (t) => Math.exp(-t * decayRate) * k.leaf.amp);
@@ -225,6 +223,17 @@ const rustle = (k: Rustle): Synth => (ctx, out, t0) => {
     bp.Q.value = 1.3;
     src.connect(bp).connect(out);
     src.start(t0);
+  }
+
+  // 이슬방울 — 이따금, 확실히 들리게.
+  if (dewBuf && Math.random() < DEW_CHANCE) {
+    const slot = Math.floor(Math.random() * DEW_SLOTS);
+    const src = ctx.createBufferSource();
+    src.buffer = dewBuf;
+    const g = ctx.createGain();
+    g.gain.value = DEW_GAIN;
+    src.connect(g).connect(out);
+    src.start(t0 + 0.01, slot * DEW_SLOT_DUR, DEW_SLOT_DUR);
   }
 };
 
