@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { StoreProvider } from '../lib/storeContext';
+import { MakerMark } from './MakerMark';
 import { Shell } from './Shell';
 
 // 토큰 확인표는 ?proof 로만 연다. 본 번들에 싣지 않는다.
@@ -13,6 +14,7 @@ export function App() {
   return (
     <StoreProvider>
       <Shell />
+      <MakerMark />
     </StoreProvider>
   );
 }
