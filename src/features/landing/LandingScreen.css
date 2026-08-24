@@ -1,0 +1,55 @@
+/* 로그인 앞 화면. 설명 대신 실제 화면 조각을 보여준다. */
+
+.lp { max-width: 460px; margin: 0 auto; padding: 0 20px 64px; }
+
+.lp-head { padding: 56px 0 12px; }
+.lp-mark { font-size: 11px; letter-spacing: .34em; color: var(--ink-faded); margin: 0 0 20px; }
+.lp-title { font-size: clamp(32px, 9vw, 40px); font-weight: 300; line-height: 1.12;
+  letter-spacing: -.02em; color: var(--ink); margin: 0 0 16px; }
+.lp-lede { font-size: 15px; line-height: 1.8; color: var(--ink-mid); margin: 0 0 28px; }
+
+.lp-cta { display: flex; gap: 8px; }
+.lp-primary { flex: 1; background: var(--ink); color: var(--bg);
+  border-radius: var(--radius-sm); padding: 13px 0; font-size: 14px;
+  transition: opacity var(--t-fast) var(--ease); }
+.lp-primary:hover { opacity: .86; }
+.lp-secondary { flex: 0 0 auto; padding: 13px 20px; font-size: 14px; color: var(--ink-soft);
+  border: 1px solid var(--divider); border-radius: var(--radius-sm);
+  transition: border-color var(--t-fast) var(--ease); }
+.lp-secondary:hover { border-color: var(--ink-light); }
+
+/* ── 세 마디 ─────────────────────────────────────────────────────────────── */
+
+.lp-step { padding: 46px 0 0; border-top: 1px solid var(--divider); margin-top: 46px; }
+.lp-step-no { font-size: 10px; letter-spacing: .24em; color: var(--ink-light);
+  margin: 0 0 10px; }
+.lp-step-title { font-size: 20px; font-weight: 500; color: var(--ink); margin: 0 0 10px;
+  letter-spacing: -.012em; }
+.lp-step-body { font-size: 14px; line-height: 1.85; color: var(--ink-mid); margin: 0 0 22px; }
+
+.lp-demo { display: flex; flex-direction: column; gap: 8px; }
+/* 소개 화면의 조각은 시선을 끌지 않는다. 진짜 화면이 아니라 예시다. */
+.lp-demo .tg, .lp-demo .env { animation: none; }
+
+.lp-aside { font-size: 12.5px; color: var(--ink-faded); line-height: 1.7;
+  margin: 18px 0 0; padding-left: 10px; border-left: 1px solid var(--divider); }
+
+.lp-shelf { padding-top: 4px; }
+.lp-shelf .shelf-books { justify-content: center; }
+.lp-shelf .spine { cursor: default; }
+.lp-shelf .spine:hover { transform: none; }
+
+/* ── 없는 것 ─────────────────────────────────────────────────────────────── */
+
+.lp-rules { padding: 46px 0 0; border-top: 1px solid var(--divider); margin-top: 46px; }
+.lp-rules-title { font-size: 15px; font-weight: 500; color: var(--ink); margin: 0 0 14px; }
+.lp-rules ul { list-style: none; padding: 0; margin: 0; }
+.lp-rules li { font-size: 14px; color: var(--ink-mid); padding: 9px 0 9px 18px;
+  border-bottom: 1px solid var(--divider-soft); position: relative; }
+.lp-rules li::before { content: '—'; position: absolute; left: 0; color: var(--ink-light); }
+
+/* ── 마무리 ─────────────────────────────────────────────────────────────── */
+
+.lp-foot { padding: 46px 0 0; border-top: 1px solid var(--divider); margin-top: 46px; }
+.lp-foot-line { font-size: 13.5px; color: var(--ink-mid); line-height: 1.75; margin: 0 0 20px; }
+.lp-foot-mark { margin: 40px 0 0; text-align: center; color: var(--ink-faint); }

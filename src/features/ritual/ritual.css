@@ -73,6 +73,10 @@
 .bind-cover.front { display: block; }
 .bind-gold-edge { position: absolute; inset: 8px; border: 1px solid var(--gold);
   border-radius: 1px; }
+/* 각인 글자는 흰색이다. 사진 표지 위에서는 스크림이 없으면 읽히지 않는다. (§4-3) */
+.bind-cover-scrim { position: absolute; inset: 0; border-radius: 2px;
+  background: linear-gradient(to bottom,
+    rgba(0, 0, 0, .3) 0%, rgba(0, 0, 0, .48) 45%, rgba(0, 0, 0, .3) 100%); }
 
 .bind-flash { position: absolute; inset: -200px; z-index: 25; pointer-events: none;
   background: radial-gradient(circle, rgba(255, 255, 255, .6), transparent 60%);
@@ -103,6 +107,9 @@
 .rt-book { position: relative; width: 100px; height: 140px; margin: 0 auto 22px;
   box-shadow: 0 14px 30px rgba(0, 0, 0, .4);
   animation: stampIn .5s ease backwards; }
+.rt-book-scrim { position: absolute; inset: 0;
+  background: linear-gradient(to bottom,
+    rgba(0, 0, 0, .26) 0%, rgba(0, 0, 0, .46) 50%, rgba(0, 0, 0, .26) 100%); }
 .rt-book-edge { position: absolute; inset: 6px; border: 1px solid var(--gold); }
 .rt-book-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   width: 90%; display: flex; flex-direction: column; gap: 5px; align-items: center;

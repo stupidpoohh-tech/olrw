@@ -216,6 +216,8 @@ export function MeetingRitual({ box, envelopes, onCancel, onArchived, reload }: 
                 cover.kind === 'photo' ? (cover.preview ?? cover.value) : cover.value,
               ),
             }}>
+              {/* §4-3: 사진 위 글자는 스크림 없이 읽히지 않는다 */}
+              {cover.kind === 'photo' && <span className="rt-book-scrim" />}
               <span className="rt-book-edge" />
               <span className="rt-book-label">
                 <span className="display tnum">VOL.{box.currentVol}</span>

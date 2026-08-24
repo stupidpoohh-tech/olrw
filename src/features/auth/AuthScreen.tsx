@@ -5,9 +5,15 @@ import './AuthScreen.css';
 
 type Mode = 'signin' | 'signup';
 
-export function AuthScreen() {
+interface Props {
+  initialMode?: Mode;
+  /** 소개 화면으로 돌아간다. */
+  onBack?: (() => void) | undefined;
+}
+
+export function AuthScreen({ initialMode = 'signin', onBack }: Props) {
   const store = useStore();
-  const [mode, setMode] = useState<Mode>('signin');
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -34,6 +40,9 @@ export function AuthScreen() {
   return (
     <div className="auth">
       <div className="auth-card">
+        {onBack && (
+          <button type="button" className="auth-back" onClick={onBack}>← 돌아가기</button>
+        )}
         <div className="auth-mark display">OLRW</div>
         <h1 className="auth-title display">Our love,<br />rightly written</h1>
         <p className="auth-sub">

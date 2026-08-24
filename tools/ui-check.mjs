@@ -40,7 +40,13 @@ const shot = async (name) => {
   await page.screenshot({ path: `${SHOTS}/${name}.png` });
 };
 
+/** 소개 화면에서 가입으로 들어간다. */
+const openSignUp = async () => {
+  if (await page.$('.lp')) await page.click('.lp-primary >> nth=0');
+  await page.waitForSelector('.auth', { timeout: 5000 });
+};
 const signUp = async (name, email) => {
+  await openSignUp();
   await page.click('.auth-tab >> nth=1');
   await page.fill('input[autocomplete="nickname"]', name);
   await page.fill('input[type=email]', email);
@@ -58,10 +64,37 @@ try {
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: 'networkidle' });
 
-console.log('\n━━━ 인증 ━━━');
-ok('로그인 화면이 먼저 나온다', await page.isVisible('.auth'));
-await shot('01-auth');
+console.log('\n━━━ 소개 화면 ━━━');
+ok('로그인하지 않으면 소개 화면이 먼저 나온다', await page.isVisible('.lp'));
+ok('로그인 화면이 강제되지 않는다', (await page.$$('.auth')).length === 0);
+ok('세 마디를 다 보여준다', (await page.$$('.lp-step')).length === 3);
+ok('실제 전보 카드를 보여준다', (await page.$$('.lp-demo .tg')).length === 2);
+ok('실제 봉투를 보여준다', (await page.$$('.lp-demo .env')).length === 2);
+ok('봉투에 본문이 없다', (await page.$$('.lp-demo .env .tg-body')).length === 0);
+ok('서가를 보여준다', (await page.$$('.lp-shelf .spine')).length === 5);
+await shot('01-landing');
 
+console.log('\n━━━ 인증으로 들어가고 나오기 ━━━');
+await page.click('.lp-secondary >> nth=0');
+await page.waitForSelector('.auth', { timeout: 5000 });
+ok('로그인을 누르면 로그인 탭으로 열린다',
+   (await page.getAttribute('.auth-tab >> nth=0', 'aria-selected')) === 'true');
+ok('주소에 자국이 남는다', await page.evaluate(() => location.hash) === '#login');
+await page.click('.auth-back');
+await page.waitForSelector('.lp', { timeout: 5000 });
+ok('돌아가기로 소개 화면에 돌아온다', await page.isVisible('.lp'));
+
+await page.click('.lp-primary >> nth=0');
+await page.waitForSelector('.auth', { timeout: 5000 });
+ok('전보함 열기를 누르면 가입 탭으로 열린다',
+   (await page.getAttribute('.auth-tab >> nth=1', 'aria-selected')) === 'true');
+await page.goBack();
+await page.waitForSelector('.lp', { timeout: 5000 });
+ok('브라우저 뒤로 가기도 소개로 돌아온다', await page.isVisible('.lp'));
+await shot('02-auth');
+
+console.log('\n━━━ 가입 ━━━');
+await openSignUp();
 await page.click('.auth-tab >> nth=1');
 await page.fill('input[type=email]', 'nope@olrw.test');
 await page.fill('input[type=password]', 'demo1234');
@@ -75,6 +108,8 @@ await page.fill('input[type=email]', 'a@olrw.test');
 await page.click('button[type=submit]');
 await page.waitForSelector('text=첫 전보함을 엽니다', { timeout: 5000 });
 ok('가입하면 온보딩으로 간다', true);
+ok('로그인하고 나면 주소의 자국이 지워진다',
+   await page.evaluate(() => location.hash) === '');
 
 console.log('\n━━━ 전보함 만들기 (D1 봉인) ━━━');
 ok('봉인함이 기본값이다', (await page.getAttribute('.onb-mode >> nth=0', 'aria-pressed')) === 'true');
@@ -93,7 +128,8 @@ await shot('04-shell');
 
 console.log('\n━━━ 참여와 색 (§4-1 색은 정보다) ━━━');
 await page.click('.link:has-text("로그아웃")');
-await page.waitForSelector('.auth');
+await page.waitForSelector('.lp', { timeout: 5000 });
+ok('로그아웃하면 소개 화면으로 돌아간다', true);
 await signUp('재이', 'b@olrw.test');
 await page.waitForSelector('text=첫 전보함을 엽니다');
 await page.click('.onb-tab >> nth=1');

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AuthScreen } from '../features/auth/AuthScreen';
 import { ArchiveView } from '../features/archive/ArchiveView';
 import { InboxView } from '../features/inbox/InboxView';
 import { MeetingRitual } from '../features/ritual/MeetingRitual';
@@ -11,6 +10,7 @@ import { useSession, useStore, usingMemoryStore } from '../lib/storeContext';
 import { toUserMessage } from '../lib/errors';
 import type { Box, BoxSummary, Envelope } from '../lib/types';
 import { Modal } from './Modal';
+import { PublicGate } from './PublicGate';
 import './Shell.css';
 
 type Tab = 'transmit' | 'inbox' | 'archive';
@@ -69,6 +69,13 @@ export function Shell() {
 
   useEffect(() => { void refresh(); }, [refresh]);
 
+  // 로그인하고 나면 #login / #join 을 지운다. 뒤로 가기가 로그인 화면으로 돌아가지 않게.
+  useEffect(() => {
+    if (session && location.hash) {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  }, [session]);
+
   /** 전보를 보내거나 회수한 뒤 목록만 다시 읽는다. 전보함까지 다시 읽을 이유는 없다. */
   const reloadEnvelopes = useCallback(async () => {
     if (!box) return;
@@ -82,7 +89,8 @@ export function Shell() {
     catch (e) { setError(toUserMessage(e, '전보를 회수하지 못했습니다.')); }
   }, [store, reloadEnvelopes]);
 
-  if (!session) return <AuthScreen />;
+  // 로그인 전에는 소개 화면이 선다. 계정을 만들기 전에 무엇인지 볼 수 있어야 한다.
+  if (!session) return <PublicGate />;
 
   // 목록을 아직 못 받았을 때. 로그인 화면이나 온보딩이 번쩍이지 않게 한다.
   if (boxes === null) {
