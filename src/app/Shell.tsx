@@ -12,6 +12,7 @@ import type { Box, BoxSummary, Envelope } from '../lib/types';
 import { Modal } from './Modal';
 import { PublicGate } from './PublicGate';
 import { GuestTour } from '../features/tour/GuestTour';
+import { MuteButton } from './MakerMark';
 import './Shell.css';
 
 type Tab = 'transmit' | 'inbox' | 'archive';
@@ -137,7 +138,10 @@ export function Shell() {
       {session.isGuest && <GuestTour />}
       <header className="header">
         <h1 className="brand display">Our love, rightly written</h1>
-        <button className="link" onClick={() => void store.signOut()}>로그아웃</button>
+        <div className="header-tools">
+          <MuteButton />
+          <button className="link" onClick={() => void store.signOut()}>로그아웃</button>
+        </div>
       </header>
 
       <nav className="nav" role="tablist">

@@ -3,35 +3,31 @@
 
 /* ── 타자기 + 물려 있는 종이 ─────────────────────────────────────────────── */
 
-/* 1·2구역 묶음. 줄지 않는다 — 줄면 종이가 상자 밖으로 넘쳐 3구역을 덮는다.
-   남는 높이는 전부 3구역(.recent)이 가져간다. */
-.stage { position: relative; padding-top: 4px; flex: none;
-  display: flex; flex-direction: column; }
+/* 1·2구역 = 종이 카드 하나. 타자기가 카드 안에 산다 (사용자 목업).
+   줄지 않는다 — 남는 높이는 전부 3구역(.recent)이 가져간다. */
+.stage { position: relative; padding-top: 4px; flex: none; }
 
-/* 1구역 — 타자기. 한 화면에 담으려 한 단계 줄였고, 화면이 좁으면 여기가 먼저 준다. */
-.tw { position: relative; width: 100%; max-width: 218px; margin: 0 auto -14px;
-  z-index: 2;
-  /* 줄이지 않는다. 플렉스가 이 상자를 찌그러뜨리면 사진이 넘쳐 종이를 덮는다.
-     크기는 max-width 로만 정하고, 남는 높이는 3구역이 가져간다. */
-  flex: none;
+/* 1구역 — 타자기. 종이 카드 안에 산다. */
+.tw { position: relative; width: 100%; max-width: 196px; margin: 6px auto 2px;
   touch-action: pan-y;   /* 세로 스크롤은 브라우저에, 가로는 우리가 */
   user-select: none; -webkit-user-select: none; }
 /* 네 장 모두 배경이 투명하다. blend 로 흰 바탕을 녹일 필요가 없다. */
 .tw-img { width: 100%; height: auto; display: block; pointer-events: none; }
 
-/* 좌우로 넘길 수 있다는 표시 — 작고 반투명한 삼각형 둘. */
-.tw-step { position: absolute; top: 42%; transform: translateY(-50%);
-  width: 26px; height: 26px; padding: 0;
+/* 좌우로 넘길 수 있다는 표시 — 원형의 흰 단추 둘 (사용자 목업). */
+.tw-step { position: absolute; top: 44%; transform: translateY(-50%);
+  width: 34px; height: 34px; padding: 0;
   display: flex; align-items: center; justify-content: center;
-  color: var(--ink); opacity: .22; background: none; border: none;
-  transition: opacity var(--t-fast) var(--ease); }
-.tw-step:hover { opacity: .5; }
-.tw-step svg { width: 9px; height: 14px; display: block; }
-.tw-step.prev { left: -22px; }
-.tw-step.next { right: -22px; }
-@media (max-width: 400px) {
-  .tw-step.prev { left: -18px; }
-  .tw-step.next { right: -18px; }
+  color: var(--ink-mid); background: var(--surface); border: 1px solid var(--divider);
+  border-radius: 50%; box-shadow: var(--shadow-1);
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease); }
+.tw-step:hover { color: var(--ink); border-color: var(--ink-faint); }
+.tw-step svg { width: 8px; height: 13px; display: block; }
+.tw-step.prev { left: -54px; }
+.tw-step.next { right: -54px; }
+@media (max-width: 420px) {
+  .tw-step.prev { left: -46px; }
+  .tw-step.next { right: -46px; }
 }
 
 /* 눌린 키 자리. 좌표와 빛깔은 타자기마다 다르다 (design/typewriters.ts). */
@@ -53,24 +49,28 @@
 
 /* ── 종이 ────────────────────────────────────────────────────────────────── */
 
-/* 2구역 — 종이. 줄지 않는다. */
-.paper-wrap { position: relative; z-index: 1; flex: none; }
-.paper { border-radius: var(--radius-sm); padding: 14px 16px 10px;
+/* 2구역 — 종이 카드. 타자기 · 입력 · 발밑이 전부 이 안에 있다. */
+.paper { border-radius: var(--radius-lg); padding: 14px 18px 12px;
   box-shadow: var(--shadow-1); cursor: text; }
 
 .paper-head { display: flex; justify-content: space-between; align-items: baseline;
+  gap: 12px;   /* 좁아져도 글자끼리 들러붙지 않는다 */
   font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase;
-  opacity: .55; padding-bottom: 8px; border-bottom: 1px solid currentColor; }
+  opacity: .6; padding-bottom: 8px; border-bottom: 1px solid currentColor; }
+.paper-head > span { white-space: nowrap; }
 .paper-head > span:nth-child(2) { letter-spacing: .3em; }
+.paper-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent); margin-left: 5px; vertical-align: 1px; }
 
-.paper-type { position: relative; min-height: 72px; padding: 10px 0 8px; }
+.paper-type { position: relative; min-height: 64px; padding: 10px 0 8px; }
 /* 진짜 입력은 화면 밖에 두고, 잉크는 아래에서 그린다. 커서 · STOP 표시를 위해서다. */
 .paper-input { position: absolute; inset: 0; width: 100%; height: 100%;
   overflow-wrap: anywhere;
   opacity: 0; resize: none; border: none; background: none;
-  font-size: 15px; line-height: 1.8; caret-color: transparent; }
+  /* 16px 미만이면 iOS 사파리가 포커스마다 화면을 확대한다 — 절대 줄이지 않는다 */
+  font-size: 16px; line-height: 1.75; caret-color: transparent; }
 .paper-input:focus { outline: none; }
-.paper-ink { font-size: 15px; line-height: 1.8; white-space: pre-wrap;
+.paper-ink { font-size: 16px; line-height: 1.75; white-space: pre-wrap;
   /* keep-all 은 공백 없는 자모 연속(IME 장난·ㅋㅋ 연타)을 못 끊어 종이 밖으로 샌다.
      anywhere 가 넘치는 경우에만 긴급 줄바꿈을 허용한다. */
   word-break: keep-all; overflow-wrap: anywhere; pointer-events: none; }
@@ -92,11 +92,12 @@
 .count { font-size: 11px; opacity: .6; }
 .count.warn, .count.danger { color: var(--accent); opacity: 1; }
 
-.send { border: 1px solid currentColor; border-radius: var(--radius-sm);
-  padding: 6px 16px; font-size: 12.5px; letter-spacing: .04em;
-  transition: opacity var(--t-fast) var(--ease); }
-.send:disabled { opacity: .35; cursor: default; }
-.send:not(:disabled):hover { opacity: .75; }
+.send { border: none; border-radius: var(--radius);
+  background: var(--ink); color: var(--bg);
+  padding: 8px 20px; font-size: 13px; font-weight: 500; letter-spacing: .02em;
+  transition: opacity var(--t-fast) var(--ease), background var(--t-fast) var(--ease); }
+.send:disabled { opacity: .3; cursor: default; }
+.send:not(:disabled):hover { background: var(--ink-soft); }
 
 /* 송신 도장 */
 .sent { position: absolute; top: 34%; left: 50%; transform: translate(-50%, -50%);
@@ -137,8 +138,9 @@
 .meet-hint { font-size: 11.5px; color: var(--ink-faded); text-align: center; margin: 8px 0 0; }
 
 
-/* 세로가 짧은 기기 — 타자기가 먼저 자리를 내준다. 3구역은 최소 높이를 지킨다. */
-@media (max-height: 760px) {
-  .tw { max-width: 178px; }
-  .paper-type { min-height: 62px; }
+/* 세로가 짧은 기기(사파리 툴바가 펼쳐진 아이폰) — 타자기가 먼저 자리를 내준다. */
+@media (max-height: 720px) {
+  .tw { max-width: 156px; }
+  .paper-type { min-height: 52px; }
+  .recent { min-height: 84px; }
 }
