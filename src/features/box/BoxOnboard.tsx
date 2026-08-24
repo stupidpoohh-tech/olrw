@@ -136,16 +136,22 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
 
           <div className="onb-field">
             <div className="onb-field-header">
-              <div className="onb-field-label">언제 열어볼까요</div>
+              <div className="onb-field-label">언제 열어볼까요?</div>
               <span className="onb-field-aside">나중에 바꿀 수 있습니다</span>
             </div>
             <div className="onb-seg" role="radiogroup" aria-label="언제 열어볼까요">
               <button type="button" role="radio" aria-checked={sealed}
                 className={`onb-seg-btn ${sealed ? 'active' : ''}`}
-                onClick={() => setSealed(true)}>봉인함</button>
+                onClick={() => setSealed(true)}>
+                <span className="onb-seg-head"><LockIcon closed />봉인함</span>
+                <span className="onb-seg-sub">지정한 날 함께 열어요</span>
+              </button>
               <button type="button" role="radio" aria-checked={!sealed}
                 className={`onb-seg-btn ${sealed ? '' : 'active'}`}
-                onClick={() => setSealed(false)}>열린함</button>
+                onClick={() => setSealed(false)}>
+                <span className="onb-seg-head"><LockIcon />열린함</span>
+                <span className="onb-seg-sub">지금 바로 열 수 있어요</span>
+              </button>
             </div>
             <p className="onb-seg-desc">
               {sealed
@@ -182,5 +188,19 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
 
       {onCancel && <button type="button" className="onb-cancel" onClick={onCancel}>닫기</button>}
     </div>
+  );
+}
+
+/** 자물쇠. 닫히면 고리가 몸통에 붙고, 열리면 한쪽이 들린다. */
+function LockIcon({ closed = false }: { closed?: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false">
+      <rect x="3.2" y="7" width="9.6" height="6.6" rx="1.4"
+        fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <path
+        d={closed ? 'M5.6 7V5.2a2.4 2.4 0 0 1 4.8 0V7' : 'M5.6 7V5.2a2.4 2.4 0 0 1 4.8 0'}
+        fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"
+      />
+    </svg>
   );
 }
