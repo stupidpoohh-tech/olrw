@@ -26,7 +26,9 @@ const browser = await chromium.launch({
 async function seed(page, { sealed = true } = {}) {
   const signUp = async (name, email) => {
     if (!(await page.$('.auth'))) {
-      await page.waitForSelector('.maker-auth-link', { timeout: 8000 });
+      // 하단 링크를 가리는 투어 카드를 먼저 닫는다.
+  while (await page.$('.tour-next')) { await page.click('.tour-next'); await page.waitForTimeout(200); }
+  await page.waitForSelector('.maker-auth-link', { timeout: 8000 });
       await page.locator('.maker-auth-link', { hasText: '계정 만들기' }).click();
     }
     await page.waitForSelector('.auth', { timeout: 5000 });
@@ -60,6 +62,7 @@ async function seed(page, { sealed = true } = {}) {
   await send('고양이가 나를 따라옴 STOP');
 
   await page.click('.link:has-text("로그아웃")');
+  while (await page.$('.tour-next')) { await page.click('.tour-next'); await page.waitForTimeout(200); }
   await page.waitForSelector('.maker-auth-link', { timeout: 5000 });
   await signUp('재이', 'b@olrw.test');
   await page.waitForSelector('.onb-tabs-row', { timeout: 5000 });
