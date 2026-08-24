@@ -171,6 +171,14 @@ http://localhost:5173 을 엽니다.
 
 ## 7. 배포
 
+> **Supabase 없이 먼저 올려 봐도 됩니다.** 환경변수를 비워 둔 채로 배포하면
+> 앱이 브라우저 안 저장소(`localStorage`)로 돕니다. 전 화면이 실제로 동작해서
+> 폰으로 만져 보기에 충분합니다. 다만 데이터가 그 브라우저 안에만 있어
+> **혼자만** 쓸 수 있습니다 — 초대 코드를 줘도 상대 화면엔 그런 전보함이 없고,
+> 폰과 노트북도 서로 남입니다. 둘이 주고받으려면 Supabase 가 있어야 합니다.
+> 나중에 환경변수 두 개를 넣고 다시 배포하면 그때 서버로 갈아탑니다. 코드는 안 고칩니다.
+
+
 전보함은 **정적 SPA** 입니다. 서버 코드가 없어서 `dist/` 를 올려 주는 곳이면
 어디든 똑같이 돕니다. 아래 둘 중 편한 쪽을 고르시면 됩니다 — 리포에는 양쪽 설정이
 모두 들어 있어서, 나중에 옮겨도 코드는 손댈 게 없습니다.
@@ -183,12 +191,14 @@ http://localhost:5173 을 엽니다.
 
    | 항목 | 값 |
    |---|---|
-   | Framework preset | `Vite` |
+   | Framework preset | **None** — 목록에 Vite 는 없습니다. 골라도 두 칸을 대신 채워 줄 뿐이라 직접 적으면 됩니다 |
    | Build command | `pnpm build` |
    | Build output directory | `dist` |
+   | Root directory | 비워 둠 |
 
 3. **Environment variables** 에 §3 의 두 값을 넣습니다.
-   **Production 과 Preview 양쪽에 다** 넣어야 합니다 — 따로 관리됩니다
+   **Production 과 Preview 양쪽에 다** 넣어야 합니다 — 따로 관리됩니다.
+   아직 Supabase 프로젝트가 없다면 **비워 둡니다** (아래 참고)
 4. **Save and Deploy**
 
 Node 판본은 `.node-version`(22)이 잡아 줍니다. pnpm 은 `pnpm-lock.yaml` 을 보고
