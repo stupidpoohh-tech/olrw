@@ -46,6 +46,13 @@ const send = async () => {
 
 await page.goto(`http://localhost:${PORT}/`, { timeout: 8000, waitUntil: 'networkidle' });
 await page.evaluate(() => localStorage.clear());
+
+// 타건음이 몇 번 울리는지 센다. playKey 는 oscillator 를 정확히 하나 만든다.
+await page.addInitScript(() => {
+  window.__osc = 0;
+  const orig = AudioContext.prototype.createOscillator;
+  AudioContext.prototype.createOscillator = function (...a) { window.__osc++; return orig.apply(this, a); };
+});
 await page.reload({ waitUntil: 'networkidle' });
 
 // ── 방을 만들고 두 사람을 넣는다
@@ -90,9 +97,23 @@ if (hit) {
 }
 await page.fill('.paper-input', '');
 
+console.log('\n━━━ 타건음 (§6-1) ━━━');
+await page.click('.paper');
+await page.evaluate(() => { window.__osc = 0; });
+await page.keyboard.type('abc', { delay: 30 });
+ok('글자 하나에 타건음 하나', (await page.evaluate(() => window.__osc)) === 3,
+   `${await page.evaluate(() => window.__osc)}회`);
+await page.evaluate(() => { window.__osc = 0; });
+await page.keyboard.press('Shift');
+await page.keyboard.press('ArrowLeft');
+ok('수식·이동 키에는 울리지 않는다', (await page.evaluate(() => window.__osc)) === 0,
+   `${await page.evaluate(() => window.__osc)}회`);
+await page.fill('.paper-input', '');
+
 console.log('\n━━━ 한글 입력 (docs/AUDIT.md §04-3) ━━━');
 // 조합 이벤트를 실제로 흉내낸다: ㅎ → 하 → 한
 await page.click('.paper');
+await page.evaluate(() => { window.__osc = 0; });
 await page.evaluate(() => {
   const el = document.querySelector('.paper-input');
   const setValue = (v) => {
@@ -100,11 +121,19 @@ await page.evaluate(() => {
     setter.call(el, v);
     el.dispatchEvent(new Event('input', { bubbles: true }));
   };
+  // 'ㅎ' → '하' → '한'. 물리 키 셋을 누르지만 글자 수는 내내 1이다.
+  const press = (code) => el.dispatchEvent(new KeyboardEvent('keydown', {
+    bubbles: true, key: 'Process', code, keyCode: 229,
+  }));
   el.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
-  setValue('ㅎ'); setValue('하'); setValue('한');
+  press('KeyG'); setValue('ㅎ');
+  press('KeyK'); setValue('하');
+  press('KeyS'); setValue('한');
   el.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '한' }));
 });
 await page.waitForTimeout(120);
+ok('조합 중에도 누른 키만큼만 울린다', (await page.evaluate(() => window.__osc)) === 3,
+   `${await page.evaluate(() => window.__osc)}회 · 글자 수는 내내 1이다`);
 ok('조합이 끝나면 한 글자로 센다', (await page.textContent('.count')).startsWith('1 / 100'),
    await page.textContent('.count'));
 ok('조합 중인 글자가 그대로 보인다', (await page.textContent('.paper-ink')).includes('한'));

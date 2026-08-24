@@ -86,7 +86,7 @@ docs/PORTING-SPEC.md
 3. ~~인증 → 온보딩(봉인함/열린함 선택) → 전보함 전환 바~~ — 완료. `pnpm ui:check`
 4. ~~타전실 → 수신함(봉투 UI) → 서가~~ — 완료. `pnpm ui:check4`
 5. ~~만남 마감 5단계 + 제본 애니메이션 (§6-2)~~ — 완료. `pnpm ui:check5`
-6. 사운드 (§6-1) — `src/lib/sounds.ts` 안만 채우면 된다. 호출 지점은 이미 있다
+6. ~~사운드 (§6-1)~~ — 완료. `pnpm sound:check`
 7. **여기까지 끝난 뒤에야** 그 밖의 신기능
 
 ## 포팅과 함께 고칠 것 (기존 구현의 알려진 결함)
@@ -123,6 +123,7 @@ pnpm build && pnpm preview &       # 아래 셋은 미리보기 서버가 떠 �
 pnpm ui:check                      # 인증 · 온보딩 · 전환 바
 pnpm ui:check4                     # 타전실 · 수신함(봉투) · 서가
 pnpm ui:check5                     # 만남 마감 5단계 · 제본 애니메이션
+pnpm sound:check                   # §6-1 합성음 (미리보기 서버 불필요)
 pnpm tint:check                    # §4-2 타자기색이 실제로 구분되는지 (D9)
 ```
 
