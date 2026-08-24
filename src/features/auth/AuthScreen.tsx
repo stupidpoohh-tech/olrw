@@ -19,6 +19,8 @@ export function AuthScreen({ initialMode = 'signin', onBack }: Props) {
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  /** 가입은 됐지만 메일 확인이 남았을 때. */
+  const [pendingEmail, setPendingEmail] = useState('');
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -26,8 +28,13 @@ export function AuthScreen({ initialMode = 'signin', onBack }: Props) {
     setError('');
     setBusy(true);
     try {
-      if (mode === 'signup') await store.signUp({ email, password, displayName });
-      else await store.signIn({ email, password });
+      if (mode === 'signup') {
+        const { needsConfirmation } = await store.signUp({ email, password, displayName });
+        // 확인이 필요하면 세션이 없다. 아무 말도 안 하면 버튼이 먹통인 줄 안다.
+        if (needsConfirmation) setPendingEmail(email.trim());
+      } else {
+        await store.signIn({ email, password });
+      }
     } catch (err) {
       setError(toUserMessage(err));
     } finally {
@@ -35,7 +42,30 @@ export function AuthScreen({ initialMode = 'signin', onBack }: Props) {
     }
   };
 
-  const switchTo = (m: Mode) => { setMode(m); setError(''); };
+  const switchTo = (m: Mode) => { setMode(m); setError(''); setPendingEmail(''); };
+
+  if (pendingEmail) {
+    return (
+      <div className="auth">
+        <div className="auth-card">
+          <div className="auth-mark display">OLRW</div>
+          <h1 className="auth-title display">메일함을<br />확인해 주세요</h1>
+          <p className="auth-sub">
+            <b>{pendingEmail}</b> 으로 확인 링크를 보냈습니다.<br />
+            링크를 누르면 전보함으로 들어옵니다.
+          </p>
+          <p className="auth-hint">
+            메일이 오지 않으면 스팸함을 확인해 주세요.
+          </p>
+          <button type="button" className="auth-submit"
+            onClick={() => { setPendingEmail(''); setMode('signin'); }}>
+            로그인 화면으로
+          </button>
+          {onBack && <button type="button" className="auth-back auth-back-bottom" onClick={onBack}>← 돌아가기</button>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth">

@@ -141,6 +141,7 @@ export function createMemoryStore(): BoxStore {
       db.users.push(user);
       db.sessionUserId = user.id;
       emitSession();
+      return { needsConfirmation: false };   // 메모리 구현에는 확인 메일이 없다
     },
 
     async signIn({ email, password }) {
