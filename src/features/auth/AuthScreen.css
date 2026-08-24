@@ -27,7 +27,7 @@
   border-left: 2px solid var(--accent); padding-left: 9px; }
 
 .auth-submit { margin-top: 6px; background: var(--ink); color: var(--bg);
-  border-radius: var(--radius-sm); padding: 12px 0; font-size: 14px; letter-spacing: .02em;
+  border-radius: var(--radius-btn); padding: 10px 0; font-size: 14px; letter-spacing: .02em;
   transition: opacity var(--t-fast) var(--ease); }
 .auth-submit:hover:not(:disabled) { opacity: .86; }
 .auth-submit:disabled { opacity: .45; cursor: default; }

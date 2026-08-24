@@ -16,7 +16,7 @@
 .modal-btns > button { flex: 0 0 auto; padding-left: 18px; padding-right: 18px; }
 
 .btn-ghost { border: 1px solid var(--divider); background: var(--surface);
-  border-radius: var(--radius-sm); padding: 12px 0; font-size: 14px; color: var(--ink-soft);
+  border-radius: var(--radius-btn); padding: 10px 0; font-size: 14px; color: var(--ink-soft);
   transition: border-color var(--t-fast) var(--ease); }
 .btn-ghost:hover { border-color: var(--ink-light); }
 

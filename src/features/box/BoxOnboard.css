@@ -36,22 +36,29 @@
 
 /* 봉인함 / 열린함 */
 
-/* 봉인/열린 — 얇은 세그먼트 한 줄 + 설명은 아래 한 줄 */
+/* 봉인/열린 — 알약 하나를 반으로 나눈 세그먼트. 고른 쪽이 잉크로 채워진다.
+   각 칸은 두 줄: 자물쇠 + 이름 / 짧은 부제. 자세한 설명은 알약 아래 한 줄. */
 .onb-seg { display: grid; grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--divider); border-radius: var(--radius); overflow: hidden; }
-.onb-seg-btn { padding: 9px 0; font-size: 13.5px; color: var(--ink-mid);
-  background: none; transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
-.onb-seg-btn + .onb-seg-btn { border-left: 1px solid var(--divider); }
-.onb-seg-btn.active { background: var(--ink); color: var(--bg); font-weight: 500; }
-.onb-seg-desc { margin: 0; font-size: 12px; color: var(--ink-faded); line-height: 1.55; }
+  background: var(--surface-2); border: 1px solid var(--divider);
+  border-radius: var(--radius-btn); overflow: hidden; }
+.onb-seg-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 11px 8px 12px; background: none; color: var(--ink-mid);
+  border-radius: var(--radius-btn);
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
+.onb-seg-btn.active { background: var(--ink); color: var(--bg); }
+.onb-seg-head { display: inline-flex; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 500; letter-spacing: -.01em; }
+.onb-seg-sub { font-size: 11.5px; opacity: .72; letter-spacing: -.005em; }
+.onb-seg-desc { margin: 2px 0 0; font-size: 12px; color: var(--ink-faded); line-height: 1.55; }
 
 .onb-error { font-size: 12.5px; color: var(--accent); margin: 0;
   border-left: 2px solid var(--accent); padding-left: 9px; }
 
 .onb-primary {
   background: var(--ink); color: var(--bg);
-  border: none; border-radius: var(--radius);
-  padding: 14px 20px;
+  border: none; border-radius: var(--radius-btn);
+  padding: 11px 20px;
   font-size: 14px; font-weight: 500; letter-spacing: -.005em;
   transition: opacity var(--t-fast) ease, background var(--t-fast) ease;
 }
@@ -67,7 +74,7 @@
 .onb-code { font-size: 30px; letter-spacing: .16em; color: var(--ink); margin: 10px 0 14px;
   animation: stampIn .45s cubic-bezier(.2, .8, .2, 1) backwards; }
 .onb-copy { border: 1px solid var(--divider); background: var(--surface);
-  border-radius: var(--radius-sm); padding: 8px 16px; font-size: 12.5px; color: var(--ink-soft);
+  border-radius: var(--radius-btn); padding: 7px 16px; font-size: 12.5px; color: var(--ink-soft);
   transition: border-color var(--t-fast) var(--ease); }
 .onb-copy:hover { border-color: var(--ink-light); }
 .onb-copy.copied { border-color: var(--ink); color: var(--ink); }

@@ -40,8 +40,8 @@
 }
 .tour-next {
   font-size: 12px; color: var(--surface);
-  background: var(--ink); border: none; padding: 6px 12px;
-  border-radius: var(--radius-sm);
+  background: var(--ink); border: none; padding: 6px 14px;
+  border-radius: var(--radius-btn);
 }
 .tour-next:hover { background: var(--ink-soft); }
 
