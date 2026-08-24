@@ -37,17 +37,20 @@
 /* 봉인함 / 열린함 */
 
 /* 봉인/열린 — 알약 하나를 반으로 나눈 세그먼트. 고른 쪽이 잉크로 채워진다.
-   한 줄이다: 봉투 + 이름. 자세한 설명은 알약 아래 한 줄로 내려간다. */
+   두 줄이되 납작하다: 봉투 + 이름 / 짧은 부제. 줄 간격과 행간을 바짝 조여
+   두 줄이 한 알약 안에 얇게 눕는다. 자세한 설명은 알약 아래로 내려간다. */
 .onb-seg { display: grid; grid-template-columns: 1fr 1fr;
   background: var(--surface-2); border: 1px solid var(--divider);
   border-radius: var(--radius-btn); overflow: hidden; }
 .onb-seg-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  padding: 9px 8px; background: none; color: var(--ink-light);
-  font-size: 14px; font-weight: 500; letter-spacing: -.01em;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 7px 8px 8px; background: none; color: var(--ink-light);
   border-radius: var(--radius-btn);
   transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
 .onb-seg-btn.active { background: var(--ink); color: var(--bg); }
+.onb-seg-head { display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13.5px; font-weight: 500; letter-spacing: -.01em; line-height: 1.2; }
+.onb-seg-sub { font-size: 11px; line-height: 1.25; opacity: .7; letter-spacing: -.005em; }
 .onb-seg-desc { margin: 3px 0 0; font-size: 12px; color: var(--ink-faded); line-height: 1.55; }
 
 .onb-error { font-size: 12.5px; color: var(--accent); margin: 0;
