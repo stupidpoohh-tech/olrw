@@ -29,16 +29,36 @@ export interface KeyRow {
   readonly gap: number;
 }
 
-/** 타건음의 성격. 타자기마다 다르다. */
+/**
+ * 타건음의 성격. 타자기마다 다르다.
+ *
+ * strike: 활자가 종이를 때리는 기계식 소리. 강철 · 참나무 · 이끼가 이 계열이다.
+ *   - ring: 강철만. 활자 뒤에 남는 금속의 잔향(작은 두 배음).
+ *   - thump: 참나무만. 해머 뒤에 몸통이 울리는 저음.
+ *   - extraLp: 이끼만. 노이즈 앞단에 얇게 걸어 top-end 를 흡수한다.
+ * bubble: 설탕(푸딩)만. 물방울이 톡 하고 터지는 소리 — sine 이 짧게 미끄러지고 반짝 하나.
+ */
+export type KeyProfile =
+  | {
+      readonly kind: 'strike';
+      readonly decay: number;
+      readonly hp: readonly [number, number];
+      readonly hammer: readonly [number, number];
+      readonly hammerTo: number;
+      readonly hammerGain: number;
+      readonly ring?: readonly [number, number];
+      readonly thump?: number;
+      readonly extraLp?: number;
+    }
+  | {
+      readonly kind: 'bubble';
+      readonly pluck: readonly [number, number];
+      readonly pluckTo: number;
+      readonly tinkle: readonly [number, number];
+    };
+
 export interface Voice {
-  /** 활자가 때리는 소리 */
-  readonly key: {
-    readonly decay: number;       // 노이즈 감쇠 — 클수록 짧고 마른 소리
-    readonly hp: readonly [number, number];   // highpass 범위(Hz)
-    readonly hammer: readonly [number, number]; // 해머 시작 주파수 범위(Hz)
-    readonly hammerTo: number;    // 해머가 떨어지는 주파수
-    readonly hammerGain: number;  // 몸통이 울리는 정도
-  };
+  readonly key: KeyProfile;
   /** 여백 벨의 두 배음 */
   readonly bell: readonly [number, number];
   /** 캐리지 — 미끄러지는 대역과 끝의 쿵 */
@@ -68,9 +88,13 @@ export const TYPEWRITERS = [
       { y: 71.5, x0: 26.0, gap: 4.90 },
       { y: 78.5, x0: 28.2, gap: 4.90 },
     ],
-    // 금속의 기본값. §6-1 이 적어 둔 값 그대로다.
+    // 금속. 활자가 때린 뒤 짧은 잔향이 남는다 — 벨과 같은 두 배음, 아주 조용히.
     voice: {
-      key: { decay: 180, hp: [1200, 2000], hammer: [120, 160], hammerTo: 60, hammerGain: .08 },
+      key: {
+        kind: 'strike',
+        decay: 180, hp: [1200, 2000], hammer: [120, 160], hammerTo: 60, hammerGain: .08,
+        ring: [2200, 3300],
+      },
       bell: [2200, 3300],
       carriage: { from: 800, to: 300, thud: 80 },
     },
@@ -84,9 +108,13 @@ export const TYPEWRITERS = [
       { y: 71.5, x0: 24.5, gap: 5.31 },
       { y: 78.5, x0: 26.5, gap: 5.33 },
     ],
-    // 나무는 낮고 둔탁하다. 네 대 중 가장 어두운 소리 — 대역을 더 내리고 몸통을 더 울린다.
+    // 나무는 낮고 둔탁하다. 해머 뒤에 55Hz 몸통 저음이 짧게 얹힌다 — 손끝에 닿는 무게.
     voice: {
-      key: { decay: 120, hp: [380, 700], hammer: [88, 110], hammerTo: 42, hammerGain: .15 },
+      key: {
+        kind: 'strike',
+        decay: 120, hp: [380, 700], hammer: [88, 110], hammerTo: 42, hammerGain: .15,
+        thump: 55,
+      },
       bell: [1500, 2250],
       carriage: { from: 600, to: 220, thud: 62 },
     },
@@ -100,9 +128,15 @@ export const TYPEWRITERS = [
       { y: 70.5, x0: 24.2, gap: 6.10 },
       { y: 78.0, x0: 26.5, gap: 6.20 },
     ],
-    // 가볍고 높고 짧다. 유리 종 같은 벨.
+    // 푸딩. 활자를 때리지 않는다 — 물방울이 톡 하고 터지는 소리.
+    // sine 이 살짝 미끄러지며 떨어지고, 그 위에 짧은 반짝(tinkle) 하나.
     voice: {
-      key: { decay: 260, hp: [2000, 2800], hammer: [150, 190], hammerTo: 80, hammerGain: .05 },
+      key: {
+        kind: 'bubble',
+        pluck: [460, 720],
+        pluckTo: 220,
+        tinkle: [3200, 4500],
+      },
       bell: [2900, 4350],
       carriage: { from: 1100, to: 420, thud: 105 },
     },
@@ -116,9 +150,13 @@ export const TYPEWRITERS = [
       { y: 70.5, x0: 25.7, gap: 5.26 },
       { y: 77.5, x0: 28.0, gap: 5.25 },
     ],
-    // 이끼가 덮여 부드럽고 먹먹하다. 참나무보다는 밝고 강철보다는 어둡다.
+    // 이끼가 덮여 있다. 노이즈 앞단에 3kHz lowpass 를 얇게 얹어 top-end 를 흡수한다.
     voice: {
-      key: { decay: 170, hp: [980, 1500], hammer: [108, 142], hammerTo: 54, hammerGain: .075 },
+      key: {
+        kind: 'strike',
+        decay: 170, hp: [980, 1500], hammer: [108, 142], hammerTo: 54, hammerGain: .055,
+        extraLp: 4000,
+      },
       bell: [1900, 2850],
       carriage: { from: 700, to: 260, thud: 70 },
     },

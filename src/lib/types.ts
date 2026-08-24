@@ -9,6 +9,11 @@ export interface Session {
   readonly userId: Uuid;
   readonly email: string;
   readonly displayName: string;
+  /**
+   * 체험 모드 — 계정 없이 브라우저 안 저장소로만 도는 세션.
+   * 배너로 이 사실을 알리고, "계정 만들기" 링크로 넘어가게 한다.
+   */
+  readonly isGuest?: boolean;
 }
 
 export interface Member {

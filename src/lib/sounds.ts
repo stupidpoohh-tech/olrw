@@ -14,6 +14,7 @@
  */
 
 import type { Voice } from '../design/typewriters';
+import { isMuted } from './mute';
 
 /** 합성 한 조각. t0 는 컨텍스트 기준 시작 시각. */
 export type Synth = (ctx: BaseAudioContext, out: AudioNode, t0: number) => void;
@@ -30,13 +31,20 @@ function noise(ctx: BaseAudioContext, seconds: number, amp: (t: number) => numbe
 }
 
 /**
- * 타건음 — ① 40ms 화이트노이즈 → highpass (활자가 때리는 소리)
- *          ② triangle 해머, 80ms (해머가 플래튼을 치는 소리)
+ * 타건음 — 타자기 종류에 따라 갈라진다. (docs/decisions.md D9)
  *
- * 필터 대역과 해머 주파수를 타자기가 정한다. 강철은 높고 마르게, 참나무는 낮고 둔탁하게.
+ * strike (강철·참나무·이끼): 40ms 화이트노이즈 → highpass + triangle 해머. 옵션으로
+ *   금속 링(강철), 몸통 저음(참나무), 흡음 lowpass(이끼)를 얹는다.
+ * bubble (설탕/푸딩): 활자가 아니라 물방울이다. sine 이 짧게 미끄러지며 떨어지고
+ *   그 위에 짧은 반짝(tinkle)이 하나 붙는다. 다른 셋과 성격이 아예 다르다.
  */
-export const key = (v: Voice): Synth => (ctx, out, t0) => {
-  const k = v.key;
+export const key = (v: Voice): Synth =>
+  v.key.kind === 'bubble' ? bubble(v.key) : strike(v.key);
+
+type Strike = Extract<Voice['key'], { kind: 'strike' }>;
+type Bubble = Extract<Voice['key'], { kind: 'bubble' }>;
+
+const strike = (k: Strike): Synth => (ctx, out, t0) => {
   const src = ctx.createBufferSource();
   src.buffer = noise(ctx, 0.04, (t) => Math.exp(-t * k.decay) * 0.18);
   const hp = ctx.createBiquadFilter();
@@ -44,7 +52,16 @@ export const key = (v: Voice): Synth => (ctx, out, t0) => {
   hp.frequency.value = k.hp[0] + Math.random() * (k.hp[1] - k.hp[0]);
   const g = ctx.createGain();
   g.gain.value = 0.8;
-  src.connect(hp).connect(g).connect(out);
+  let tail: AudioNode = hp;
+  if (k.extraLp !== undefined) {
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = k.extraLp;
+    hp.connect(lp);
+    tail = lp;
+  }
+  src.connect(hp);
+  tail.connect(g).connect(out);
   src.start(t0);
 
   const osc = ctx.createOscillator();
@@ -57,6 +74,65 @@ export const key = (v: Voice): Synth => (ctx, out, t0) => {
   osc.connect(og).connect(out);
   osc.start(t0);
   osc.stop(t0 + 0.1);
+
+  // 강철의 금속 잔향 — 벨과 같은 두 배음, 아주 조용히, 짧게.
+  if (k.ring) {
+    k.ring.forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      const rg = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = freq;
+      rg.gain.setValueAtTime(0.0001, t0);
+      rg.gain.exponentialRampToValueAtTime(0.025 / (i + 1), t0 + 0.005);
+      rg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.11);
+      o.connect(rg).connect(out);
+      o.start(t0);
+      o.stop(t0 + 0.12);
+    });
+  }
+
+  // 참나무의 몸통 저음 — 해머와 동시에 짧게 얹힌다.
+  if (k.thump !== undefined) {
+    const o = ctx.createOscillator();
+    const tg = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = k.thump;
+    tg.gain.setValueAtTime(0.10, t0);
+    tg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.08);
+    o.connect(tg).connect(out);
+    o.start(t0);
+    o.stop(t0 + 0.1);
+  }
+};
+
+/**
+ * 물방울이 톡 — 주 pluck 은 sine 이 460~720Hz 에서 220Hz 로 짧게 미끄러진다.
+ * 반짝(tinkle)은 3~4kHz 근처에서 40ms — 거품이 터지는 순간의 밝은 반사.
+ */
+const bubble = (k: Bubble): Synth => (ctx, out, t0) => {
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  const from = k.pluck[0] + Math.random() * (k.pluck[1] - k.pluck[0]);
+  o.frequency.setValueAtTime(from, t0);
+  o.frequency.exponentialRampToValueAtTime(k.pluckTo, t0 + 0.08);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.18, t0 + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.09);
+  o.connect(g).connect(out);
+  o.start(t0);
+  o.stop(t0 + 0.1);
+
+  const t = ctx.createOscillator();
+  const tg = ctx.createGain();
+  t.type = 'sine';
+  t.frequency.value = k.tinkle[0] + Math.random() * (k.tinkle[1] - k.tinkle[0]);
+  tg.gain.setValueAtTime(0.0001, t0);
+  tg.gain.exponentialRampToValueAtTime(0.09, t0 + 0.003);
+  tg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.045);
+  t.connect(tg).connect(out);
+  t.start(t0);
+  t.stop(t0 + 0.05);
 };
 
 /** 여백 벨 — 두 배음을 동시에, 800ms 감쇠. 배음은 타자기가 정한다. */
@@ -163,6 +239,7 @@ function audio(): AudioContext | null {
 }
 
 function play(synth: Synth): void {
+  if (isMuted()) return;
   try {
     const c = audio();
     if (!c) return;

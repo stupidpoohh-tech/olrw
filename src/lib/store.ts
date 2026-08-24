@@ -34,6 +34,15 @@ export interface BoxStore {
   signUp(input: { email: string; password: string; displayName: string }):
     Promise<{ needsConfirmation: boolean }>;
   signIn(input: { email: string; password: string }): Promise<void>;
+  /**
+   * 계정 없이 열어 보기.
+   *
+   * 브라우저 안 저장소로만 도는 임시 세션을 만든다. 로그아웃하면 그대로 사라진다 —
+   * 이 데이터로 남을 초대할 수 없고, 정식 계정으로 옮기지도 않는다.
+   * 메모리 구현에서는 무조건 되고, Supabase 구현에서는 프로젝트가 익명 로그인을
+   * 켜 두었을 때에만 된다.
+   */
+  enterAsGuest(): Promise<void>;
   signOut(): Promise<void>;
   /** 모든 전보함에 공통으로 쓰이는 표시 이름. */
   updateDisplayName(name: string): Promise<void>;

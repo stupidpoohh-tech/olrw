@@ -53,3 +53,13 @@
 .lp-foot { padding: 46px 0 0; border-top: 1px solid var(--divider); margin-top: 46px; }
 .lp-foot-line { font-size: 13.5px; color: var(--ink-mid); line-height: 1.75; margin: 0 0 20px; }
 .lp-foot-mark { margin: 40px 0 0; text-align: center; color: var(--ink-faint); }
+
+
+.lp-guest {
+  margin-top: 14px;
+  font-size: 12.5px; color: var(--ink-faded);
+  border: none; background: none; padding: 6px 2px;
+  border-bottom: 1px solid transparent;
+  transition: color var(--t-fast) ease, border-color var(--t-fast) ease;
+}
+.lp-guest:hover { color: var(--ink-mid); border-bottom-color: var(--ink-faint); }

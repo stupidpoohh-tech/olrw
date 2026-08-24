@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AuthScreen } from '../features/auth/AuthScreen';
 import { LandingScreen } from '../features/landing/LandingScreen';
+import { useStore } from '../lib/storeContext';
+import { toUserMessage } from '../lib/errors';
 
 /**
  * 로그인하지 않은 사람이 보는 것.
@@ -23,7 +25,9 @@ function read(): View {
 }
 
 export function PublicGate() {
+  const store = useStore();
   const [view, setView] = useState<View>(read);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const onHash = () => setView(read());
@@ -44,5 +48,19 @@ export function PublicGate() {
   if (view.screen === 'auth') {
     return <AuthScreen initialMode={view.mode} onBack={back} />;
   }
-  return <LandingScreen onSignUp={() => go('signup')} onSignIn={() => go('signin')} />;
+  const enterGuest = () => {
+    setError('');
+    void store.enterAsGuest().catch((e: unknown) => setError(toUserMessage(e, '체험 모드를 열지 못했습니다.')));
+  };
+
+  return (
+    <>
+      <LandingScreen
+        onSignUp={() => go('signup')}
+        onSignIn={() => go('signin')}
+        onGuest={enterGuest}
+      />
+      {error && <p className="pg-error" role="alert">{error}</p>}
+    </>
+  );
 }

@@ -31,12 +31,15 @@ export function createSupabaseStore(): BoxStore {
   /** auth.users 와 profiles 를 합쳐 세션을 만든다. 이름은 profiles 가 정본이다. */
   async function hydrate(auth: AuthSession | null): Promise<void> {
     if (!auth) { session = null; return; }
+    // 익명 사용자는 profiles 가 아직 없을 수 있다. 이메일도 없다.
+    const isAnon = auth.user.is_anonymous ?? auth.user.app_metadata?.provider === 'anonymous';
     const { data } = await db.from('profiles').select('display_name').eq('id', auth.user.id).maybeSingle();
-    session = {
+    const base = {
       userId: auth.user.id,
       email: auth.user.email ?? '',
-      displayName: data?.display_name ?? '이름 없음',
+      displayName: data?.display_name ?? (isAnon ? '체험 사용자' : '이름 없음'),
     };
+    session = isAnon ? { ...base, isGuest: true } : base;
   }
   const emit = () => listeners.forEach((cb) => cb(session));
 
@@ -92,6 +95,17 @@ export function createSupabaseStore(): BoxStore {
         password,
       });
       if (error) throw error;
+    },
+
+    async enterAsGuest() {
+      // Supabase 대시보드의 Authentication → Settings 에서 익명 로그인을 켜야 된다.
+      // 켜지 않은 프로젝트에서는 사용자에게 이유를 보여준다.
+      const { error } = await db.auth.signInAnonymously();
+      if (error) {
+        throw new Error(
+          '체험 모드가 켜져 있지 않습니다. Supabase 프로젝트 설정에서 익명 로그인을 켜 주세요.'
+        );
+      }
     },
 
     async signOut() {

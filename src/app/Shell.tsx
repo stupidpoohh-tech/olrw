@@ -102,6 +102,7 @@ export function Shell() {
   if (boxes.length === 0 || !box) {
     return (
       <div className="pair">
+        {session.isGuest && <GuestBanner />}
         <div className="pair-top">
           <span className="pair-greet">
             <span className="pair-greet-tag display">Signed in</span>
@@ -123,6 +124,7 @@ export function Shell() {
 
   return (
     <div className="app">
+      {session.isGuest && <GuestBanner />}
       <header className="header">
         <h1 className="brand display">Our love, rightly written</h1>
         <button className="link" onClick={() => void store.signOut()}>로그아웃</button>
@@ -193,6 +195,19 @@ export function Shell() {
         />
       )}
       {usingMemoryStore && <MemoryNotice />}
+    </div>
+  );
+}
+
+function GuestBanner() {
+  const openSignup = () => { location.hash = '#join'; };
+  return (
+    <div className="guest-banner" role="status">
+      <span className="guest-banner-dot" aria-hidden="true" />
+      <span>
+        체험 중입니다. 이 브라우저에만 저장되며, 로그아웃하면 사라집니다.{' '}
+        <button className="link guest-banner-cta" onClick={openSignup}>계정 만들기</button>
+      </span>
     </div>
   );
 }

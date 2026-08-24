@@ -54,3 +54,16 @@
   margin-bottom: 12px; }
 .ritual-stub p { font-size: 13px; color: var(--ink-mid); margin: 0 0 6px; }
 .ritual-stub-warn { color: var(--accent) !important; font-size: 12.5px !important; }
+
+
+.guest-banner {
+  display: flex; align-items: center; gap: 8px;
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  font-size: 12px; color: var(--ink-mid);
+  background: var(--accent-soft);
+  border-left: 2px solid var(--accent);
+}
+.guest-banner-dot { width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); flex: 0 0 auto; }
+.guest-banner-cta { color: var(--accent); }

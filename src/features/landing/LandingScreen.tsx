@@ -21,9 +21,10 @@ const HOURS_AGO = (h: number): string => {
 interface Props {
   onSignUp: () => void;
   onSignIn: () => void;
+  onGuest: () => void;
 }
 
-export function LandingScreen({ onSignUp, onSignIn }: Props) {
+export function LandingScreen({ onSignUp, onSignIn, onGuest }: Props) {
   return (
     <div className="lp">
       <header className="lp-head">
@@ -37,6 +38,9 @@ export function LandingScreen({ onSignUp, onSignIn }: Props) {
           <button className="lp-primary" onClick={onSignUp}>전보함 열기</button>
           <button className="lp-secondary" onClick={onSignIn}>로그인</button>
         </div>
+        <button className="lp-guest" onClick={onGuest}>
+          계정 없이 먼저 둘러보기
+        </button>
       </header>
 
       <section className="lp-step">
@@ -115,6 +119,9 @@ export function LandingScreen({ onSignUp, onSignIn }: Props) {
           <button className="lp-primary" onClick={onSignUp}>전보함 열기</button>
           <button className="lp-secondary" onClick={onSignIn}>로그인</button>
         </div>
+        <button className="lp-guest" onClick={onGuest}>
+          계정 없이 먼저 둘러보기
+        </button>
         <p className="lp-mark display lp-foot-mark">OLRW</p>
       </footer>
     </div>
