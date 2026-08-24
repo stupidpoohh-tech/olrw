@@ -1,0 +1,61 @@
+/* 앵커 하이라이트 — 얇은 액센트 테두리. 앱 위에 얹지만 클릭은 통과한다. */
+.tour-anchor {
+  position: fixed;
+  z-index: 60;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 6px var(--accent-soft);
+  pointer-events: none;
+  transition: top var(--t-fast) ease, left var(--t-fast) ease,
+              width var(--t-fast) ease, height var(--t-fast) ease;
+}
+
+/* 안내 카드 — 좌하단 기본, 앵커가 좌하단에 있는 스텝은 우하단으로. */
+.tour-card {
+  position: fixed;
+  z-index: 65;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  max-width: 320px;
+  width: calc(100vw - 32px);
+  padding: 14px 16px 12px;
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+}
+.tour-card.bl { left: 16px; }
+.tour-card.br { right: 16px; }
+
+.tour-tag {
+  margin: 0 0 4px;
+  font-size: 10px; letter-spacing: .2em;
+  color: var(--ink-faded);
+}
+.tour-title {
+  margin: 0 0 6px;
+  font-size: 14px; font-weight: 500; color: var(--ink);
+  letter-spacing: -.005em;
+}
+.tour-body {
+  margin: 0 0 12px;
+  font-size: 12.5px; line-height: 1.65; color: var(--ink-mid);
+}
+.tour-actions {
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+}
+.tour-skip {
+  font-size: 11.5px; color: var(--ink-faded);
+  background: none; border: none; padding: 4px 2px;
+}
+.tour-skip:hover { color: var(--ink-mid); }
+
+.tour-next {
+  font-size: 12px; color: var(--surface);
+  background: var(--ink); border: none; padding: 6px 12px;
+  border-radius: var(--radius-sm);
+}
+.tour-next:hover { background: var(--ink-soft); }
+
+@media (max-width: 380px) {
+  .tour-card { max-width: none; left: 12px !important; right: 12px !important; }
+}
