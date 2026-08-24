@@ -6,7 +6,7 @@ import { TransmitView } from '../features/transmit/TransmitView';
 import { BoxBar } from '../features/box/BoxBar';
 import { BoxOnboard } from '../features/box/BoxOnboard';
 import { SettingsModal } from '../features/box/SettingsModal';
-import { useSession, useStore, usingMemoryStore } from '../lib/storeContext';
+import { useSession, useStore } from '../lib/storeContext';
 import { toUserMessage } from '../lib/errors';
 import type { Box, BoxSummary, Envelope } from '../lib/types';
 import { Modal } from './Modal';
@@ -102,31 +102,25 @@ export function Shell() {
 
   if (boxes.length === 0 || !box) {
     return (
-      <div className="pair">
-        {session.isGuest && <GuestBanner />}
+      <div className="pair pair-compact">
         {session.isGuest && <GuestTour />}
-        <div className="pair-top">
-          <span className="pair-greet">
-            <span className="pair-greet-tag display">Signed in</span>
-            {session.displayName}
-          </span>
-          <button className="link" onClick={() => void store.signOut()}>로그아웃</button>
-        </div>
-        <h2 className="pair-title display">첫 전보함을 엽니다</h2>
-        <p className="pair-sub">
-          전보함을 <b>만들어</b> 코드를 나눠주거나, 받은 <b>코드로 참여</b>하세요.<br />
-          최대 4명이 같은 전보함에서 전보를 주고받습니다.
-        </p>
+        {!session.isGuest && (
+          <div className="pair-top">
+            <span className="pair-greet">
+              <span className="pair-greet-tag display">Signed in</span>
+              {session.displayName}
+            </span>
+            <button className="link" onClick={() => void store.signOut()}>로그아웃</button>
+          </div>
+        )}
         {error && <p className="shell-error" role="alert">{error}</p>}
         <BoxOnboard onDone={switchTo} />
-        {usingMemoryStore && <MemoryNotice />}
       </div>
     );
   }
 
   return (
     <div className="app">
-      {session.isGuest && <GuestBanner />}
       {session.isGuest && <GuestTour />}
       <header className="header">
         <h1 className="brand display">Our love, rightly written</h1>
@@ -197,39 +191,7 @@ export function Shell() {
           onArchived={() => { setRitual(false); setTab('archive'); void refresh(); }}
         />
       )}
-      {usingMemoryStore && <MemoryNotice />}
     </div>
   );
 }
 
-function GuestBanner() {
-  const store = useStore();
-  // 게스트 세션을 먼저 종료해야 PublicGate 로 넘어가 AuthScreen 이 뜬다.
-  // 해시만 바꾸면 지금 화면(Shell) 은 그대로 남는다.
-  const openAuth = (mode: 'signin' | 'signup') => {
-    // 해시를 먼저 바꾸고 그다음에 signOut. 순서가 뒤집히면 세션이 null 로 떨어진 순간
-    // PublicGate 가 아직 빈 해시를 보고 다시 게스트로 자동 진입한다 (race).
-    location.hash = mode === 'signin' ? '#login' : '#join';
-    void store.signOut();
-  };
-  return (
-    <div className="guest-banner" role="status">
-      <span className="guest-banner-dot" aria-hidden="true" />
-      <span>
-        체험 중입니다. 이어서 쓰려면{' '}
-        <button className="link guest-banner-cta" onClick={() => openAuth('signup')}>계정 만들기</button>
-        {' '}·{' '}
-        <button className="link guest-banner-cta" onClick={() => openAuth('signin')}>로그인</button>
-      </span>
-    </div>
-  );
-}
-
-function MemoryNotice() {
-  return (
-    <p className="memory-notice">
-      Supabase 환경변수가 없어 브라우저 안의 임시 저장소로 돌고 있습니다.
-      이 기기에서만 보이고, 다른 사람과 이어지지 않습니다.
-    </p>
-  );
-}

@@ -168,13 +168,14 @@ export const TYPEWRITERS = [
       { y: 70.5, x0: 25.7, gap: 5.26 },
       { y: 77.5, x0: 28.0, gap: 5.25 },
     ],
-    // 나뭇잎에 파묻혔다 (D9 · 사용자 승인). 활자를 안 때린다 — 잎이 서로 스치는
-    // 짧은 shhh (bandpass 2.5~4kHz) 위에, 이슬방울(3.5~4.2kHz sine)이 아주 짧게 얹힌다.
+    // 나뭇잎에 파묻혔다 (D9 · 후속). 잎은 더 가볍고 높은 대역으로 (bandpass 3~4.5kHz,
+    // amp 0.16 · 70ms) — 진짜 잎사귀가 서로 스치는 부드러운 shhh. 이슬방울은 잎 위쪽
+    // 대역(4.6~5.6kHz sine)에 gain 0.15 로 크게 얹어 확실히 들리게 한다.
     voice: {
       key: {
         kind: 'rustle',
-        leaf: { band: [2500, 4000], duration: 0.045, amp: 0.28 },
-        dew:  { freq: [3500, 4200], gain: 0.06, duration: 0.018 },
+        leaf: { band: [3000, 4500], duration: 0.070, amp: 0.16 },
+        dew:  { freq: [4600, 5600], gain: 0.15, duration: 0.030 },
       },
       bell: [1900, 2850],
       carriage: { from: 700, to: 260, thud: 70 },

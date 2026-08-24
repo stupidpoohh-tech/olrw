@@ -46,13 +46,13 @@ const shot = async (name) => {
  * 곧장 AuthScreen 이 서게 한다. 랜딩(D12 로 제거)을 거치지 않는다.
  */
 /** 인증(가입) 화면으로 들어간다.
- * 게스트 홈에는 배너의 "계정 만들기" 링크가 늘 있으니 그걸 눌러 들어간다.
+ * 게스트 홈에는 하단(MakerMark)의 "계정 만들기" 링크가 늘 있으니 그걸 눌러 들어간다.
  * 이미 auth 가 열려 있으면 아무것도 하지 않는다.
  */
 const openSignUp = async () => {
   if (await page.$('.auth')) return;
-  await page.waitForSelector('.guest-banner-cta', { timeout: 8000 });
-  await page.locator('.guest-banner-cta', { hasText: '계정 만들기' }).click();
+  await page.waitForSelector('.maker-auth-link', { timeout: 8000 });
+  await page.locator('.maker-auth-link', { hasText: '계정 만들기' }).click();
   await page.waitForSelector('.auth', { timeout: 5000 });
 };
 const signUp = async (name, email) => {
@@ -76,26 +76,25 @@ await page.reload({ waitUntil: 'networkidle' });
 
 console.log('\n━━━ 홈 (D12 · 곧장 체험 모드) ━━━');
 // 게스트 자동 진입이 걸리는 짧은 순간이 있다 — 배너가 뜰 때까지 기다린다.
-await page.waitForSelector('.guest-banner', { timeout: 8000 });
+await page.waitForSelector('.maker-auth-link', { timeout: 8000 });
 ok('로그인 화면이 앞에 서지 않는다', (await page.$$('.auth')).length === 0);
-ok('상단에 체험 모드 배너가 뜬다', await page.isVisible('.guest-banner'));
-ok('배너에 계정 만들기·로그인 링크가 있다',
-   (await page.$$('.guest-banner-cta')).length === 2);
+ok('하단에 로그인·계정 만들기 링크가 있다', (await page.$$('.maker-auth-link')).length === 2);
+
 ok('안내 투어가 함께 뜬다', await page.isVisible('.tour-card'));
 await shot('01-home');
 
 console.log('\n━━━ 인증으로 들어가고 나오기 ━━━');
 // 배너의 "로그인" 링크 — 게스트 세션이 종료되고 AuthScreen 이 뜬다.
-await page.locator('.guest-banner-cta', { hasText: '로그인' }).click();
+await page.locator('.maker-auth-link', { hasText: '로그인' }).click();
 await page.waitForSelector('.auth', { timeout: 5000 });
 ok('로그인을 누르면 로그인 탭으로 열린다',
    (await page.getAttribute('.auth-tab >> nth=0', 'aria-selected')) === 'true');
 ok('주소에 자국이 남는다', await page.evaluate(() => location.hash) === '#login');
 await page.click('.auth-back');
-await page.waitForSelector('.guest-banner', { timeout: 5000 });
-ok('돌아가기로 게스트 홈으로 돌아온다', await page.isVisible('.guest-banner'));
+await page.waitForSelector('.maker-auth-link', { timeout: 5000 });
+ok('돌아가기로 게스트 홈으로 돌아온다', await page.isVisible('.onb-tabs-row'));
 
-await page.locator('.guest-banner-cta', { hasText: '계정 만들기' }).click();
+await page.locator('.maker-auth-link', { hasText: '계정 만들기' }).click();
 await page.waitForSelector('.auth', { timeout: 5000 });
 ok('계정 만들기를 누르면 가입 탭으로 열린다',
    (await page.getAttribute('.auth-tab >> nth=1', 'aria-selected')) === 'true');
@@ -114,7 +113,7 @@ ok('표시 이름 없이 가입하면 막고 알려준다',
 await page.fill('input[autocomplete="nickname"]', '민서');
 await page.fill('input[type=email]', 'a@olrw.test');
 await page.click('button[type=submit]');
-await page.waitForSelector('text=첫 전보함을 엽니다', { timeout: 5000 });
+await page.waitForSelector('.onb-tabs-row', { timeout: 5000 });
 ok('가입하면 온보딩으로 간다', true);
 ok('로그인하고 나면 주소의 자국이 지워진다',
    await page.evaluate(() => location.hash) === '');
@@ -136,10 +135,10 @@ await shot('04-shell');
 
 console.log('\n━━━ 참여와 색 (§4-1 색은 정보다) ━━━');
 await page.click('.link:has-text("로그아웃")');
-await page.waitForSelector('.guest-banner', { timeout: 5000 });
+await page.waitForSelector('.maker-auth-link', { timeout: 5000 });
 ok('로그아웃하면 다시 게스트 홈으로 돌아간다 (D12)', true);
 await signUp('재이', 'b@olrw.test');
-await page.waitForSelector('text=첫 전보함을 엽니다');
+await page.waitForSelector('.onb-tabs-row', { timeout: 5000 });
 await page.click('.onb-tab >> nth=1');
 await page.fill('.onb-code-input', code);
 await page.click('.swatches[aria-label="용지색"] button >> nth=0');   // 일부러 겹치게 ivory
