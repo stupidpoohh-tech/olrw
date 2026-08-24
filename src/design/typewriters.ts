@@ -35,7 +35,7 @@ export interface KeyRow {
  * strike: 활자가 종이를 때리는 기계식 소리. 강철 · 참나무 · 이끼가 이 계열이다.
  *   - ring: 강철만. 활자 뒤에 남는 금속의 잔향(작은 두 배음).
  *   - thump: 참나무만. 해머 뒤에 몸통이 울리는 저음.
- *   - extraLp: 이끼만. 노이즈 앞단에 얇게 걸어 top-end 를 흡수한다.
+ *   - extraLp: 예비. 필요할 때 노이즈 앞단에 얇게 걸어 top-end 를 흡수한다.
  * bubble: 설탕(푸딩)만. 물방울이 톡 하고 터지는 소리 — sine 이 짧게 미끄러지고 반짝 하나.
  */
 export type KeyProfile =
@@ -55,6 +55,24 @@ export type KeyProfile =
       readonly pluck: readonly [number, number];
       readonly pluckTo: number;
       readonly tinkle: readonly [number, number];
+    }
+  | {
+      /**
+       * 나뭇잎에 파묻힌 타자기(이끼). 활자를 안 때린다 — 잎이 서로 스치는
+       * 짧은 shhh 위에 이슬방울이 톡 하고 얹힌다. 소음질감이라 설탕의 sine 톤과
+       * 절대 겹치지 않는다.
+       */
+      readonly kind: 'rustle';
+      readonly leaf: {
+        readonly band: readonly [number, number];
+        readonly duration: number;
+        readonly amp: number;
+      };
+      readonly dew: {
+        readonly freq: readonly [number, number];
+        readonly gain: number;
+        readonly duration: number;
+      };
     };
 
 export interface Voice {
@@ -150,12 +168,13 @@ export const TYPEWRITERS = [
       { y: 70.5, x0: 25.7, gap: 5.26 },
       { y: 77.5, x0: 28.0, gap: 5.25 },
     ],
-    // 이끼가 덮여 있다. 노이즈 앞단에 3kHz lowpass 를 얇게 얹어 top-end 를 흡수한다.
+    // 나뭇잎에 파묻혔다 (D9 · 사용자 승인). 활자를 안 때린다 — 잎이 서로 스치는
+    // 짧은 shhh (bandpass 2.5~4kHz) 위에, 이슬방울(3.5~4.2kHz sine)이 아주 짧게 얹힌다.
     voice: {
       key: {
-        kind: 'strike',
-        decay: 170, hp: [980, 1500], hammer: [108, 142], hammerTo: 54, hammerGain: .055,
-        extraLp: 4000,
+        kind: 'rustle',
+        leaf: { band: [2500, 4000], duration: 0.045, amp: 0.28 },
+        dew:  { freq: [3500, 4200], gain: 0.06, duration: 0.018 },
       },
       bell: [1900, 2850],
       carriage: { from: 700, to: 260, thud: 70 },
