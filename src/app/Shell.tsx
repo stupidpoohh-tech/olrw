@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AuthScreen } from '../features/auth/AuthScreen';
 import { ArchiveView } from '../features/archive/ArchiveView';
 import { InboxView } from '../features/inbox/InboxView';
+import { MeetingRitual } from '../features/ritual/MeetingRitual';
 import { TransmitView } from '../features/transmit/TransmitView';
 import { BoxBar } from '../features/box/BoxBar';
 import { BoxOnboard } from '../features/box/BoxOnboard';
@@ -171,21 +172,17 @@ export function Shell() {
         />
       )}
       {ritual && (
-        <Modal title="만남 마감" onClose={() => setRitual(false)}>
-          <p className="modal-sub">단계 5에서 들어옵니다.</p>
-          <div className="ritual-stub">
-            <div className="ritual-stub-vol display tnum">VOL.{box.currentVol}</div>
-            <p>이번 권에 {envelopes.length}통이 쌓였습니다.</p>
-            {box.sealed && box.readingStartedAt === null && (
-              <p className="ritual-stub-warn">
-                아직 봉인된 전보 {envelopes.filter((e) => !e.unsealed).length}통이 지금 열립니다.
-              </p>
-            )}
-          </div>
-          <div className="modal-btns">
-            <button className="btn-ghost" onClick={() => setRitual(false)}>닫기</button>
-          </div>
-        </Modal>
+        <MeetingRitual
+          box={box}
+          envelopes={envelopes}
+          onCancel={() => setRitual(false)}
+          reload={async () => {
+            const list = await store.listEnvelopes(box.id);
+            setEnvelopes(list);
+            return list;
+          }}
+          onArchived={() => { setRitual(false); setTab('archive'); void refresh(); }}
+        />
       )}
       {usingMemoryStore && <MemoryNotice />}
     </div>

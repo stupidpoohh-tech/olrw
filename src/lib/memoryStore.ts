@@ -342,14 +342,12 @@ export function createMemoryStore(): BoxStore {
       return db.volumes.find((v) => v.id === volumeId)?.pages ?? [];
     },
 
-    async uploadCover(_boxId, volumeId, file) {
+    async uploadCover(_boxId, file) {
       // 실제 Storage 대신 objectURL. 새로고침하면 사라지지만 개발 중에는 충분하다.
-      return `blob:${volumeId}:${URL.createObjectURL(file)}`;
+      return URL.createObjectURL(file);
     },
 
-    coverUrl(path) {
-      return path.startsWith('blob:') ? path.slice(path.indexOf(':', 5) + 1) : path;
-    },
+    coverUrl: (path) => path,
   };
 }
 

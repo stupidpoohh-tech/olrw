@@ -56,7 +56,10 @@ export interface BoxStore {
   /* ── 서가 ────────────────────────────────────────────────────────────── */
   listVolumes(boxId: Uuid): Promise<readonly Volume[]>;
   getVolumePages(volumeId: Uuid): Promise<readonly VolumePage[]>;
-  /** 표지 사진. base64 를 행에 넣지 않는다 — Storage 에 올리고 경로만 쓴다. */
-  uploadCover(boxId: Uuid, volumeId: Uuid, file: Blob): Promise<string>;
+  /**
+   * 표지 사진을 올리고 경로를 돌려준다. base64 를 행에 넣지 않는다.
+   * 권이 만들어지기 전에 올려야 하므로 권 id 를 받지 않는다 — 이름은 구현이 정한다.
+   */
+  uploadCover(boxId: Uuid, file: Blob): Promise<string>;
   coverUrl(path: string): string;
 }
