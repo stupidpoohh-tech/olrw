@@ -26,7 +26,13 @@ export interface BoxStore {
   /** 최초 세션 복구가 끝날 때까지 기다린다. 부팅 중 로그인 화면이 깜빡이는 것을 막는다. */
   ready(): Promise<void>;
 
-  signUp(input: { email: string; password: string; displayName: string }): Promise<void>;
+  /**
+   * 가입. Supabase 가 이메일 확인을 요구하도록 설정돼 있으면 세션이 바로 생기지 않는다.
+   * 그때 `needsConfirmation` 이 true 로 오고, 화면은 "메일함을 확인해 주세요"를 보여준다.
+   * 이걸 알리지 않으면 가입 버튼을 눌러도 아무 일도 안 일어나는 것처럼 보인다.
+   */
+  signUp(input: { email: string; password: string; displayName: string }):
+    Promise<{ needsConfirmation: boolean }>;
   signIn(input: { email: string; password: string }): Promise<void>;
   signOut(): Promise<void>;
   /** 모든 전보함에 공통으로 쓰이는 표시 이름. */

@@ -76,12 +76,14 @@ export function createSupabaseStore(): BoxStore {
       const name = displayName.trim().slice(0, 12);
       if (!name) throw new Error('표시 이름을 입력해 주세요.');
       // display_name 은 metadata 로 넘긴다 — handle_new_user 트리거가 프로필을 만든다.
-      const { error } = await db.auth.signUp({
+      const { data, error } = await db.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
         options: { data: { display_name: name } },
       });
       if (error) throw error;
+      // 이메일 확인이 켜져 있으면 사용자만 생기고 세션은 없다.
+      return { needsConfirmation: data.session === null };
     },
 
     async signIn({ email, password }) {

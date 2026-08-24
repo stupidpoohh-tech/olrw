@@ -116,7 +116,7 @@ docs/PORTING-SPEC.md
 pnpm dev
 pnpm build
 pnpm typecheck
-supabase db push          # 로컬 → 원격 마이그레이션
+supabase db push          # 로컬 → 원격 마이그레이션 (연결 방법은 docs/SETUP.md)
 supabase gen types typescript --linked > src/lib/database.types.ts
 
 supabase/tests/run.sh              # RLS · 서버 함수 (Supabase·Docker 불필요)

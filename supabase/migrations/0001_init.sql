@@ -626,22 +626,30 @@ grant execute on function close_volume(uuid,text,text,text,boolean) to authentic
 grant execute on function leave_box(uuid)                           to authenticated;
 
 -- ═══ Storage (S11) ═════════════════════════════════════════════════════════
--- 표지 사진. base64를 행에 넣지 않는다. 경로는 covers/{box_id}/{volume_id}.jpg
+-- 표지 사진. base64 를 행에 넣지 않는다. 경로는 covers/{box_id}/{uuid}.jpg
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('covers', 'covers', true, 2097152, array['image/jpeg','image/webp','image/png'])
 on conflict (id) do nothing;
 
-create policy covers_read on storage.objects for select
-  using (bucket_id = 'covers');
+-- storage.objects 는 프로젝트에 따라 소유자가 달라 정책 생성이 막힐 수 있다.
+-- 막히면 마이그레이션 전체를 되돌리지 말고, 무엇을 손으로 해야 하는지 알려 준다.
+do $$
+begin
+  create policy covers_read on storage.objects for select
+    using (bucket_id = 'covers');
 
-create policy covers_write on storage.objects for insert to authenticated
-  with check (
-    bucket_id = 'covers'
-    and is_member((storage.foldername(name))[1]::uuid)
-  );
+  create policy covers_write on storage.objects for insert to authenticated
+    with check (bucket_id = 'covers' and is_member((storage.foldername(name))[1]::uuid));
 
-create policy covers_update on storage.objects for update to authenticated
-  using (
-    bucket_id = 'covers'
-    and is_member((storage.foldername(name))[1]::uuid)
-  );
+  create policy covers_update on storage.objects for update to authenticated
+    using (bucket_id = 'covers' and is_member((storage.foldername(name))[1]::uuid));
+
+exception
+  when insufficient_privilege then
+    raise notice E'\n[OLRW] storage.objects 에 정책을 만들 권한이 없습니다.'
+                 '\n       Supabase 대시보드 → Storage → covers → Policies 에서 손으로 추가하세요.'
+                 '\n       자세한 내용은 docs/SETUP.md 를 보세요.';
+  when duplicate_object then
+    raise notice '[OLRW] covers 정책이 이미 있습니다. 건너뜁니다.';
+end $$;
