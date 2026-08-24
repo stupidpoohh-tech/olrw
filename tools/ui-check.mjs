@@ -40,9 +40,19 @@ const shot = async (name) => {
   await page.screenshot({ path: `${SHOTS}/${name}.png` });
 };
 
-/** 소개 화면에서 가입으로 들어간다. */
+/**
+ * 인증 화면으로 들어간다.
+ * 로그인 상태(체험 세션 포함) 여부와 무관하게, 해시 붙인 새 URL 로 이동해 게이트 안에서
+ * 곧장 AuthScreen 이 서게 한다. 랜딩(D12 로 제거)을 거치지 않는다.
+ */
+/** 인증(가입) 화면으로 들어간다.
+ * 게스트 홈에는 배너의 "계정 만들기" 링크가 늘 있으니 그걸 눌러 들어간다.
+ * 이미 auth 가 열려 있으면 아무것도 하지 않는다.
+ */
 const openSignUp = async () => {
-  if (await page.$('.lp')) await page.click('.lp-primary >> nth=0');
+  if (await page.$('.auth')) return;
+  await page.waitForSelector('.guest-banner-cta', { timeout: 8000 });
+  await page.locator('.guest-banner-cta', { hasText: '계정 만들기' }).click();
   await page.waitForSelector('.auth', { timeout: 5000 });
 };
 const signUp = async (name, email) => {
@@ -64,33 +74,31 @@ try {
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: 'networkidle' });
 
-console.log('\n━━━ 소개 화면 ━━━');
-ok('로그인하지 않으면 소개 화면이 먼저 나온다', await page.isVisible('.lp'));
-ok('로그인 화면이 강제되지 않는다', (await page.$$('.auth')).length === 0);
-ok('세 마디를 다 보여준다', (await page.$$('.lp-step')).length === 3);
-ok('실제 전보 카드를 보여준다', (await page.$$('.lp-demo .tg')).length === 2);
-ok('실제 봉투를 보여준다', (await page.$$('.lp-demo .env')).length === 2);
-ok('봉투에 본문이 없다', (await page.$$('.lp-demo .env .tg-body')).length === 0);
-ok('서가를 보여준다', (await page.$$('.lp-shelf .spine')).length === 5);
-await shot('01-landing');
+console.log('\n━━━ 홈 (D12 · 곧장 체험 모드) ━━━');
+// 게스트 자동 진입이 걸리는 짧은 순간이 있다 — 배너가 뜰 때까지 기다린다.
+await page.waitForSelector('.guest-banner', { timeout: 8000 });
+ok('로그인 화면이 앞에 서지 않는다', (await page.$$('.auth')).length === 0);
+ok('상단에 체험 모드 배너가 뜬다', await page.isVisible('.guest-banner'));
+ok('배너에 계정 만들기·로그인 링크가 있다',
+   (await page.$$('.guest-banner-cta')).length === 2);
+ok('안내 투어가 함께 뜬다', await page.isVisible('.tour-card'));
+await shot('01-home');
 
 console.log('\n━━━ 인증으로 들어가고 나오기 ━━━');
-await page.click('.lp-secondary >> nth=0');
+// 배너의 "로그인" 링크 — 게스트 세션이 종료되고 AuthScreen 이 뜬다.
+await page.locator('.guest-banner-cta', { hasText: '로그인' }).click();
 await page.waitForSelector('.auth', { timeout: 5000 });
 ok('로그인을 누르면 로그인 탭으로 열린다',
    (await page.getAttribute('.auth-tab >> nth=0', 'aria-selected')) === 'true');
 ok('주소에 자국이 남는다', await page.evaluate(() => location.hash) === '#login');
 await page.click('.auth-back');
-await page.waitForSelector('.lp', { timeout: 5000 });
-ok('돌아가기로 소개 화면에 돌아온다', await page.isVisible('.lp'));
+await page.waitForSelector('.guest-banner', { timeout: 5000 });
+ok('돌아가기로 게스트 홈으로 돌아온다', await page.isVisible('.guest-banner'));
 
-await page.click('.lp-primary >> nth=0');
+await page.locator('.guest-banner-cta', { hasText: '계정 만들기' }).click();
 await page.waitForSelector('.auth', { timeout: 5000 });
-ok('전보함 열기를 누르면 가입 탭으로 열린다',
+ok('계정 만들기를 누르면 가입 탭으로 열린다',
    (await page.getAttribute('.auth-tab >> nth=1', 'aria-selected')) === 'true');
-await page.goBack();
-await page.waitForSelector('.lp', { timeout: 5000 });
-ok('브라우저 뒤로 가기도 소개로 돌아온다', await page.isVisible('.lp'));
 await shot('02-auth');
 
 console.log('\n━━━ 가입 ━━━');
@@ -128,8 +136,8 @@ await shot('04-shell');
 
 console.log('\n━━━ 참여와 색 (§4-1 색은 정보다) ━━━');
 await page.click('.link:has-text("로그아웃")');
-await page.waitForSelector('.lp', { timeout: 5000 });
-ok('로그아웃하면 소개 화면으로 돌아간다', true);
+await page.waitForSelector('.guest-banner', { timeout: 5000 });
+ok('로그아웃하면 다시 게스트 홈으로 돌아간다 (D12)', true);
 await signUp('재이', 'b@olrw.test');
 await page.waitForSelector('text=첫 전보함을 엽니다');
 await page.click('.onb-tab >> nth=1');
