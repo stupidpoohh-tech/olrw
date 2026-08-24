@@ -26,8 +26,8 @@ const browser = await chromium.launch({
 async function seed(page, { sealed = true } = {}) {
   const signUp = async (name, email) => {
     if (!(await page.$('.auth'))) {
-      await page.waitForSelector('.guest-banner-cta', { timeout: 8000 });
-      await page.locator('.guest-banner-cta', { hasText: '계정 만들기' }).click();
+      await page.waitForSelector('.maker-auth-link', { timeout: 8000 });
+      await page.locator('.maker-auth-link', { hasText: '계정 만들기' }).click();
     }
     await page.waitForSelector('.auth', { timeout: 5000 });
     await page.click('.auth-tab >> nth=1');
@@ -49,7 +49,7 @@ async function seed(page, { sealed = true } = {}) {
   await page.reload({ waitUntil: 'networkidle' });
 
   await signUp('민서', 'a@olrw.test');
-  await page.waitForSelector('text=첫 전보함을 엽니다');
+  await page.waitForSelector('.onb-tabs-row', { timeout: 5000 });
   await page.fill('.onb-input', '퇴근길 전보함');
   if (!sealed) await page.click('.onb-mode >> nth=1');
   await page.click('button[type=submit]:has-text("전보함 만들기")');
@@ -60,9 +60,9 @@ async function seed(page, { sealed = true } = {}) {
   await send('고양이가 나를 따라옴 STOP');
 
   await page.click('.link:has-text("로그아웃")');
-  await page.waitForSelector('.guest-banner', { timeout: 5000 });
+  await page.waitForSelector('.maker-auth-link', { timeout: 5000 });
   await signUp('재이', 'b@olrw.test');
-  await page.waitForSelector('text=첫 전보함을 엽니다');
+  await page.waitForSelector('.onb-tabs-row', { timeout: 5000 });
   await page.click('.onb-tab >> nth=1');
   await page.fill('.onb-code-input', code);
   await page.click('button[type=submit]:has-text("전보함 참여하기")');

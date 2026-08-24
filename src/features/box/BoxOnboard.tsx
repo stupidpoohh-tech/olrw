@@ -67,15 +67,17 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
   const colorFields = (
     <>
       <div className="onb-field">
-        <div className="onb-field-label">내 전보 용지 색</div>
-        <p className="onb-hint">이 전보함에서 내가 보내는 전보의 색입니다. 모두에게 보입니다.</p>
+        <div className="onb-field-header">
+          <div className="onb-field-label">내 전보 용지 색</div>
+          <span className="onb-field-aside">모두에게 보입니다</span>
+        </div>
         <PaperChoices value={paper} onChange={setPaper} />
       </div>
       <div className="onb-field">
-        <div className="onb-field-label">내 타자기</div>
-        <p className="onb-hint">
-          어느 전보함에 있는지 알려주는 타자기입니다. 생김새도 소리도 다릅니다. 나만 봅니다.
-        </p>
+        <div className="onb-field-header">
+          <div className="onb-field-label">내 타자기</div>
+          <span className="onb-field-aside">나만 봅니다</span>
+        </div>
         <TypeChoices value={type} onChange={setType} />
       </div>
     </>
@@ -104,13 +106,16 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
 
   return (
     <div className="onb">
-      <div className="onb-tabs" role="tablist">
-        <button type="button" role="tab" aria-selected={tab === 'create'}
-          className={`onb-tab ${tab === 'create' ? 'active' : ''}`}
-          onClick={() => switchTab('create')}>전보함 만들기</button>
-        <button type="button" role="tab" aria-selected={tab === 'join'}
-          className={`onb-tab ${tab === 'join' ? 'active' : ''}`}
-          onClick={() => switchTab('join')}>코드로 참여</button>
+      <div className="onb-tabs-row">
+        <div className="onb-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected={tab === 'create'}
+            className={`onb-tab ${tab === 'create' ? 'active' : ''}`}
+            onClick={() => switchTab('create')}>전보함 만들기</button>
+          <button type="button" role="tab" aria-selected={tab === 'join'}
+            className={`onb-tab ${tab === 'join' ? 'active' : ''}`}
+            onClick={() => switchTab('join')}>코드로 참여</button>
+        </div>
+        <span className="onb-quota" aria-label="정원">정원 4인</span>
       </div>
 
       {tab === 'create' ? (
@@ -123,7 +128,10 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
           </div>
 
           <div className="onb-field">
-            <div className="onb-field-label">언제 열어볼까요</div>
+            <div className="onb-field-header">
+              <div className="onb-field-label">언제 열어볼까요</div>
+              <span className="onb-field-aside">나중에 바꿀 수 있습니다</span>
+            </div>
             <div className="onb-modes">
               <button type="button"
                 className={`onb-mode ${sealed ? 'active' : ''}`}
@@ -139,12 +147,9 @@ export function BoxOnboard({ onDone, onCancel }: Props) {
                 aria-pressed={!sealed}
                 onClick={() => setSealed(false)}>
                 <span className="onb-mode-name">열린함</span>
-                <span className="onb-mode-desc">
-                  도착하는 대로 읽습니다.
-                </span>
+                <span className="onb-mode-desc">도착하는 대로 읽습니다.</span>
               </button>
             </div>
-            <p className="onb-hint">나중에 바꿀 수 있습니다. 내 전보는 언제나 전문으로 보입니다.</p>
           </div>
 
           {colorFields}

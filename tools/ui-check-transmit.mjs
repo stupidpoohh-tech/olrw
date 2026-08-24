@@ -32,9 +32,9 @@ page.on('pageerror', (e) => pageErrors.push(e.message));
 const shot = async (n) => { if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${SHOTS}/${n}.png` }); } };
 const signUp = async (name, email) => {
   // 로그인 앞에 소개 화면은 없다 (D12). 곧장 AuthScreen 으로.
-  // 랜딩이 없어졌다 (D12). 게스트 배너의 "계정 만들기" 링크로 들어간다.
-  await page.waitForSelector('.guest-banner-cta', { timeout: 8000 });
-  await page.locator('.guest-banner-cta', { hasText: '계정 만들기' }).click();
+  // 랜딩이 없어졌다 (D12). 하단(MakerMark)의 "계정 만들기" 링크로 들어간다.
+  await page.waitForSelector('.maker-auth-link', { timeout: 8000 });
+  await page.locator('.maker-auth-link', { hasText: '계정 만들기' }).click();
   await page.waitForSelector('.auth', { timeout: 5000 });
   await page.click('.auth-tab >> nth=1');
   await page.fill('input[autocomplete="nickname"]', name);
@@ -64,7 +64,7 @@ await page.reload({ waitUntil: 'networkidle' });
 
 // ── 방을 만들고 두 사람을 넣는다
 await signUp('민서', 'a@olrw.test');
-await page.waitForSelector('text=첫 전보함을 엽니다');
+await page.waitForSelector('.onb-tabs-row', { timeout: 5000 });
 await page.fill('.onb-input', '퇴근길 전보함');
 await page.click('button[type=submit]:has-text("전보함 만들기")');
 await page.waitForSelector('.onb-code');
@@ -160,9 +160,9 @@ await page.fill('.paper-input', '');
 
 console.log('\n━━━ 봉인 (D1) ━━━');
 await page.click('.link:has-text("로그아웃")');
-await page.waitForSelector('.guest-banner', { timeout: 5000 });
+await page.waitForSelector('.maker-auth-link', { timeout: 5000 });
 await signUp('재이', 'b@olrw.test');
-await page.waitForSelector('text=첫 전보함을 엽니다');
+await page.waitForSelector('.onb-tabs-row', { timeout: 5000 });
 await page.click('.onb-tab >> nth=1');
 await page.fill('.onb-code-input', code);
 await page.click('button[type=submit]:has-text("전보함 참여하기")');

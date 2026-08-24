@@ -67,3 +67,7 @@
 .guest-banner-dot { width: 6px; height: 6px; border-radius: 50%;
   background: var(--accent); flex: 0 0 auto; }
 .guest-banner-cta { color: var(--accent); }
+
+
+/* 게스트 홈은 한 뷰포트에 담기게 상단 여백을 줄이고 로그아웃 줄을 뺀다. */
+.pair-compact { padding-top: 8px; padding-bottom: 8px; }

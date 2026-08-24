@@ -1,44 +1,69 @@
 import { useEffect, useState } from 'react';
 import { isMuted, onMuteChange, setMuted } from '../lib/mute';
+import { useSession, useStore } from '../lib/storeContext';
 import './MakerMark.css';
 
 /**
- * 만든 사람 표시 + 기기 단위 음소거.
+ * 만든 사람 표시 + 기기 단위 음소거 + (게스트일 때) 계정 진입.
  *
- * 앱 최하단 가운데. 홈 링크는 새 탭으로 연다 — 타전 중인 초고를 잃지 않게.
- * 스피커 아이콘 하나로 이 기기의 모든 타건음·벨·캐리지·제본음을 켜고 끈다.
+ * 앱 최하단 가운데. 상단에 배너가 없어지면서 로그인·가입 진입도 여기로 내려왔다.
+ * 홈 화면을 한 뷰포트에 담기 위해서다.
  */
 export function MakerMark() {
   const [muted, setMutedState] = useState<boolean>(() => isMuted());
+  const session = useSession();
+  const store = useStore();
   useEffect(() => onMuteChange(setMutedState), []);
+
+  const openAuth = (mode: 'signin' | 'signup') => {
+    // 해시를 먼저 세우고 signOut. 순서가 뒤집히면 세션이 null 로 떨어진 순간
+    // PublicGate 가 빈 해시를 보고 다시 게스트로 자동 진입한다 (race).
+    location.hash = mode === 'signin' ? '#login' : '#join';
+    void store.signOut();
+  };
+  const isGuest = !!session?.isGuest;
 
   return (
     <footer className="maker">
-      <button
-        type="button"
-        className="maker-mute"
-        aria-pressed={muted}
-        aria-label={muted ? '소리 켜기' : '소리 끄기'}
-        title={muted ? '소리 켜기' : '소리 끄기'}
-        onClick={() => setMuted(!muted)}
-      >
-        <SpeakerIcon muted={muted} />
-      </button>
+      {isGuest && (
+        <div className="maker-auth">
+          <button type="button" className="maker-auth-link" onClick={() => openAuth('signin')}>
+            로그인
+          </button>
+          <span aria-hidden="true" className="maker-auth-sep">·</span>
+          <button type="button" className="maker-auth-link" onClick={() => openAuth('signup')}>
+            계정 만들기
+          </button>
+        </div>
+      )}
 
-      <span className="maker-text">
-        만든사람 <b className="maker-name">DADA</b>
-      </span>
+      <div className="maker-row">
+        <button
+          type="button"
+          className="maker-mute"
+          aria-pressed={muted}
+          aria-label={muted ? '소리 켜기' : '소리 끄기'}
+          title={muted ? '소리 켜기' : '소리 끄기'}
+          onClick={() => setMuted(!muted)}
+        >
+          <SpeakerIcon muted={muted} />
+        </button>
 
-      <a
-        className="maker-home"
-        href="https://dada-town.com/"
-        target="_blank"
-        rel="noreferrer"
-        aria-label="DADA 홈으로 (새 탭)"
-        title="DADA 홈"
-      >
-        <HomeIcon />
-      </a>
+        <span className="maker-text">
+          만든사람 <b className="maker-name">DADA</b>
+        </span>
+
+        <a
+          className="maker-home"
+          href="https://dada-town.com/"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="DADA 홈으로 (새 탭)"
+          title="DADA 홈"
+        >
+          <HomeIcon />
+        </a>
+      </div>
     </footer>
   );
 }
