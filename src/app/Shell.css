@@ -89,3 +89,10 @@
   html[data-fixed] .boxbar-members { margin-top: 4px; }
   html[data-fixed] .meet { margin-top: 8px; padding: 9px 0; }
 }
+
+@media (max-height: 620px) {
+  html[data-fixed] .header { padding: 6px 0 4px; }
+  html[data-fixed] .brand { font-size: 13px; }
+  html[data-fixed] .nav-btn { padding: 4px 12px 5px; font-size: 12.5px; }
+  html[data-fixed] .boxbar { padding: 4px 0 4px; margin-bottom: 6px; }
+}

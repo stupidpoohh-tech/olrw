@@ -1,5 +1,6 @@
-/* 타전실 — 세 구역이 한 화면 안에 (1 타자기 · 2 종이 · 3 최근 송신) */
-.transmit { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+/* 타전실 — 세 구역이 한 화면 안에 (1 타자기 · 2 종이 · 3 최근 송신).
+   height: 100% 가 아니라 flex: 1 이어야 남는 높이를 실제로 가져간다. */
+.transmit { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
 /* ── 타자기 + 물려 있는 종이 ─────────────────────────────────────────────── */
 
@@ -7,28 +8,24 @@
    줄지 않는다 — 남는 높이는 전부 3구역(.recent)이 가져간다. */
 .stage { position: relative; padding-top: 4px; flex: none; }
 
-/* 1구역 — 타자기. 종이 카드 안에 산다. */
-.tw { position: relative; width: 100%; max-width: 196px; margin: 6px auto 2px;
+/* 1구역 — 타자기 줄. 셰브런 · 타자기 · 셰브런이 한 줄에 나란히 앉는다.
+   어떤 것도 줄 밖으로 나가지 않는다 — 넘치면 iOS 가 화면을 축소한다. */
+.tw-row { display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; margin: 6px 0 2px;
   touch-action: pan-y;   /* 세로 스크롤은 브라우저에, 가로는 우리가 */
   user-select: none; -webkit-user-select: none; }
+.tw { position: relative; flex: 0 1 196px; min-width: 0; }
 /* 네 장 모두 배경이 투명하다. blend 로 흰 바탕을 녹일 필요가 없다. */
 .tw-img { width: 100%; height: auto; display: block; pointer-events: none; }
 
 /* 좌우로 넘길 수 있다는 표시 — 원형의 흰 단추 둘 (사용자 목업). */
-.tw-step { position: absolute; top: 44%; transform: translateY(-50%);
-  width: 34px; height: 34px; padding: 0;
+.tw-step { flex: none; width: 34px; height: 34px; padding: 0;
   display: flex; align-items: center; justify-content: center;
   color: var(--ink-mid); background: var(--surface); border: 1px solid var(--divider);
   border-radius: 50%; box-shadow: var(--shadow-1);
   transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease); }
 .tw-step:hover { color: var(--ink); border-color: var(--ink-faint); }
 .tw-step svg { width: 8px; height: 13px; display: block; }
-.tw-step.prev { left: -54px; }
-.tw-step.next { right: -54px; }
-@media (max-width: 420px) {
-  .tw-step.prev { left: -46px; }
-  .tw-step.next { right: -46px; }
-}
 
 /* 눌린 키 자리. 좌표와 빛깔은 타자기마다 다르다 (design/typewriters.ts). */
 .tw-key { position: absolute; transform: translate(-50%, -50%);
@@ -54,10 +51,10 @@
   box-shadow: var(--shadow-1); cursor: text; }
 
 .paper-head { display: flex; justify-content: space-between; align-items: baseline;
-  gap: 12px;   /* 좁아져도 글자끼리 들러붙지 않는다 */
-  font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase;
+  gap: 10px; min-width: 0; overflow: hidden;   /* 좁아도 카드 밖으로 새지 않는다 */
+  font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase;
   opacity: .6; padding-bottom: 8px; border-bottom: 1px solid currentColor; }
-.paper-head > span { white-space: nowrap; }
+.paper-head > span { white-space: nowrap; min-width: 0; }
 .paper-head > span:nth-child(2) { letter-spacing: .3em; }
 .paper-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%;
   background: var(--accent); margin-left: 5px; vertical-align: 1px; }
@@ -114,7 +111,9 @@
 
 /* 3구역 — 내가 쓴 전보. 남은 높이를 다 쓰고 이 안에서만 스크롤한다.
    페이지 전체가 스크롤되면 타자기와 종이가 화면 밖으로 밀려난다. */
-.recent { flex: 1 1 auto; min-height: 104px; display: flex; flex-direction: column;
+/* 남는 높이를 가져가되, 자리가 모자라면 스스로 줄어든다. min-height 를 두면
+   짧은 화면에서 만남 마감 버튼을 푸터 밖으로 밀어낸다. */
+.recent { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
   margin-top: 10px; }
 .section-label { font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
   color: var(--ink-faded); margin: 0 0 6px; font-weight: 400; flex: none; }
@@ -140,7 +139,20 @@
 
 /* 세로가 짧은 기기(사파리 툴바가 펼쳐진 아이폰) — 타자기가 먼저 자리를 내준다. */
 @media (max-height: 720px) {
-  .tw { max-width: 156px; }
-  .paper-type { min-height: 52px; }
-  .recent { min-height: 84px; }
+  .tw { flex-basis: 150px; }
+  .paper-type { min-height: 48px; padding: 8px 0 6px; }
+  .paper { padding: 12px 14px 10px; }
+  .stage { padding-top: 0; }
+  .tw-row { margin: 2px 0 0; }
+  .paper-head { padding-bottom: 6px; }
+  .meet { margin-top: 8px; padding: 10px 0; }
+}
+
+/* 아주 짧은 기기(iPhone SE 등) — 타자기를 한 번 더 줄여 세 구역을 지킨다. */
+@media (max-height: 620px) {
+  .tw { flex-basis: 112px; }
+  .tw-step { width: 28px; height: 28px; }
+  .paper-type { min-height: 40px; }
+  .section-label { margin-bottom: 4px; }
+  .meet { padding: 9px 0; font-size: 12.5px; }
 }

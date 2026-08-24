@@ -38,7 +38,7 @@
 
 
 /* 타전실은 한 화면 안에 세 구역이 들어가야 한다. 푸터가 자리를 양보한다. */
-html[data-fixed] .maker { padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px)); }
+html[data-fixed] .maker { margin-top: 0; padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px)); }
 html[data-fixed] .maker-auth { padding-bottom: 6px; font-size: 11.5px; }
 html[data-fixed] .maker-home { width: 26px; height: 26px; }
 html[data-fixed] .maker-text { font-size: 11.5px; }
@@ -54,3 +54,10 @@ html[data-fixed] .maker-text { font-size: 11.5px; }
 }
 .mute-btn:hover { color: var(--ink-mid); border-color: var(--ink-faint); }
 .mute-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent-soft); }
+
+@media (max-height: 620px) {
+  html[data-fixed] .maker { padding: 5px 16px calc(5px + env(safe-area-inset-bottom, 0px)); }
+  html[data-fixed] .maker-auth { padding-bottom: 4px; font-size: 11px; }
+  html[data-fixed] .maker-text { font-size: 11px; }
+  html[data-fixed] .maker-home { width: 24px; height: 24px; }
+}
