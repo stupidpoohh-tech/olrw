@@ -16,9 +16,11 @@ interface Props {
   sending: boolean;
   justSent: boolean;
   onSend: (body: string) => void;
+  /** 타자기를 좌우로 넘긴다. 없으면 넘기기 UI 를 숨긴다. */
+  onStepType?: ((dir: -1 | 1) => void) | undefined;
 }
 
-export function Paper({ paper, typeColor, sending, justSent, onSend }: Props) {
+export function Paper({ paper, typeColor, sending, justSent, onSend, onStepType }: Props) {
   const machine = getTypewriter(typeColor);
   const [text, setText] = useState('');
   const [pressed, setPressed] = useState<{ pos: KeyPos; id: number } | null>(null);
@@ -86,7 +88,7 @@ export function Paper({ paper, typeColor, sending, justSent, onSend }: Props) {
 
   return (
     <div className="stage">
-      <Typewriter machine={machine} pressed={pressed} bell={bell} />
+      <Typewriter machine={machine} pressed={pressed} bell={bell} onStep={onStepType} />
 
       <div className="paper-wrap">
         <div className="paper" style={paperStyle(paper)} onClick={() => input.current?.focus()}>

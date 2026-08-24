@@ -71,3 +71,10 @@
 
 /* 게스트 홈은 한 뷰포트에 담기게 상단 여백을 줄이고 로그아웃 줄을 뺀다. */
 .pair-compact { padding-top: 8px; padding-bottom: 8px; }
+
+
+/* ── 타전실: 한 화면 안에 (1 타자기 · 2 종이 · 3 최근 송신) ───────────────
+   타전실만 페이지 스크롤을 없앤다. 수신함·서가는 목록이라 그대로 흐른다. */
+.app.app-fixed { flex: 1; min-height: 0; display: flex; flex-direction: column;
+  padding-bottom: 6px; }
+.app.app-fixed .main { flex: 1; min-height: 0; display: flex; flex-direction: column; }

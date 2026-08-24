@@ -70,6 +70,19 @@ export function Shell() {
 
   useEffect(() => { void refresh(); }, [refresh]);
 
+  /**
+   * 타전실은 한 화면 안에 세 구역이 들어가야 한다(사용자 지시). 그러려면 루트가
+   * 높이를 알아야 하므로 html 에 표시를 남긴다 — min-height 만으로는 자식이
+   * 넘칠 때 페이지가 늘어나 타자기가 화면 밖으로 밀려난다.
+   * 수신함·서가는 목록이라 평소처럼 페이지가 흐른다.
+   */
+  useEffect(() => {
+    const root = document.documentElement;
+    if (session && box && tab === 'transmit') root.setAttribute('data-fixed', '');
+    else root.removeAttribute('data-fixed');
+    return () => root.removeAttribute('data-fixed');
+  }, [session, box, tab]);
+
   // 로그인하고 나면 #login / #join 을 지운다. 뒤로 가기가 로그인 화면으로 돌아가지 않게.
   useEffect(() => {
     if (session && location.hash) {
@@ -120,7 +133,7 @@ export function Shell() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${tab === 'transmit' ? 'app-fixed' : ''}`}>
       {session.isGuest && <GuestTour />}
       <header className="header">
         <h1 className="brand display">Our love, rightly written</h1>
@@ -156,6 +169,7 @@ export function Shell() {
             onSent={reloadEnvelopes}
             onRetract={retract}
             onOpenRitual={() => setRitual(true)}
+            onChanged={() => void refresh()}
           />
         )}
         {tab === 'inbox' && <InboxView box={box} envelopes={envelopes} myId={session.userId} />}
