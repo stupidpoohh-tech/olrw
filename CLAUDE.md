@@ -34,11 +34,11 @@
 
 ```
 src/
-  app/            셸 · 라우팅 · 탭 · 공개 화면 문지기(PublicGate)
+  app/            셸 · 라우팅 · 탭 · 공개 화면 문지기(PublicGate — 미로그인은 곧장 체험 모드)
   features/
-    landing/      소개 화면 (로그인 앞)
     auth/         가입 · 로그인
     box/          온보딩 · 생성 · 참여 · 전환 바 · 멤버
+    tour/         체험 모드 안내 투어
     transmit/     타전실
     inbox/        수신함
     archive/      서가

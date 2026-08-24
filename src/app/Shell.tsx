@@ -203,13 +203,23 @@ export function Shell() {
 }
 
 function GuestBanner() {
-  const openSignup = () => { location.hash = '#join'; };
+  const store = useStore();
+  // 게스트 세션을 먼저 종료해야 PublicGate 로 넘어가 AuthScreen 이 뜬다.
+  // 해시만 바꾸면 지금 화면(Shell) 은 그대로 남는다.
+  const openAuth = (mode: 'signin' | 'signup') => {
+    // 해시를 먼저 바꾸고 그다음에 signOut. 순서가 뒤집히면 세션이 null 로 떨어진 순간
+    // PublicGate 가 아직 빈 해시를 보고 다시 게스트로 자동 진입한다 (race).
+    location.hash = mode === 'signin' ? '#login' : '#join';
+    void store.signOut();
+  };
   return (
     <div className="guest-banner" role="status">
       <span className="guest-banner-dot" aria-hidden="true" />
       <span>
-        체험 중입니다. 이 브라우저에만 저장되며, 로그아웃하면 사라집니다.{' '}
-        <button className="link guest-banner-cta" onClick={openSignup}>계정 만들기</button>
+        체험 중입니다. 이어서 쓰려면{' '}
+        <button className="link guest-banner-cta" onClick={() => openAuth('signup')}>계정 만들기</button>
+        {' '}·{' '}
+        <button className="link guest-banner-cta" onClick={() => openAuth('signin')}>로그인</button>
       </span>
     </div>
   );
