@@ -3,6 +3,7 @@ import { AuthScreen } from '../features/auth/AuthScreen';
 import { LandingScreen } from '../features/landing/LandingScreen';
 import { useStore } from '../lib/storeContext';
 import { toUserMessage } from '../lib/errors';
+import { resetTour } from '../features/tour/GuestTour';
 
 /**
  * 로그인하지 않은 사람이 보는 것.
@@ -50,6 +51,7 @@ export function PublicGate() {
   }
   const enterGuest = () => {
     setError('');
+    resetTour();   // 랜딩에서 새로 들어올 때마다 투어를 다시 보여준다
     void store.enterAsGuest().catch((e: unknown) => setError(toUserMessage(e, '체험 모드를 열지 못했습니다.')));
   };
 

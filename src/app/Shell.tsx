@@ -11,6 +11,7 @@ import { toUserMessage } from '../lib/errors';
 import type { Box, BoxSummary, Envelope } from '../lib/types';
 import { Modal } from './Modal';
 import { PublicGate } from './PublicGate';
+import { GuestTour } from '../features/tour/GuestTour';
 import './Shell.css';
 
 type Tab = 'transmit' | 'inbox' | 'archive';
@@ -103,6 +104,7 @@ export function Shell() {
     return (
       <div className="pair">
         {session.isGuest && <GuestBanner />}
+        {session.isGuest && <GuestTour />}
         <div className="pair-top">
           <span className="pair-greet">
             <span className="pair-greet-tag display">Signed in</span>
@@ -125,6 +127,7 @@ export function Shell() {
   return (
     <div className="app">
       {session.isGuest && <GuestBanner />}
+      {session.isGuest && <GuestTour />}
       <header className="header">
         <h1 className="brand display">Our love, rightly written</h1>
         <button className="link" onClick={() => void store.signOut()}>로그아웃</button>
