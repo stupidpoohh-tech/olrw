@@ -13,7 +13,8 @@
     "ui:check": "node tools/ui-check.mjs",
     "ui:check4": "node tools/ui-check-transmit.mjs",
     "ui:check5": "node tools/ui-check-ritual.mjs",
-    "sound:check": "node tools/sound-check.mjs"
+    "sound:check": "node tools/sound-check.mjs",
+    "auth:check": "node tools/auth-check.mjs"
   },
   "dependencies": {
     "@neondatabase/neon-js": "0.7.0-beta",

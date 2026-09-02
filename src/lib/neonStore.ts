@@ -37,8 +37,13 @@ function metaName(user: AuthUser): string {
   return '';
 }
 
-export function createNeonStore(): BoxStore {
-  const db = neon();
+/**
+ * @param client 시험에서만 넘긴다. 평소에는 `neon()` 한 대를 그대로 쓴다.
+ *   세션이 언제 알려지는지는 눈으로 봐서는 모르는 종류의 규칙이라
+ *   (`tools/auth-check.mjs`) 클라이언트를 갈아 끼울 자리를 하나 열어 둔다.
+ */
+export function createNeonStore(client?: ReturnType<typeof neon>): BoxStore {
+  const db = client ?? neon();
 
   let session: Session | null = null;
   const listeners = new Set<(s: Session | null) => void>();
@@ -67,14 +72,30 @@ export function createNeonStore(): BoxStore {
   }
   const emit = () => listeners.forEach((cb) => cb(session));
 
+  /** 인증 결과를 세션에 반영하고 알린다. */
+  const apply = async (auth: AuthSession | null): Promise<void> => {
+    await hydrate(auth);
+    emit();
+  };
+
   const booted = (async () => {
     const { data } = await db.auth.getSession();
-    await hydrate(data.session ?? null);
-    emit();
+    await apply(data.session ?? null);
   })();
 
+  /**
+   * **다른 탭**에서 로그인·로그아웃했을 때만 온다.
+   *
+   * Neon 어댑터(@neondatabase/auth 0.5.0-beta)의 `onAuthStateChange` 는
+   * BroadcastChannel 위에 얹혀 있고, 자기 탭이 보낸 메시지는 `clientId` 로
+   * 걸러 낸다. 그래서 **내가 로그인한 탭에는 이 콜백이 오지 않는다** —
+   * 여기에 기대면 로그인해도 화면이 그대로이고 새로고침해야 들어가진다.
+   *
+   * 그래서 내 탭의 변화는 아래 signIn / signUp / signOut 이 직접 반영한다.
+   * 이 구독은 다른 탭과 보조를 맞추는 몫만 맡는다.
+   */
   db.auth.onAuthStateChange((_event, auth) => {
-    void (async () => { await hydrate(auth ?? null); emit(); })();
+    void apply(auth ?? null);
   });
 
   /**
@@ -114,15 +135,19 @@ export function createNeonStore(): BoxStore {
       });
       if (error) throw error;
       // 메일 확인을 요구하도록 켜 두면 사용자만 생기고 세션은 없다.
+      await apply(data.session ?? null);
       return { needsConfirmation: data.session === null };
     },
 
     async signIn({ email, password }) {
-      const { error } = await db.auth.signInWithPassword({
+      const { data, error } = await db.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
       if (error) throw error;
+      // 돌려받은 세션을 바로 반영한다. onAuthStateChange 를 기다리면 내 탭에는
+      // 영영 오지 않아, 화면이 로그인 폼으로 되돌아간다.
+      await apply(data.session ?? null);
     },
 
     /**
@@ -137,6 +162,9 @@ export function createNeonStore(): BoxStore {
     async signOut() {
       const { error } = await db.auth.signOut();
       if (error) throw error;
+      // 나간 것은 서버가 확정했다. 다시 물어볼 것이 없으므로 바로 비운다.
+      session = null;
+      emit();
     },
 
     async updateDisplayName(name) {
