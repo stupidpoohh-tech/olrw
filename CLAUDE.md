@@ -11,6 +11,11 @@
 - **내가 할 수 있는 일은 내가 한다.** 코드 수정, git, 빌드, 타입체크, 테스트,
   마이그레이션 파일 작성 — 전부 직접 실행하고 **결과만 보고**한다.
   "이 명령을 돌려 보세요" 는 답이 아니다.
+- **배포도 내가 한다.** 작업 가지에 밀고 끝내지 않는다 — 그건 미리보기 주소로만
+  올라가고 사용자가 보는 주소(`olrw-8pt.pages.dev`)는 그대로다. 일이 끝나면
+  **프로덕션 가지까지 올려 실제 주소에 반영한 뒤** 보고한다.
+  "Retry deployment 를 눌러 보세요" 는 답이 아니다 — 그건 옛 커밋을 다시 빌드할 뿐이다.
+  프로덕션 가지는 아래 **스택**에 적힌 가지다. 자동배포가 그것만 본다.
 - **사용자 계정으로만 되는 일**(Neon 콘솔, Cloudflare 대시보드, GitHub 설정)은
   **화면 클릭 경로**로 안내한다. 순서는 항상 **메뉴 이름 → 탭 이름 → 버튼 이름**.
   화면에 실제로 적힌 글자를 그대로 쓴다.
@@ -43,8 +48,11 @@
 
 - Vite + React 18 + TypeScript (strict)
 - Neon: Postgres + Data API(PostgREST) + Managed Better Auth + RLS (D14)
-- 배포: 정적 호스트 아무거나 (Cloudflare Pages · Vercel). GitHub 연동 자동배포.
-  Production = `main`, 그 밖의 가지 = 미리보기. 서버 코드 없음 — `dist/` 만 올라간다
+- 배포: Cloudflare Pages, GitHub 연동 자동배포. 서버 코드 없음 — `dist/` 만 올라간다.
+  **프로덕션 가지 = `claude/telegram-messenger-migration-eggni4`** → `olrw-8pt.pages.dev`.
+  그 밖의 가지는 전부 미리보기 주소로만 뜬다. `main` 은 없다 —
+  이 가지를 바꾸려면 Cloudflare 대시보드에서 사용자가 바꿔야 하므로, 그 전까지는
+  **작업 가지를 여기로 fast-forward 하는 것이 배포다**
 - 스타일: CSS 변수 + 모듈 CSS. UI 프레임워크 없음, 애니메이션 라이브러리 없음
 - 사운드: Web Audio API 합성. 참나무 타건음만 실제 녹음(16.7KB)이다 — 나무는
   합성으로 나무처럼 안 들렸다 (D15). 나머지 셋은 에셋 0바이트

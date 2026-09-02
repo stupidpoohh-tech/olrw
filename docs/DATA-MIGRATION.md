@@ -8,6 +8,7 @@
 | | 상태 |
 |---|---|
 | Cloudflare Production branch | `claude/telegram-messenger-migration-eggni4` · 자동배포 켜짐 ✅ |
+| | ↳ **여기 올라간 것만** `olrw-8pt.pages.dev` 에 뜬다. 작업 가지는 미리보기 주소뿐 |
 | 꺼내오는 도구 `public/migrate.html` | 배포됨. 로그인 → 복사 ✅ |
 | 옛 데이터 꺼내기 | **완료** → `neon/migration/legacy-export.json` ✅ |
 | 심는 SQL | **완료** → `neon/migration/0002_legacy.sql` ✅ |
