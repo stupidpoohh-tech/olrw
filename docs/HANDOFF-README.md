@@ -3,6 +3,8 @@
 ## Overview
 여러 명(최대 4명)이 초대 코드로 하나의 **전보함**에 모여 짧은 전보를 주고받고, 실제로 만나는 날 "만남 마감"으로 그 회차를 **제본**해 서가에 꽂는 앱. 채팅이 아니라 원고를 쌓는 도구다.
 
+> **옛 기록.** 스택은 이후 Supabase 에서 Neon 으로 옮겼다 (`docs/decisions.md` D14).
+
 이 번들의 목적: 브라우저 Babel + Firebase compat으로 만든 초기 구현을 **GitHub + Supabase + Vercel(또는 Cloudflare) 자동배포 구조로 이관**하고, 이후 작업을 **Claude Code에서 이어가는 것**.
 
 ## About the Design Files
@@ -17,7 +19,7 @@
 1. **`PORTING-SPEC.md`** — 제품 설계 원본. 개념, 카피 톤, 디자인 토큰, 색 시스템, 화면 구성, 시그니처 인터랙션, 데이터 모델, 미결 사항. **이게 정본이다.**
 2. **`MIGRATION.md`** — 리포 생성부터 자동배포까지 실행 순서. Supabase 프로젝트, 환경변수, Vercel/Cloudflare 연결, GitHub Actions, Firebase 데이터 이관.
 3. **`CLAUDE.md`** — 새 리포 루트에 그대로 복사할 Claude Code 컨텍스트 파일.
-4. **`supabase/migrations/0001_init.sql`** — 스키마 + RLS 초안. 이걸 첫 마이그레이션으로 커밋.
+4. **`neon/migrations/0001_init.sql`** — 스키마 + RLS 초안. 이걸 첫 마이그레이션으로 커밋.
 
 ## Screens / Views
 전체 명세는 `PORTING-SPEC.md` §5. 요약:

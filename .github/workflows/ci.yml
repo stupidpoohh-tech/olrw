@@ -20,6 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # RLS · 서버 함수 검증. Supabase 프로젝트도 Docker 도 필요 없다.
-      - run: supabase/tests/run.sh
-      - run: supabase/tests/concurrency_test.sh
+      # RLS · 서버 함수 검증. Neon 프로젝트도 Docker 도 필요 없다.
+      - run: neon/tests/run.sh
+      - run: neon/tests/concurrency_test.sh

@@ -1,17 +1,23 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { createMemoryStore } from './memoryStore';
-import { createSupabaseStore } from './supabaseStore';
-import { hasSupabaseConfig } from './supabase';
+import { createNeonStore } from './neonStore';
+import { withGuestMode } from './guestStore';
+import { hasNeonConfig } from './neon';
 import type { BoxStore } from './store';
 import type { Session } from './types';
 
 /**
- * 환경변수가 있으면 Supabase, 없으면 메모리 구현으로 돈다.
+ * 환경변수가 있으면 Neon, 없으면 메모리 구현으로 돈다.
  * 구현이 바뀌어도 화면 코드는 BoxStore 만 본다.
+ *
+ * Neon 으로 돌 때도 체험 모드는 브라우저 안에 머문다 — withGuestMode 가 그 갈림길을
+ * 혼자 맡는다. (D14)
  */
-const store: BoxStore = hasSupabaseConfig ? createSupabaseStore() : createMemoryStore();
+const store: BoxStore = hasNeonConfig
+  ? withGuestMode(createNeonStore(), createMemoryStore())
+  : createMemoryStore();
 
-export const usingMemoryStore = !hasSupabaseConfig;
+export const usingMemoryStore = !hasNeonConfig;
 
 const StoreContext = createContext<BoxStore>(store);
 const SessionContext = createContext<Session | null>(null);

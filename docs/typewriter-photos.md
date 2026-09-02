@@ -55,5 +55,5 @@ D9 의 출발점이 "여덟 색이 서로 안 달라서" 였으므로, 대수를
 
 ## 대수를 바꾼다면
 
-`type_color` 의 check 제약(`supabase/migrations/0001_init.sql`)과 `TYPE_IDS` 가 같아야 한다.
+`type_color` 의 check 제약(`neon/migrations/0001_init.sql`)과 `TYPE_IDS` 가 같아야 한다.
 한쪽만 고치면 DB 가 조용히 거부한다.

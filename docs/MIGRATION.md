@@ -1,5 +1,10 @@
 # MIGRATION — GitHub + Supabase + Vercel 자동배포 이관
 
+> **이 문서는 옛 기록이다.** 이관 당시의 계획을 남겨 둔 것이고, 실제 구성은
+> Supabase 가 아니라 **Neon** 이다 (`docs/decisions.md` D14). 지금 연결하려면
+> `docs/SETUP.md` 를 본다. 아래의 Supabase CLI · 환경변수 두 개 · Storage 부분은
+> 더 이상 맞지 않는다.
+
 현재: 단일 `index.html` + 브라우저 Babel + Firebase compat CDN. 빌드 없음, 배포 파이프라인 없음.
 목표: 커밋하면 자동으로 배포되는 구조. Preview(PR) / Production(main) 분리.
 
@@ -30,7 +35,7 @@ gh repo create olrw --private --source=. --push
 ```
 CLAUDE.md                  → 리포 루트
 PORTING-SPEC.md            → docs/PORTING-SPEC.md
-supabase/migrations/0001_init.sql → 그대로
+neon/migrations/0001_init.sql → 그대로
 reference/                 → docs/reference/   (커밋해두면 Claude Code가 디자인을 직접 읽는다)
 assets/타자기 사진          → public/
 ```

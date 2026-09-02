@@ -187,6 +187,7 @@ export function MeetingRitual({ box, envelopes, onCancel, onArchived, reload }: 
               onBack={() => setPhase('reading')}
               onBind={() => void startBinding()}
               busy={busy}
+              canUploadCover={store.canUploadCover}
             />
           </>
         );

@@ -176,3 +176,59 @@ D11 은 소개 화면(LandingScreen)을 계정 화면 앞에 세워, 앱이 무�
   줄 간격(gap 1px) · 행간(1.2/1.25) · 패딩(7/8px)을 조여 내용을 지키면서 얇게 눕혔다.
 - 버튼 높이를 전반적으로 줄였다 (전보함 만들기 52 → 46, 만남 마감 49 → 43,
   송신 40 → 36). 두께가 얇아야 종이가 주인공으로 남는다.
+
+
+## D14 — Supabase 에서 Neon 으로 (확정)
+
+Supabase 무료 요금제는 조직당 프로젝트 두 개가 상한이다. 그 자리가 이미 다른
+프로젝트 둘로 차 있어서 OLRW 가 들어갈 자리가 없었다. Neon 무료 요금제는 100개다.
+
+**화면 코드는 한 줄도 바뀌지 않았다.** `interface BoxStore` 를 세워 둔 값을 여기서
+받았다 — 갈아탄 것은 `src/lib/` 안의 구현체 하나다.
+
+### 왜 갈아탈 수 있었나
+
+Neon Data API 는 PostgREST 다. Supabase 의 질의 계층과 같은 물건이라
+`from().select().eq()` 도 `rpc()` 도 그대로다. 인증은 `SupabaseAuthAdapter` 를
+끼우면 `signUp` `signInWithPassword` `onAuthStateChange` 가 같은 이름으로 온다.
+
+RLS 도 그대로다. `pg_session_jwt` 가 **`auth.uid()` 를 uuid 로** 준다 — Supabase 와
+이름도 반환형도 같다. **정책 열다섯 곳을 한 글자도 고치지 않았다.**
+
+### 바뀐 것 셋
+
+1. **프로필을 만드는 문.** Supabase 에서는 `auth.users` 에 트리거를 걸었다.
+   Neon Auth 의 사용자 표는 `neon_auth` 가 관리해서 트리거도 외래키도 걸 수 없다 —
+   걸면 다음 업그레이드에서 깨진다. 대신 `ensure_profile()` 을 두고, 로그인 직후
+   첫 조회에서 앱이 한 번 부른다. id 는 인자가 아니라 `auth.uid()` 라 남의 프로필을
+   만들 수는 없다.
+
+2. **체험 모드가 브라우저 안으로 들어왔다.** Supabase 의 익명 로그인은 진짜 사용자를
+   하나 만들어 줬다. Neon 의 `anonymous` 역할에는 사용자 id 가 없어서 전보를 쓸 수도,
+   전보함을 만들 수도 없다. 그래서 체험 모드는 서버에 닿지 않고 `memoryStore` 위에서만
+   돈다 — `withGuestMode()` 가 "지금 누구인가"만 보고 두 구현 중 하나로 넘긴다.
+   체험 데이터는 로그인하는 순간 지운다. 남기면 정식 계정 옆에 유령 전보함이 붙는다.
+
+3. **표지 사진이 잠시 빠졌다.** Neon 에는 Storage 에 대응하는 것이 없다.
+   Object Storage 는 베타이고 리전이 하나뿐이며, 브라우저에서 바로 올리려면
+   presigned URL 을 발급할 서버가 필요한데 이 앱에는 서버 코드가 없다.
+   `BoxStore.canUploadCover` 를 두고, false 면 제본 화면이 사진 버튼을 **아예 그리지
+   않는다** — 누르면 실패하는 버튼을 두느니 없는 편이 낫다. 스키마의 `cover_kind` 는
+   `'photo'` 를 그대로 받아 두었으니 나중에 화면만 붙이면 된다.
+
+### 값 하나
+
+`VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` 두 개가 `VITE_NEON_URL` 하나가 됐다.
+익명 키가 없다 — 권한은 전적으로 로그인한 사람의 JWT 와 RLS 가 정한다.
+
+### 값을 치른 것
+
+번들이 446 → 605kB (gzip 130 → 167kB) 늘었다. Better Auth 클라이언트와 Supabase
+호환 어댑터가 함께 들어온다. 화면 코드를 지키기 위해 낸 값이고, 어댑터를 벗고
+Better Auth 를 직접 부르면 되돌릴 수 있다 — 지금은 그럴 이유가 없다.
+
+### 그대로인 것
+
+`supabase/` 디렉터리는 `neon/` 이 됐지만 안의 SQL 은 위 세 가지 말고 그대로다.
+검증도 그대로다 — `neon/tests/run.sh` 47가지, `concurrency_test.sh` 5가지가 Neon
+모양(`auth.uid()` 가 `request.jwt.claims` 를 읽는 스텁) 위에서 전부 통과한다.

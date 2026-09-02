@@ -30,16 +30,16 @@ exception when others then
 end $$;
 
 -- ── 사용자 5명 (마지막은 전보함 밖의 침입자) ──────────────────────────────
-insert into auth.users (id, email, raw_user_meta_data) values
- ('11111111-1111-1111-1111-111111111111','a@x','{"display_name":"나"}'),
- ('22222222-2222-2222-2222-222222222222','b@x','{"display_name":"민서"}'),
- ('33333333-3333-3333-3333-333333333333','c@x','{"display_name":"재이"}'),
- ('44444444-4444-4444-4444-444444444444','d@x','{"display_name":"현"}'),
- ('99999999-9999-9999-9999-999999999999','e@x','{"display_name":"침입자"}');
+-- Neon Auth 가 사용자를 만들고, 앱이 곧바로 ensure_profile() 을 부른다.
+select seed_user('11111111-1111-1111-1111-111111111111','나');
+select seed_user('22222222-2222-2222-2222-222222222222','민서');
+select seed_user('33333333-3333-3333-3333-333333333333','재이');
+select seed_user('44444444-4444-4444-4444-444444444444','현');
+select seed_user('99999999-9999-9999-9999-999999999999','침입자');
 
 \echo ''
 \echo '━━━ 가입 · 생성 · 참여 ━━━'
-select ok('가입 트리거가 프로필을 만든다', (select count(*) from profiles) = 5);
+select ok('ensure_profile 이 로그인한 사람의 프로필을 만든다', (select count(*) from profiles) = 5);
 
 set role authenticated;
 select as_user('11111111-1111-1111-1111-111111111111');

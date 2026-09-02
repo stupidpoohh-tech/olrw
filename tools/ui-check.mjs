@@ -4,9 +4,9 @@
  *   pnpm build && pnpm preview &
  *   pnpm ui:check
  *
- * memoryStore 로 돌기 때문에 Supabase 없이 검증된다. memoryStore 는 서버 규칙을
+ * memoryStore 로 돌기 때문에 Neon 없이 검증된다. memoryStore 는 서버 규칙을
  * 그대로 흉내내므로(정원 4명·용지색 중복 금지·봉인), 여기서 통과하면 규칙 쪽은
- * supabase/tests 가 따로 잡는다.
+ * neon/tests 가 따로 잡는다.
  *
  * --headed 로 눈으로 볼 수 있다. SHOTS=<디렉터리> 로 화면을 남긴다.
  */

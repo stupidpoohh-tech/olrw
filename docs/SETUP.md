@@ -1,15 +1,19 @@
-# 연결하기 — Supabase · 배포
+# 연결하기 — Neon · 배포
 
-지금 앱은 **Supabase 없이도 돕니다.** 환경변수가 없으면 브라우저 안의 임시 저장소로
-떨어져서, 화면 아래에 그렇게 적혀 있습니다. 아래를 마치면 실제 계정과 실제 DB로 바뀝니다.
+지금 앱은 **Neon 없이도 돕니다.** 환경변수가 없으면 브라우저 안의 임시 저장소로
+떨어집니다. 아래를 마치면 실제 계정과 실제 DB로 바뀝니다.
 
 처음부터 끝까지 **20분** 정도, 대부분 대시보드 클릭입니다.
+
+> 예전에는 이 문서가 Supabase 를 안내했습니다. 무료 요금제의 프로젝트 개수 제한에
+> 걸려 Neon 으로 갈아탔습니다 (D14). 화면 코드는 한 줄도 바뀌지 않았습니다 —
+> 바뀐 것은 `src/lib/` 의 구현체 하나와 이 문서뿐입니다.
 
 ---
 
 ## 0. 준비물
 
-- Supabase 계정 (github.com 계정으로 가입됩니다)
+- Neon 계정 (github.com 계정으로 가입됩니다). 무료 요금제에서 프로젝트를 100개까지 만듭니다
 - 이 리포를 받아 둔 컴퓨터
 - Node 22 와 pnpm
 
@@ -22,46 +26,55 @@ pnpm install
 
 ---
 
-## 1. Supabase 프로젝트 만들기
+## 1. Neon 프로젝트 만들기
 
-1. https://supabase.com/dashboard → **New project**
-2. 값 세 가지
+1. https://console.neon.tech → **New project**
+2. 값 두 가지
    - **Name** — `olrw` (아무거나)
-   - **Database Password** — 아무 긴 문자열. **잊어버려도 됩니다**, 이 앱은 안 씁니다.
-     비밀번호 관리자에 넣어 두세요. 나중에 `db push` 할 때 한 번 물어봅니다.
-   - **Region** — `Northeast Asia (Seoul)`
-3. **Create new project** → 1~2분 기다립니다.
+   - **Region** — `Asia Pacific (Singapore)`. 서울도 도쿄도 없습니다. 싱가포르가 제일 가깝습니다
+3. **Create** → 몇 초면 끝납니다
+
+데이터베이스 비밀번호는 이 앱이 쓰지 않습니다. 브라우저는 접속 문자열이 아니라
+HTTPS 주소로만 말합니다.
 
 ---
 
-## 2. 스키마 올리기
+## 2. Data API 켜기
 
-두 가지 방법이 있습니다. **가 쪽이 쉽습니다.**
+왼쪽 **Postgres database** → **Data API** → **Enable**.
 
-### 가. 대시보드에 붙여넣기 (설치할 것 없음)
+켤 때 두 칸을 확인합니다.
 
-1. 대시보드 왼쪽 **SQL Editor** → **New query**
-2. `supabase/migrations/0001_init.sql` 파일을 통째로 복사해서 붙여넣습니다
+| 항목 | 어떻게 |
+|---|---|
+| **Use Managed Better Auth** | **체크.** 가입·로그인·JWT 발급을 이게 맡습니다 |
+| **Grant public schema access** | **체크.** `authenticated` 역할에 기본 권한을 걸어 줍니다 |
+
+켜면 `pg_session_jwt` 확장이 함께 깔리고, `auth.uid()` 가 생깁니다. 스키마의 RLS
+정책 열다섯 개가 전부 그 함수 하나에 걸려 있습니다 — 없으면 §3 이 그 자리에서
+멈추게 해 두었습니다.
+
+---
+
+## 3. 스키마 올리기
+
+1. 왼쪽 **SQL Editor**
+2. `neon/migrations/0001_init.sql` 파일을 통째로 복사해서 붙여넣습니다
 3. **Run**
 
-`Success. No rows returned` 이 나오면 끝입니다.
-아래쪽에 `[OLRW] storage.objects 에 정책을 만들 권한이 없습니다` 라는 안내가 뜨면
-**§5 표지 사진**을 보세요. 그것 말고는 다 된 것입니다.
+오류 없이 끝나면 됩니다. `auth.uid() 가 없습니다` 가 뜨면 §2 를 안 켠 것입니다.
 
-### 나. CLI 로 밀기 (앞으로 스키마를 자주 바꿀 거라면)
+### 스키마 캐시를 새로 고칩니다 (빠뜨리기 쉽습니다)
 
-```bash
-pnpm add -D supabase
-pnpm supabase login              # 브라우저가 열립니다
-pnpm supabase link --project-ref <프로젝트 ref>
-pnpm supabase db push            # §1 에서 정한 DB 비밀번호를 물어봅니다
-```
+Data API 는 표 구조를 캐시해 둡니다. 방금 만든 표들이 아직 안 보입니다.
 
-`<프로젝트 ref>` 는 대시보드 주소의 `.../project/` 뒤에 붙은 스무 자쯤 되는 문자열입니다.
+**Postgres database** → **Data API** → **Refresh schema cache**
+
+이걸 안 하면 앱이 `전보함을 불러오지 못했습니다` 만 반복합니다.
 
 ### 제대로 올라갔는지 확인
 
-**Table Editor** 에 이 표들이 보이면 됩니다:
+**Tables** 에 이 표들이 보이면 됩니다:
 
 ```
 profiles   boxes   box_members   telegrams   volumes   volume_pages   join_attempts
@@ -69,85 +82,74 @@ profiles   boxes   box_members   telegrams   volumes   volume_pages   join_attem
 
 ---
 
-## 3. 열쇠 두 개 가져오기
+## 4. 주소 하나 가져오기
 
-대시보드 → **Project Settings** → **API**
+Supabase 와 달리 **키가 없습니다.** 주소 하나면 됩니다 — 권한은 전적으로 로그인한
+사람의 JWT 와 RLS 가 정합니다.
 
-| 대시보드에서 | 넣을 곳 |
-|---|---|
-| **Project URL** | `VITE_SUPABASE_URL` |
-| **Project API keys** 의 `anon` `public` | `VITE_SUPABASE_ANON_KEY` |
+대시보드 → **Connect**. 거기 접속 문자열에서 **호스트**와 **데이터베이스 이름**만
+뽑아 `https://` 를 붙입니다.
 
-리포 루트에 `.env.local` 파일을 만듭니다. `.env.example` 을 복사해서 채우면 됩니다.
+```
+접속 문자열   postgresql://user:pw@ep-xxxx-yyyy.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+넣을 값       https://ep-xxxx-yyyy.c-2.ap-southeast-1.aws.neon.tech/neondb
+```
+
+사용자 이름도, 비밀번호도, `?sslmode=...` 도 떼어냅니다. SDK 가 이 주소 하나에서
+인증 주소(`…neonauth…/auth`)와 Data API 주소(`…apirest…/rest/v1`)를 각각 유도합니다.
+
+리포 루트에 `.env.local` 을 만듭니다.
 
 ```bash
 cp .env.example .env.local
 ```
 
 ```
-VITE_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
+VITE_NEON_URL=https://ep-xxxx-yyyy.c-2.ap-southeast-1.aws.neon.tech/neondb
 ```
-
-> **`service_role` 키는 절대 가져오지 마세요.** 이름이 비슷해서 헷갈리기 쉬운데,
-> 그 키는 RLS 를 통째로 무시합니다. `VITE_` 로 시작하는 이름에 넣으면 앱을 여는
-> 누구나 그 키를 볼 수 있습니다. 우리가 만든 잠금이 전부 무의미해집니다.
-> `anon` `public` 이라고 적힌 것만 씁니다. 이 키는 공개해도 되는 키입니다 —
-> RLS 가 뒤에서 막아 줍니다.
 
 `.env.local` 은 `.gitignore` 에 들어 있어 커밋되지 않습니다.
 
+> 이 주소는 공개해도 되는 값입니다. Neon API 키(`napi_…`)는 다릅니다 — 그건 계정
+> 전체를 여는 열쇠라 **절대** `VITE_` 로 시작하는 이름에 넣지 않습니다. 클라이언트
+> 번들에 그대로 들어가고, 앱을 여는 누구나 그것을 볼 수 있습니다.
+
 ---
 
-## 4. 로그인 방식 정하기
+## 5. 로그인 방식 정하기
 
-대시보드 → **Authentication** → **Sign In / Providers** → **Email**
+대시보드 → **Settings** → **Auth**
 
-**Confirm email** 이라는 스위치가 있습니다.
+- **Sign-up with Email** — 켭니다
+- **Verify at Sign-up** — 메일 확인을 요구할지 정합니다
 
 | | 켜 두면 | 꺼 두면 |
 |---|---|---|
-| 가입하면 | 확인 메일이 갑니다. 링크를 눌러야 들어옵니다 | 바로 들어옵니다 |
+| 가입하면 | 확인 코드가 메일로 갑니다 | 바로 들어옵니다 |
 | 좋은 점 | 남의 메일로 가입 못 합니다 | 넷이서 쓰기에 번거롭지 않습니다 |
-| 나쁜 점 | 기본 메일 발송량이 시간당 몇 통뿐입니다 | 아무 메일 주소로나 가입됩니다 |
+| 나쁜 점 | 코드를 입력받는 화면이 앱에 아직 없습니다 | 아무 메일 주소로나 가입됩니다 |
 
 **넷이 쓰는 사적인 전보함이면 꺼 두는 쪽을 권합니다.** 초대 코드를 아는 사람만
-전보함에 들어올 수 있으니, 메일 확인이 지키는 것이 별로 없습니다.
-
-둘 중 무엇이든 앱은 정상 동작합니다. 켜 둔 경우 가입 직후
-"메일함을 확인해 주세요" 화면이 나옵니다.
-
-### 켜 둘 거라면 주소도 등록합니다
-
-**Authentication** → **URL Configuration**
-
-- **Site URL** — `http://localhost:5173` (나중에 배포하면 배포 주소로 바꿉니다)
-- **Redirect URLs** — 배포한 뒤에 채웁니다. 주소 형태는 §7 맨 아래에 있습니다.
-  미리보기 주소까지 넣어야 미리보기에서도 로그인이 됩니다.
+전보함에 들어올 수 있으니, 메일 확인이 지키는 것이 별로 없습니다. 켜 두면 가입
+직후 "메일함을 확인해 주세요" 화면까지는 가지만, 코드를 넣을 칸이 없어 거기서
+막힙니다 — 그 화면은 아직 만들지 않았습니다.
 
 ---
 
-## 5. 표지 사진 (§2 에서 안내가 떴을 때만)
+## 6. 표지 사진은 아직 없습니다
 
-`covers` 저장소는 마이그레이션이 알아서 만듭니다. 다만 프로젝트에 따라 **정책**만
-자동으로 못 만들 수 있습니다. §2 에서 `[OLRW] storage.objects ...` 안내를 봤다면
-대시보드에서 세 개를 손으로 추가합니다.
+Neon 에는 Supabase Storage 에 대응하는 것이 없습니다. Object Storage 가 있지만
+베타이고 리전이 하나뿐이며, 브라우저에서 바로 올리려면 presigned URL 을 발급할
+서버가 필요한데 이 앱에는 서버 코드가 없습니다.
 
-**Storage** → **Policies** → `objects` 옆 **New policy** → **For full customization**
-
-| 이름 | Allowed operation | Target roles | 조건 |
-|---|---|---|---|
-| `covers_read` | SELECT | 비워 둠 | `bucket_id = 'covers'` |
-| `covers_write` | INSERT | `authenticated` | `bucket_id = 'covers' and is_member((storage.foldername(name))[1]::uuid)` |
-| `covers_update` | UPDATE | `authenticated` | 위와 같음 |
-
-INSERT 는 `WITH CHECK` 칸에, SELECT 와 UPDATE 는 `USING` 칸에 넣습니다.
-
-안 해도 앱은 돕니다 — 표지에 **색**을 고르는 건 됩니다. **사진** 표지만 안 올라갑니다.
+그래서 제본 화면이 **색 표지만** 내줍니다. 사진 버튼은 아예 그려지지 않습니다 —
+누르면 실패하는 버튼을 두느니 없는 편이 낫습니다. 스키마의 `cover_kind` 는
+`'photo'` 를 그대로 받아 두었으니, 나중에 올릴 곳이 생기면 화면만 붙이면 됩니다.
+(D14)
 
 ---
 
-## 6. 돌려보기
+## 7. 돌려보기
 
 ```bash
 pnpm dev
@@ -155,29 +157,31 @@ pnpm dev
 
 http://localhost:5173 을 엽니다.
 
-**화면 아래에 "Supabase 환경변수가 없어 브라우저 안의 임시 저장소로 돌고 있습니다"
-라는 회색 글씨가 사라졌으면 붙은 것입니다.** 아직 보인다면 `.env.local` 을
-저장한 뒤 `pnpm dev` 를 껐다 켜세요 — Vite 는 환경변수를 시작할 때 한 번만 읽습니다.
+붙었는지는 **가입한 계정이 Neon 에 남는지**로 봅니다. 아래 2번까지 가면 확실합니다.
+안 되면 `.env.local` 을 저장한 뒤 `pnpm dev` 를 껐다 켜세요 — Vite 는 환경변수를
+시작할 때 한 번만 읽습니다.
 
 확인해 볼 것:
 
 1. 가입 → 전보함 만들기 → 초대 코드가 뜬다
-2. 대시보드 **Table Editor** 의 `boxes` 에 방금 만든 전보함이 보인다
+2. 대시보드 **Tables** 의 `boxes` 에 방금 만든 전보함이 보인다
 3. 전보를 하나 타전하고 `telegrams` 에 행이 생기는지 본다
 4. 다른 브라우저(또는 시크릿 창)로 다른 계정을 만들어 초대 코드로 참여
 5. **수신함에서 상대 전보가 봉투로만 보인다** — 여기까지 되면 봉인이 살아 있는 것입니다
 
+체험 모드는 로그인 없이 그대로 열립니다. 그건 서버에 닿지 않고 브라우저 안에서만
+돕니다 — 체험으로 만든 전보함은 Neon 에 남지 않습니다. (D14)
+
 ---
 
-## 7. 배포
+## 8. 배포
 
-> **Supabase 없이 먼저 올려 봐도 됩니다.** 환경변수를 비워 둔 채로 배포하면
-> 앱이 브라우저 안 저장소(`localStorage`)로 돕니다. 전 화면이 실제로 동작해서
-> 폰으로 만져 보기에 충분합니다. 다만 데이터가 그 브라우저 안에만 있어
-> **혼자만** 쓸 수 있습니다 — 초대 코드를 줘도 상대 화면엔 그런 전보함이 없고,
-> 폰과 노트북도 서로 남입니다. 둘이 주고받으려면 Supabase 가 있어야 합니다.
-> 나중에 환경변수 두 개를 넣고 다시 배포하면 그때 서버로 갈아탑니다. 코드는 안 고칩니다.
-
+> **Neon 없이 먼저 올려 봐도 됩니다.** 환경변수를 비워 둔 채로 배포하면 앱이
+> 브라우저 안 저장소(`localStorage`)로 돕니다. 전 화면이 실제로 동작해서 폰으로
+> 만져 보기에 충분합니다. 다만 데이터가 그 브라우저 안에만 있어 **혼자만** 쓸 수
+> 있습니다 — 초대 코드를 줘도 상대 화면엔 그런 전보함이 없고, 폰과 노트북도 서로
+> 남입니다. 둘이 주고받으려면 Neon 이 있어야 합니다. 나중에 환경변수 하나를 넣고
+> 다시 배포하면 그때 서버로 갈아탑니다. 코드는 안 고칩니다.
 
 전보함은 **정적 SPA** 입니다. 서버 코드가 없어서 `dist/` 를 올려 주는 곳이면
 어디든 똑같이 돕니다. 아래 둘 중 편한 쪽을 고르시면 됩니다 — 리포에는 양쪽 설정이
@@ -196,9 +200,9 @@ http://localhost:5173 을 엽니다.
    | Build output directory | `dist` |
    | Root directory | 비워 둠 |
 
-3. **Environment variables** 에 §3 의 두 값을 넣습니다.
+3. **Environment variables** 에 §4 의 `VITE_NEON_URL` 을 넣습니다.
    **Production 과 Preview 양쪽에 다** 넣어야 합니다 — 따로 관리됩니다.
-   아직 Supabase 프로젝트가 없다면 **비워 둡니다** (아래 참고)
+   아직 Neon 프로젝트가 없다면 **비워 둡니다** (위 참고)
 4. **Save and Deploy**
 
 Node 판본은 `.node-version`(22)이 잡아 줍니다. pnpm 은 `pnpm-lock.yaml` 을 보고
@@ -210,28 +214,25 @@ Node 판본은 `.node-version`(22)이 잡아 줍니다. pnpm 은 `pnpm-lock.yaml
 
 1. https://vercel.com → **Add New** → **Project** → 이 리포 선택
 2. Framework Preset 은 **Vite** 로 잡힙니다. Build/Output 은 그대로 둡니다
-3. **Environment Variables** 에 §3 의 두 값을 넣습니다.
+3. **Environment Variables** 에 §4 의 값을 넣습니다.
    **Production 과 Preview 양쪽에 다 체크**합니다
 4. **Deploy**
 
 SPA 라우팅은 `vercel.json` 이 처리합니다.
 
-### 어느 쪽이든, 배포가 끝나면
+### 배포가 끝나면 — 브라우저 출처를 좁힙니다
 
-§4 의 **Site URL** 을 배포 주소로 바꾸고 **Redirect URLs** 를 채웁니다.
-안 하면 배포된 주소에서 로그인이 안 됩니다.
+기본값은 **아무 도메인에서나** Data API 를 부를 수 있습니다. 개발 중에는 편하지만
+배포한 뒤에는 좁혀 둡니다.
+
+**Postgres database** → **Data API** → **Settings** → **CORS allowed origins**
 
 ```
-# Cloudflare Pages
-https://<프로젝트>.pages.dev/**
-https://*.<프로젝트>.pages.dev/**
-
-# Vercel
-https://<프로젝트>.vercel.app/**
-https://*-<팀이름>.vercel.app/**
+https://<프로젝트>.pages.dev
+https://olrw-8pt.pages.dev
 ```
 
-두 번째 줄은 미리보기 주소용입니다.
+미리보기 주소에서도 써야 한다면 그 주소도 함께 넣습니다. 비워 두면 전부 허용입니다.
 
 ---
 
@@ -239,22 +240,23 @@ https://*-<팀이름>.vercel.app/**
 
 | 증상 | 원인 | 할 일 |
 |---|---|---|
-| "Supabase 환경변수가 없어…" 가 계속 보인다 | 개발 서버가 옛 환경변수를 들고 있다 | `pnpm dev` 재시작 |
-| 가입은 되는데 화면이 그대로다 | 메일 확인이 켜져 있다 | 메일함을 보거나 §4 에서 끕니다 |
-| `전보함을 불러오지 못했습니다` | 스키마가 안 올라갔다 | §2 의 표 일곱 개가 있는지 확인 |
+| 가입해도 Neon 에 사용자가 안 생긴다 | 개발 서버가 옛 환경변수를 들고 있다 | `pnpm dev` 재시작 |
+| `전보함을 불러오지 못했습니다` | 스키마 캐시가 옛 구조를 들고 있다 | §3 의 **Refresh schema cache** |
+| `auth.uid() 가 없습니다` (SQL Editor) | Data API 를 안 켰다 | §2 |
 | `권한이 없습니다. 다시 로그인해 주세요` | RLS 가 막고 있다 (정상 동작) | 로그아웃 후 다시 로그인 |
 | 전보함이 만들어지지 않는다 | 서버 함수가 없다 | SQL Editor 에서 `select create_box('t','ivory','steel',true);` 를 실행해 오류를 봅니다 |
-| 사진 표지만 안 올라간다 | Storage 정책이 없다 | §5 |
-| 배포·미리보기 주소에서 로그인이 안 된다 | Redirect URL 미등록 | §7 맨 아래의 주소들을 §4 에 넣습니다 |
+| 배포 주소에서만 전부 실패한다 | CORS 출처에 그 주소가 없다 | §8 맨 아래 |
+| 사진 표지 버튼이 안 보인다 | 정상입니다 | §6 |
 
 ## 스키마를 고칠 때
 
 **대시보드에서 표를 직접 고치지 않습니다.** 새 마이그레이션 파일을 만들고 올립니다.
 그래야 다음 사람이(그리고 여섯 달 뒤의 본인이) 무엇이 왜 바뀌었는지 압니다.
+올린 뒤에는 **Refresh schema cache** 를 잊지 않습니다.
 
 고치고 나면 반드시 돌립니다 — 봉인·제본·소유자 이양은 눈으로 봐서는 깨진 걸 모릅니다.
 
 ```bash
-supabase/tests/run.sh
-supabase/tests/concurrency_test.sh
+neon/tests/run.sh
+neon/tests/concurrency_test.sh
 ```

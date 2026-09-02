@@ -26,7 +26,7 @@
 ## 스택
 
 - Vite + React 18 + TypeScript (strict)
-- Supabase: Postgres + Auth + Storage + RLS
+- Neon: Postgres + Data API(PostgREST) + Managed Better Auth + RLS (D14)
 - 배포: 정적 호스트 아무거나 (Cloudflare Pages · Vercel). GitHub 연동 자동배포.
   Production = `main`, 그 밖의 가지 = 미리보기. 서버 코드 없음 — `dist/` 만 올라간다
 - 스타일: CSS 변수 + 모듈 CSS. UI 프레임워크 없음, 애니메이션 라이브러리 없음
@@ -52,11 +52,12 @@ src/
     motion.css    keyframes (§6)
   lib/
     store.ts      interface BoxStore  ← 단일 인터페이스
-    supabaseStore.ts
+    neonStore.ts
+    guestStore.ts    체험 모드를 브라우저 안에 가둔다 (D14)
     memoryStore.ts   테스트용
     sounds.ts     §6-1
-    supabase.ts   클라이언트
-supabase/migrations/   번호순 SQL. 손으로 DB 만지지 않는다
+    neon.ts       클라이언트
+neon/migrations/       번호순 SQL. 손으로 DB 만지지 않는다
 docs/PORTING-SPEC.md
 ```
 
@@ -87,7 +88,7 @@ docs/PORTING-SPEC.md
 
 ## 작업 순서
 
-1. ~~스키마 + RLS + 서버 함수~~ — 완료. `supabase/tests/run.sh`로 검증한다
+1. ~~스키마 + RLS + 서버 함수~~ — 완료. `neon/tests/run.sh`로 검증한다
 2. ~~디자인 토큰 · 색 시스템 (§3, §4)~~ — 완료. 용지 테두리 스타일(비색상 단서) 포함
 3. ~~소개 → 인증 → 온보딩(봉인함/열린함 선택) → 전보함 전환 바~~ — 완료. `pnpm ui:check`
 4. ~~타전실 → 수신함(봉투 UI) → 서가~~ — 완료. `pnpm ui:check4`
@@ -100,7 +101,7 @@ docs/PORTING-SPEC.md
 스키마 쪽(RLS, 0건 마감, 동시 마감, 소유자 이양)은 1단계에서 이미 해결했다.
 남은 것은 전부 프런트엔드다 — 자세한 근거는 `docs/AUDIT.md` §04-3, §04-4.
 
-- 표지 base64가 문서에 인라인 → Storage (`covers/{box_id}/{volume_id}.jpg`)
+- ~~표지 base64가 문서에 인라인~~ → 지금은 색 표지만. Neon 에는 Storage 가 없다 (D14)
 - 상태 계층 이중 구현 → `interface BoxStore` 하나
 - ~~`prefers-reduced-motion` 미지원~~ — 해결. `useReducedMotion()` 이 5.8초 타임라인을
   건너뛴다. CSS 로 애니메이션만 꺼 두면 그동안 빈 화면을 본다
@@ -119,11 +120,11 @@ docs/PORTING-SPEC.md
 pnpm dev
 pnpm build
 pnpm typecheck
-supabase db push          # 로컬 → 원격 마이그레이션 (연결 방법은 docs/SETUP.md)
-supabase gen types typescript --linked > src/lib/database.types.ts
+# 스키마는 Neon 콘솔 SQL Editor 에 neon/migrations/ 를 붙여넣고, 그 뒤
+# Data API → Refresh schema cache 를 누른다 (자세히는 docs/SETUP.md)
 
-supabase/tests/run.sh              # RLS · 서버 함수 (Supabase·Docker 불필요)
-supabase/tests/concurrency_test.sh # 동시 마감
+neon/tests/run.sh              # RLS · 서버 함수 (Neon·Docker 불필요)
+neon/tests/concurrency_test.sh # 동시 마감
 
 pnpm build && pnpm preview &       # 아래 셋은 미리보기 서버가 떠 있어야 한다
 pnpm ui:check                      # 인증 · 온보딩 · 전환 바
