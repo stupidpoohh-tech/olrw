@@ -7,6 +7,23 @@
  * 원문을 그대로 흘리면 사용자가 읽을 수 없는 문장이 화면에 뜬다. (docs/AUDIT.md §04-3)
  */
 
+/**
+ * 로그인 서버가 이 주소를 모르는 경우.
+ *
+ * Better Auth 는 요청의 `Origin` 헤더를 신뢰 목록과 대조하고, 목록에 없으면
+ * 자격 증명을 보기도 전에 403 `Invalid origin` 으로 끊는다. 어댑터는 이 코드를
+ * 따로 옮기지 않아 `feature_not_supported` 로 뭉뚱그려지므로 문장으로 가려낸다.
+ *
+ * 기다린다고 풀리지 않는다 — Neon 콘솔에 주소를 등록해야 한다. 그래서 여기서만
+ * 클릭 경로를 문장에 담는다 (docs/SETUP.md §5-1).
+ */
+function invalidOriginMessage(): string {
+  let origin = '';
+  try { origin = location.origin; } catch { /* 브라우저가 아님 */ }
+  return `이 주소는 로그인 서버에 등록되어 있지 않습니다${origin ? ` (${origin})` : ''}. `
+    + 'Neon 콘솔 → Auth → Configuration → Domains 에 이 주소를 넣어야 합니다.';
+}
+
 const AUTH: Readonly<Record<string, string>> = {
   invalid_credentials: '이메일 또는 비밀번호가 일치하지 않습니다.',
   email_address_invalid: '이메일 형식이 올바르지 않습니다.',
@@ -35,6 +52,8 @@ export function toUserMessage(e: unknown, fallback = '문제가 생겼습니다.
 
     if (looksKorean(message)) return message;
 
+    if (/invalid origin/i.test(message)) return invalidOriginMessage();
+
     if (/failed to fetch|networkerror|network request failed/i.test(message)) {
       return '네트워크 연결을 확인해 주세요.';
     }
@@ -53,5 +72,10 @@ export function toUserMessage(e: unknown, fallback = '문제가 생겼습니다.
   }
 
   if (typeof e === 'string' && looksKorean(e)) return e;
+
+  // 여기까지 왔다는 것은 무엇이 잘못됐는지 우리도 모른다는 뜻이다. 화면에는
+  // 담백한 문장을 내보내되, 원본은 콘솔에 남긴다 — 다음에 같은 일이 생기면
+  // 패키지 안을 뒤지지 않고 바로 읽는다.
+  try { console.error('[olrw] 옮기지 못한 오류:', e); } catch { /* 콘솔이 없음 */ }
   return fallback;
 }
