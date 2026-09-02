@@ -24,12 +24,11 @@ trap cleanup EXIT
 run "initdb -D $DIR/data -U postgres -A trust" >"$DIR/initdb.log" 2>&1
 run "pg_ctl -D $DIR/data -l $DIR/pg.log -o '-k $DIR -p 5598 -c listen_addresses=' -w start" >/dev/null
 PSQL="psql -h $DIR -p 5598 -U postgres"
-run "$PSQL -v ON_ERROR_STOP=1 -q -f $ROOT/supabase/tests/harness.sql -f $ROOT/supabase/migrations/0001_init.sql"
+run "$PSQL -v ON_ERROR_STOP=1 -q -f $ROOT/neon/tests/harness.sql -f $ROOT/neon/migrations/0001_init.sql"
 
 cat > "$DIR/setup.sql" <<'SQL'
-insert into auth.users (id,email,raw_user_meta_data) values
- ('11111111-1111-1111-1111-111111111111','a@x','{"display_name":"나"}'),
- ('22222222-2222-2222-2222-222222222222','b@x','{"display_name":"민서"}');
+select seed_user('11111111-1111-1111-1111-111111111111','나');
+select seed_user('22222222-2222-2222-2222-222222222222','민서');
 set role authenticated;
 select as_user('11111111-1111-1111-1111-111111111111');
 select box_id as box, invite_code as code from create_box('t','ivory','steel',true) \gset

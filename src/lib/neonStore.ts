@@ -1,13 +1,10 @@
-import type { Session as AuthSession, SupabaseClient } from '@supabase/supabase-js';
 import { isPaperId, type PaperId } from '../design/colors';
 import { isTypeId, type TypeId } from '../design/typewriters';
-import { supabase } from './supabase';
+import { neon } from './neon';
 import type { BoxStore } from './store';
 import type {
   BoxSummary, Envelope, LengthBucket, Member, Session, Volume, VolumePage,
 } from './types';
-
-const COVERS = 'covers';
 
 const asPaper = (v: unknown): PaperId => (isPaperId(v) ? v : 'ivory');
 const asType = (v: unknown): TypeId => (isTypeId(v) ? v : 'steel');
@@ -22,35 +19,62 @@ interface MemberRow {
   profiles: { display_name: string } | null;
 }
 
-export function createSupabaseStore(): BoxStore {
-  const db: SupabaseClient = supabase();
+/** Neon Auth 세션의 사용자. SupabaseAuthAdapter 가 이 모양으로 맞춰 준다. */
+interface AuthUser {
+  readonly id: string;
+  readonly email?: string | undefined;
+  readonly user_metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+interface AuthSession { readonly user: AuthUser }
+
+/** 가입 때 넘긴 표시 이름이 Better Auth 의 `name` 을 지나 metadata 에 실려 온다. */
+function metaName(user: AuthUser): string {
+  const m = user.user_metadata ?? {};
+  for (const k of ['displayName', 'display_name', 'name', 'full_name']) {
+    const v = m[k];
+    if (typeof v === 'string' && v.trim()) return v.trim().slice(0, 12);
+  }
+  return '';
+}
+
+export function createNeonStore(): BoxStore {
+  const db = neon();
 
   let session: Session | null = null;
   const listeners = new Set<(s: Session | null) => void>();
 
-  /** auth.users 와 profiles 를 합쳐 세션을 만든다. 이름은 profiles 가 정본이다. */
+  /**
+   * Neon Auth 사용자와 profiles 를 합쳐 세션을 만든다. 이름은 profiles 가 정본이다.
+   *
+   * Supabase 에서는 auth.users 트리거가 프로필을 만들어 줬다. Neon Auth 의 사용자
+   * 표는 손댈 수 없으므로(D14), 프로필이 없으면 여기서 ensure_profile() 을 부른다.
+   * 가입 직후 첫 hydrate 에서 한 번 만들어지고, 그 뒤로는 select 한 번으로 끝난다.
+   */
   async function hydrate(auth: AuthSession | null): Promise<void> {
     if (!auth) { session = null; return; }
-    // 익명 사용자는 profiles 가 아직 없을 수 있다. 이메일도 없다.
-    const isAnon = auth.user.is_anonymous ?? auth.user.app_metadata?.provider === 'anonymous';
-    const { data } = await db.from('profiles').select('display_name').eq('id', auth.user.id).maybeSingle();
-    const base = {
-      userId: auth.user.id,
-      email: auth.user.email ?? '',
-      displayName: data?.display_name ?? (isAnon ? '체험 사용자' : '이름 없음'),
-    };
-    session = isAnon ? { ...base, isGuest: true } : base;
+    const uid = auth.user.id;
+    const wanted = metaName(auth.user);
+
+    const { data } = await db.from('profiles').select('display_name').eq('id', uid).maybeSingle();
+    let name = (data as { display_name?: string } | null)?.display_name ?? '';
+
+    if (!name) {
+      const made = await db.rpc('ensure_profile', { p_display_name: wanted || null });
+      name = typeof made.data === 'string' && made.data ? made.data : (wanted || '이름 없음');
+    }
+
+    session = { userId: uid, email: auth.user.email ?? '', displayName: name };
   }
   const emit = () => listeners.forEach((cb) => cb(session));
 
   const booted = (async () => {
     const { data } = await db.auth.getSession();
-    await hydrate(data.session);
+    await hydrate(data.session ?? null);
     emit();
   })();
 
   db.auth.onAuthStateChange((_event, auth) => {
-    void (async () => { await hydrate(auth); emit(); })();
+    void (async () => { await hydrate(auth ?? null); emit(); })();
   });
 
   /**
@@ -75,17 +99,21 @@ export function createSupabaseStore(): BoxStore {
     onSessionChange(cb) { listeners.add(cb); cb(session); return () => listeners.delete(cb); },
     ready: () => booted,
 
+    /** 표지 사진은 Neon 쪽 저장소가 아직 없다. 색 표지만 고르게 한다. (D14) */
+    canUploadCover: false,
+
     async signUp({ email, password, displayName }) {
       const name = displayName.trim().slice(0, 12);
       if (!name) throw new Error('표시 이름을 입력해 주세요.');
-      // display_name 은 metadata 로 넘긴다 — handle_new_user 트리거가 프로필을 만든다.
+      // displayName 은 Better Auth 의 name 으로 실려 가고, 첫 hydrate 에서
+      // ensure_profile() 이 그것으로 프로필을 세운다.
       const { data, error } = await db.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
-        options: { data: { display_name: name } },
+        options: { data: { displayName: name } },
       });
       if (error) throw error;
-      // 이메일 확인이 켜져 있으면 사용자만 생기고 세션은 없다.
+      // 메일 확인을 요구하도록 켜 두면 사용자만 생기고 세션은 없다.
       return { needsConfirmation: data.session === null };
     },
 
@@ -97,15 +125,13 @@ export function createSupabaseStore(): BoxStore {
       if (error) throw error;
     },
 
+    /**
+     * 여기로는 오지 않는다. 체험 모드는 브라우저 안에서만 도는 memoryStore 가
+     * 맡고, guestStore 가 그쪽으로 돌린다 (D14). Neon 의 anonymous 역할은 사용자
+     * id 가 없어 — 전보를 쓸 수도, 전보함을 만들 수도 없다.
+     */
     async enterAsGuest() {
-      // Supabase 대시보드의 Authentication → Settings 에서 익명 로그인을 켜야 된다.
-      // 켜지 않은 프로젝트에서는 사용자에게 이유를 보여준다.
-      const { error } = await db.auth.signInAnonymously();
-      if (error) {
-        throw new Error(
-          '체험 모드가 켜져 있지 않습니다. Supabase 프로젝트 설정에서 익명 로그인을 켜 주세요.'
-        );
-      }
+      throw new Error('체험 모드를 열지 못했습니다.');
     },
 
     async signOut() {
@@ -162,7 +188,10 @@ export function createSupabaseStore(): BoxStore {
         .from('boxes')
         .select('id, name, invite_code, owner_id, current_vol, sealed, reading_started_at')
         .eq('id', boxId)
-        .single());
+        .single()) as {
+          id: string; name: string; invite_code: string; owner_id: string;
+          current_vol: number; sealed: boolean; reading_started_at: string | null;
+        };
 
       const rows = check(await db
         .from('box_members')
@@ -242,6 +271,7 @@ export function createSupabaseStore(): BoxStore {
     },
 
     async listEnvelopes(boxId, vol) {
+      // 봉인을 우회하지 않는다. 남의 이번 권 전보는 이 뷰로만 읽는다.
       let q = db.from('telegram_envelopes')
         .select('id, box_id, author_id, vol, created_at, unsealed, body, length_bucket')
         .eq('box_id', boxId)
@@ -262,7 +292,8 @@ export function createSupabaseStore(): BoxStore {
       const me = requireSession();
       const text = body.trim();
       if (!text) throw new Error('전할 말을 입력해 주세요.');
-      const box = check(await db.from('boxes').select('current_vol').eq('id', boxId).single());
+      const box = check(await db.from('boxes').select('current_vol').eq('id', boxId).single()) as
+        { current_vol: number };
       const { error } = await db.from('telegrams').insert({
         box_id: boxId, author_id: me.userId, body: text, vol: box.current_vol,
       });
@@ -325,17 +356,15 @@ export function createSupabaseStore(): BoxStore {
       }));
     },
 
-    async uploadCover(boxId, file) {
-      const name = globalThis.crypto?.randomUUID?.() ?? `c${Date.now()}`;
-      const path = `${boxId}/${name}.jpg`;
-      const { error } = await db.storage.from(COVERS)
-        .upload(path, file, { contentType: 'image/jpeg', upsert: true });
-      if (error) throw error;
-      return path;
+    /**
+     * Neon 에는 Storage 가 없다 — Object Storage 는 베타이고, 브라우저에서 바로
+     * 올리려면 presigned URL 을 발급할 서버가 필요한데 이 앱에는 서버 코드가 없다.
+     * canUploadCover 가 false 라 화면이 애초에 사진 버튼을 내주지 않는다.
+     */
+    async uploadCover() {
+      throw new Error('표지 사진은 아직 올릴 수 없습니다. 색 표지를 골라 주세요.');
     },
 
-    coverUrl(path) {
-      return db.storage.from(COVERS).getPublicUrl(path).data.publicUrl;
-    },
+    coverUrl: (path) => path,
   };
 }

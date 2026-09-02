@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- OLRW — 초기 스키마 · RLS · 서버 함수
+-- OLRW — 초기 스키마 · RLS · 서버 함수  (Neon)
 --
 -- 설계 근거: docs/PORTING-SPEC.md §7 (정본)
 -- 결정 사항: docs/decisions.md D1–D8
@@ -11,9 +11,35 @@
 --      테이블 직접 INSERT는 telegrams 하나뿐이다.
 --   3. 소프트 삭제. deleted_at을 실제로 쓰고 모든 조회에서 제외한다.
 --   4. 정원 4명. 의도적 상한 — 올리지 않는다.
+--
+-- 사용자 표는 Neon Auth 가 neon_auth 스키마에서 관리한다. 그 스키마에는 손대지
+-- 않는다 — 외래키도 트리거도 걸지 않는다 (D14). 우리가 아는 것은 auth.uid() 하나뿐이다.
 -- ═══════════════════════════════════════════════════════════════════════════
 
 create extension if not exists "pgcrypto";
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- auth.uid() — 요청 JWT 의 sub 클레임을 uuid 로 돌려준다.
+--   Neon 에서는 pg_session_jwt 확장이 제공하고, Data API 를 켜면 함께 깔린다.
+--   없는 채로 진행하면 RLS 정책이 전부 조용히 통과한다. 그러느니 여기서 멈춘다.
+-- ───────────────────────────────────────────────────────────────────────────
+do $$
+begin
+  if to_regprocedure('auth.uid()') is null then
+    execute 'create extension if not exists pg_session_jwt';
+  end if;
+exception when others then
+  null;   -- 아래 검사가 진짜 판정을 한다
+end $$;
+
+do $$
+begin
+  if to_regprocedure('auth.uid()') is null then
+    raise exception E'auth.uid() 가 없습니다.'
+      '\n       Neon 콘솔에서 Data API 를 먼저 켜세요 — pg_session_jwt 가 함께 깔립니다.'
+      '\n       로컬 검증이라면 neon/tests/run.sh 를 쓰세요.';
+  end if;
+end $$;
 
 -- ───────────────────────────────────────────────────────────────────────────
 -- 내부 호출 표식
@@ -28,27 +54,34 @@ $$;
 -- ═══ 테이블 ════════════════════════════════════════════════════════════════
 
 create table profiles (
-  id           uuid primary key references auth.users on delete cascade,
+  id           uuid primary key,
   display_name text not null check (char_length(display_name) between 1 and 12),
   created_at   timestamptz not null default now()
 );
 
--- 가입과 동시에 프로필을 만든다. 클라이언트가 만들면 "프로필 없는 사용자"가 생긴다.
-create or replace function handle_new_user() returns trigger
+-- 프로필을 만드는 유일한 문.
+--
+-- Supabase 에서는 auth.users 에 트리거를 걸었다. Neon Auth 의 사용자 표는
+-- neon_auth 가 관리하므로 트리거도 외래키도 걸 수 없다 — 걸면 다음 업그레이드에서
+-- 깨진다. 대신 앱이 로그인 직후 이 함수를 한 번 부른다.
+--
+-- 클라이언트가 부르지만 위험하지 않다. id 는 인자가 아니라 auth.uid() 다.
+-- 남의 프로필을 만들 수도, 이미 있는 이름을 이 문으로 덮어쓸 수도 없다
+-- (이름 변경은 profiles UPDATE + RLS 가 맡는다).
+create or replace function ensure_profile(p_display_name text default null)
+returns text
 language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
 begin
-  insert into profiles (id, display_name)
-  values (
-    new.id,
-    left(coalesce(nullif(trim(new.raw_user_meta_data ->> 'display_name'), ''), '이름 없음'), 12)
-  )
-  on conflict (id) do nothing;
-  return new;
-end $$;
+  if v_uid is null then raise exception '로그인이 필요합니다.' using errcode='P0001'; end if;
 
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function handle_new_user();
+  insert into profiles (id, display_name)
+  values (v_uid, left(coalesce(nullif(trim(p_display_name), ''), '이름 없음'), 12))
+  on conflict (id) do nothing;
+
+  return (select display_name from profiles where id = v_uid);
+end $$;
 
 -- ── boxes ─────────────────────────────────────────────────────────────────
 -- S1: 초대 코드는 앱이 쓰는 ABCD-2345 형식이다. 혼동 문자(I O 0 1)를 뺀 32자 알파벳.
@@ -340,20 +373,20 @@ create view telegram_envelopes with (security_invoker = off) as
 -- ═══ 권한 ══════════════════════════════════════════════════════════════════
 -- RLS는 GRANT 위에 얹히는 필터일 뿐이다. 쓰기 권한 자체를 회수한다.
 
-revoke insert, update, delete on profiles     from anon, authenticated;
+revoke insert, update, delete on profiles     from anonymous, authenticated;
 grant  update                 on profiles     to   authenticated;
 
-revoke insert, update, delete on boxes        from anon, authenticated;
+revoke insert, update, delete on boxes        from anonymous, authenticated;
 grant  update                 on boxes        to   authenticated;
 
-revoke insert, update, delete on box_members  from anon, authenticated;
+revoke insert, update, delete on box_members  from anonymous, authenticated;
 grant  update, delete         on box_members  to   authenticated;
 
-revoke insert, update, delete on telegrams    from anon, authenticated;
+revoke insert, update, delete on telegrams    from anonymous, authenticated;
 grant  insert, update         on telegrams    to   authenticated;
 
-revoke insert, update, delete on volumes      from anon, authenticated;
-revoke insert, update, delete on volume_pages from anon, authenticated;
+revoke insert, update, delete on volumes      from anonymous, authenticated;
+revoke insert, update, delete on volume_pages from anonymous, authenticated;
 
 grant select on telegram_envelopes to authenticated;
 
@@ -612,6 +645,7 @@ end $$;
 -- 이미 그 경로를 완전히 막고 있다. 함수를 하나 더 두면 실패 지점만 늘어난다.
 
 -- ── 실행 권한 ─────────────────────────────────────────────────────────────
+revoke all on function ensure_profile(text)                        from public;
 revoke all on function create_box(text,text,text,boolean)          from public;
 revoke all on function join_box(text,text,text)                    from public;
 revoke all on function begin_reading(uuid)                         from public;
@@ -619,37 +653,18 @@ revoke all on function close_volume(uuid,text,text,text,boolean)   from public;
 revoke all on function leave_box(uuid)                             from public;
 revoke all on function gen_invite_code()                           from public;
 
+grant execute on function ensure_profile(text)                      to authenticated;
 grant execute on function create_box(text,text,text,boolean)        to authenticated;
 grant execute on function join_box(text,text,text)                  to authenticated;
 grant execute on function begin_reading(uuid)                       to authenticated;
 grant execute on function close_volume(uuid,text,text,text,boolean) to authenticated;
 grant execute on function leave_box(uuid)                           to authenticated;
 
--- ═══ Storage (S11) ═════════════════════════════════════════════════════════
--- 표지 사진. base64 를 행에 넣지 않는다. 경로는 covers/{box_id}/{uuid}.jpg
-
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('covers', 'covers', true, 2097152, array['image/jpeg','image/webp','image/png'])
-on conflict (id) do nothing;
-
--- storage.objects 는 프로젝트에 따라 소유자가 달라 정책 생성이 막힐 수 있다.
--- 막히면 마이그레이션 전체를 되돌리지 말고, 무엇을 손으로 해야 하는지 알려 준다.
-do $$
-begin
-  create policy covers_read on storage.objects for select
-    using (bucket_id = 'covers');
-
-  create policy covers_write on storage.objects for insert to authenticated
-    with check (bucket_id = 'covers' and is_member((storage.foldername(name))[1]::uuid));
-
-  create policy covers_update on storage.objects for update to authenticated
-    using (bucket_id = 'covers' and is_member((storage.foldername(name))[1]::uuid));
-
-exception
-  when insufficient_privilege then
-    raise notice E'\n[OLRW] storage.objects 에 정책을 만들 권한이 없습니다.'
-                 '\n       Supabase 대시보드 → Storage → covers → Policies 에서 손으로 추가하세요.'
-                 '\n       자세한 내용은 docs/SETUP.md 를 보세요.';
-  when duplicate_object then
-    raise notice '[OLRW] covers 정책이 이미 있습니다. 건너뜁니다.';
-end $$;
+-- ═══ 표지 사진 ════════════════════════════════════════════════════════════
+-- Supabase 에서는 여기에 storage 버킷과 정책이 있었다. Neon 에는 대응하는 것이
+-- 없다 — Object Storage 는 베타이고 리전이 하나뿐이며, 브라우저에서 바로 올리려면
+-- presigned URL 을 발급할 서버가 필요하다. 이 앱에는 서버 코드가 없다.
+--
+-- 그래서 표지는 당분간 색으로만 간다. volumes.cover_kind 는 'photo' 를 그대로
+-- 받아 두므로(스키마 변경 없음), 나중에 올릴 곳이 생기면 스키마는 그대로 두고
+-- 클라이언트만 붙이면 된다. (D14)

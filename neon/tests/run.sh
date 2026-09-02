@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # 로컬 Postgres에 마이그레이션을 적용하고 RLS·서버 함수를 검증한다.
-# Supabase 프로젝트도 Docker도 필요 없다. Postgres 15+ 바이너리만 있으면 된다.
+# Neon 프로젝트도 Docker도 필요 없다. Postgres 15+ 바이너리만 있으면 된다.
 #
-#   supabase/tests/run.sh
+#   neon/tests/run.sh
 #
 # 이미 도는 서버에 붙이려면 PGHOST/PGPORT/PGUSER 를 넘긴다:
-#   PGHOST=localhost PGPORT=54322 PGUSER=postgres supabase/tests/run.sh
+#   PGHOST=localhost PGPORT=54322 PGUSER=postgres neon/tests/run.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-MIG="$ROOT/supabase/migrations/0001_init.sql"
-HARNESS="$ROOT/supabase/tests/harness.sql"
-TESTS="$ROOT/supabase/tests/rls_test.sql"
+MIG="$ROOT/neon/migrations/0001_init.sql"
+HARNESS="$ROOT/neon/tests/harness.sql"
+TESTS="$ROOT/neon/tests/rls_test.sql"
 
 if [[ -n "${PGHOST:-}" ]]; then
   DB="olrw_test_$$"

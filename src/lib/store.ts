@@ -11,7 +11,7 @@ import type {
  * 기존 구현은 local/firebase 두 구현이 한 파일에 병렬로 있어 모든 변경을 두 번 해야 했다.
  * (docs/AUDIT.md §01-1) 구현체는 갈아끼우되 인터페이스는 하나만 둔다.
  *
- * 구현: supabaseStore(운영) · memoryStore(테스트·오프라인 개발)
+ * 구현: neonStore(운영) · memoryStore(체험 모드·테스트·오프라인 개발)
  *
  * 규칙
  *  - 전보함 생성·참여·제본·탈퇴는 서버 함수로만 간다. 테이블 직접 INSERT 는 telegrams 뿐이다.
@@ -26,8 +26,11 @@ export interface BoxStore {
   /** 최초 세션 복구가 끝날 때까지 기다린다. 부팅 중 로그인 화면이 깜빡이는 것을 막는다. */
   ready(): Promise<void>;
 
+  /** 표지 사진을 올릴 수 있는 구현인가. false 면 화면이 사진 버튼을 아예 내지 않는다. */
+  readonly canUploadCover: boolean;
+
   /**
-   * 가입. Supabase 가 이메일 확인을 요구하도록 설정돼 있으면 세션이 바로 생기지 않는다.
+   * 가입. 이메일 확인을 요구하도록 설정돼 있으면 세션이 바로 생기지 않는다.
    * 그때 `needsConfirmation` 이 true 로 오고, 화면은 "메일함을 확인해 주세요"를 보여준다.
    * 이걸 알리지 않으면 가입 버튼을 눌러도 아무 일도 안 일어나는 것처럼 보인다.
    */
@@ -39,8 +42,7 @@ export interface BoxStore {
    *
    * 브라우저 안 저장소로만 도는 임시 세션을 만든다. 로그아웃하면 그대로 사라진다 —
    * 이 데이터로 남을 초대할 수 없고, 정식 계정으로 옮기지도 않는다.
-   * 메모리 구현에서는 무조건 되고, Supabase 구현에서는 프로젝트가 익명 로그인을
-   * 켜 두었을 때에만 된다.
+   * 서버에 닿지 않는다. guestStore 가 이 호출만 memoryStore 로 돌린다 (D14).
    */
   enterAsGuest(): Promise<void>;
   signOut(): Promise<void>;

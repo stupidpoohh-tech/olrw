@@ -306,6 +306,9 @@ sparks = Array.from({length:14}).map((_, i) => ({
 
 ## 7. 데이터 모델 (Supabase 기준 제안)
 
+> 실제 구현은 Neon 위에 올라갔다. 표·정책·함수는 이 절 그대로이고, 바뀐 것은
+> 프로필 생성 경로와 표지 사진뿐이다 — `docs/decisions.md` D14.
+
 ```sql
 profiles      id(uuid, =auth.users) · display_name · created_at
 

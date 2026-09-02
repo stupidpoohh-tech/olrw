@@ -2,7 +2,7 @@
 
 > 작성 시점: 이관 착수 전. 코드는 아직 한 줄도 쓰지 않았다.
 > 대상: `docs/reference/` (구현 원본), `docs/PORTING-SPEC.md` (설계 정본),
-> `supabase/migrations/0001_init.sql` (스키마 초안), `docs/reference/DEPLOY.md` (구 Firestore 규칙).
+> `neon/migrations/0001_init.sql` (스키마 초안), `docs/reference/DEPLOY.md` (구 Firestore 규칙).
 > 기준 질문: **"만나서 하고 싶은 말을 차곡차곡 담고, 만나서 맺고, 아카이브한다"** — 지금 구조가 이걸 하고 있나?
 
 ---
@@ -21,8 +21,8 @@
 |---|---|
 | 구 Firestore 규칙 잠금 | `legacy-firebase/firestore.rules` 작성 완료. **콘솔 게시는 수동 작업** |
 | 골격 결정 D1–D8 | `docs/decisions.md` 확정 — 봉인(G2)·함께 읽기(G3) 채택, 만남 일정(G1)·삭제 정책(G5) 미채택 |
-| 단계 1 스키마 + RLS + 서버 함수 | `supabase/migrations/0001_init.sql` 재작성. S1–S11 반영 |
-| 검증 | `supabase/tests/` — RLS 45케이스 + 동시 마감 5케이스, 전부 통과 |
+| 단계 1 스키마 + RLS + 서버 함수 | `neon/migrations/0001_init.sql` 재작성. S1–S11 반영 |
+| 검증 | `neon/tests/` — RLS 45케이스 + 동시 마감 5케이스, 전부 통과 |
 
 §04의 S1–S11은 **전부 새 마이그레이션에서 해결됐고 테스트로 고정했다.**
 구현하며 새로 발견한 것 한 건(S12)을 아래에 추가했다.

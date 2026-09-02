@@ -1,13 +1,13 @@
 # 스키마 검증
 
-Supabase 프로젝트도 Docker도 필요 없다. 로컬 Postgres 바이너리(15+)만 있으면 된다.
+Neon 프로젝트도 Docker도 필요 없다. 로컬 Postgres 바이너리(15+)만 있으면 된다.
 
 ```bash
-supabase/tests/run.sh              # RLS · 서버 함수 45케이스
-supabase/tests/concurrency_test.sh # 동시 마감 5케이스
+neon/tests/run.sh              # RLS · 서버 함수 45케이스
+neon/tests/concurrency_test.sh # 동시 마감 5케이스
 ```
 
-일회용 클러스터를 띄워 `harness.sql`(auth/storage 스텁) → `0001_init.sql` 순으로 올리고
+일회용 클러스터를 띄워 `harness.sql`(auth.uid 스텁) → `0001_init.sql` 순으로 올리고
 검증한 뒤 지운다. 이미 도는 서버가 있으면 `PGHOST=... PGPORT=... run.sh`.
 
 ## 무엇을 지키고 있나
@@ -27,7 +27,7 @@ supabase/tests/concurrency_test.sh # 동시 마감 5케이스
 
 ## 화면 쪽
 
-단계 3 화면은 브라우저로 확인한다. memoryStore 로 돌기 때문에 Supabase 없이 검증된다.
+단계 3 화면은 브라우저로 확인한다. memoryStore 로 돌기 때문에 Neon 없이 검증된다.
 
 ```bash
 pnpm build && pnpm preview &
@@ -38,5 +38,5 @@ pnpm tint:check                    # §4-2 타자기색이 실제로 구분되�
 
 ## 주의
 
-`harness.sql`은 **로컬 검증 전용**이다. 실제 Supabase에 적용하지 않는다 —
-`auth`·`storage` 스키마는 이미 존재하고, 덮어쓰면 프로젝트가 망가진다.
+`harness.sql`은 **로컬 검증 전용**이다. 실제 Neon에 적용하지 않는다 —
+`auth` 스키마는 `pg_session_jwt` 가 이미 만들어 두었고, 덮어쓰면 인증이 망가진다.

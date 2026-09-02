@@ -85,7 +85,7 @@ export function createMemoryStore(): BoxStore {
    * 세션 변화를 알린다. **세션이 실제로 바뀔 때만** 부른다.
    *
    * 전보함을 만들 때마다 여기까지 부르면, 구독하는 화면이 통째로 다시 그려지면서
-   * 초대 코드 화면이 뜨자마자 사라진다. supabaseStore 는 쓰기 때 auth 를 건드리지
+   * 초대 코드 화면이 뜨자마자 사라진다. neonStore 는 쓰기 때 auth 를 건드리지
    * 않으므로, 여기서도 같아야 한다 — 안 그러면 이 구현만 다르게 동작한다.
    */
   const emitSession = () => { save(); listeners.forEach((cb) => cb(sessionOf())); };
@@ -373,6 +373,9 @@ export function createMemoryStore(): BoxStore {
     async getVolumePages(volumeId) {
       return db.volumes.find((v) => v.id === volumeId)?.pages ?? [];
     },
+
+    /** objectURL 이라 이 브라우저 안에서만 산다. 체험 모드에는 그걸로 충분하다. */
+    canUploadCover: true,
 
     async uploadCover(_boxId, file) {
       // 실제 Storage 대신 objectURL. 새로고침하면 사라지지만 개발 중에는 충분하다.

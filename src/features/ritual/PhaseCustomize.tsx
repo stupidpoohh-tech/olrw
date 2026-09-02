@@ -12,9 +12,11 @@ interface Props {
   onBack: () => void;
   onBind: () => void;
   busy: boolean;
+  /** 사진 표지를 올릴 수 있는 구현인가. 아니면 색만 내준다. (D14) */
+  canUploadCover: boolean;
 }
 
-export function PhaseCustomize({ vol, title, setTitle, cover, setCover, onBack, onBind, busy }: Props) {
+export function PhaseCustomize({ vol, title, setTitle, cover, setCover, onBack, onBind, busy, canUploadCover }: Props) {
   const file = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [working, setWorking] = useState(false);
@@ -35,7 +37,7 @@ export function PhaseCustomize({ vol, title, setTitle, cover, setCover, onBack, 
       <p className="rt-lead display">— Choose a Cover —</p>
       <h2 className="rt-title">표지를 고르세요</h2>
       <p className="rt-sub">
-        색을 고르거나 사진을 올릴 수 있습니다.<br />
+        {canUploadCover ? '색을 고르거나 사진을 올릴 수 있습니다.' : '색을 고르세요.'}<br />
         제목을 비워두면 VOL.{vol} 로 남습니다.
       </p>
 
@@ -51,15 +53,19 @@ export function PhaseCustomize({ vol, title, setTitle, cover, setCover, onBack, 
             title={c.label} aria-label={c.label}
             onClick={() => setCover({ kind: 'color', value: c.id })} />
         ))}
-        <button type="button"
-          className={`cover upload ${cover.kind === 'photo' ? 'active' : ''}`}
-          style={cover.preview ? { background: `center / cover no-repeat url("${cover.preview}")` } : undefined}
-          title="사진 표지 올리기" aria-label="사진 표지 올리기"
-          onClick={() => file.current?.click()}>
-          {!cover.preview && <span aria-hidden="true">＋</span>}
-        </button>
-        <input ref={file} type="file" accept="image/*" hidden
-          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; void pick(f); }} />
+        {canUploadCover && (
+          <>
+            <button type="button"
+              className={`cover upload ${cover.kind === 'photo' ? 'active' : ''}`}
+              style={cover.preview ? { background: `center / cover no-repeat url("${cover.preview}")` } : undefined}
+              title="사진 표지 올리기" aria-label="사진 표지 올리기"
+              onClick={() => file.current?.click()}>
+              {!cover.preview && <span aria-hidden="true">＋</span>}
+            </button>
+            <input ref={file} type="file" accept="image/*" hidden
+              onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; void pick(f); }} />
+          </>
+        )}
       </div>
 
       {working && <p className="rt-note">사진을 표지로 다듬는 중…</p>}
