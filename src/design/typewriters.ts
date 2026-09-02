@@ -12,6 +12,12 @@
  * 여전히 **개인 설정**이다. 내 화면에서만 보이고, 다른 참여자에게는 보이지 않는다.
  */
 import moss from '../assets/typewriter/moss.webp';
+import mossKey1 from '../assets/typewriter/moss-key-1.wav';
+import mossKey2 from '../assets/typewriter/moss-key-2.wav';
+import mossKey3 from '../assets/typewriter/moss-key-3.wav';
+import mossKey4 from '../assets/typewriter/moss-key-4.wav';
+import mossKey5 from '../assets/typewriter/moss-key-5.wav';
+import mossKey6 from '../assets/typewriter/moss-key-6.wav';
 import oak from '../assets/typewriter/oak.webp';
 import oakKey1 from '../assets/typewriter/oak-key-1.wav';
 import oakKey2 from '../assets/typewriter/oak-key-2.wav';
@@ -42,7 +48,8 @@ export interface KeyRow {
  *   - ring: 강철만. 활자 뒤에 남는 금속의 잔향(작은 두 배음).
  *   - thump: 해머 뒤에 몸통이 울리는 저음.
  *   - extraLp: 예비. 필요할 때 노이즈 앞단에 얇게 걸어 top-end 를 흡수한다.
- * sample: 참나무만. **진짜 나무 자판을 녹음한 소리다.** (D15)
+ * sample: 참나무와 이끼. **실제로 녹음한 소리다** — 참나무는 나무 자판(D15),
+ *   이끼는 풀밭을 걸으며 담은 풀 스치는 소리(D18).
  * bubble: 설탕(푸딩)만. 물방울이 톡 하고 터지는 소리 — sine 이 짧게 미끄러지고 반짝 하나.
  */
 export interface StrikeProfile {
@@ -57,6 +64,20 @@ export interface StrikeProfile {
   readonly extraLp?: number;
 }
 
+/**
+ * 물방울. 지금은 **녹음을 못 받아왔을 때의 대역**으로만 쓴다 (이끼, D18) —
+ * sine 이 살짝 가라앉았다가 위로 미끄러지는 고전적인 처프('블뤼입')에 아주 옅은
+ * 촉촉한 노이즈가 깔린다. 설탕(버블: 아래로만 떨어지는 pluck + 높은 tinkle)과는
+ * 움직임의 방향이 달라 겹치지 않는다.
+ */
+export interface DropletProfile {
+  readonly kind: 'droplet';
+  readonly start: readonly [number, number];   // 시작 주파수 범위(Hz)
+  readonly dip: number;    // 잠깐 가라앉는 바닥
+  readonly rise: number;   // 위로 미끄러져 닿는 목표
+  readonly moist: number;  // 촉촉한 노이즈 레이어의 크기 (0 이면 없음)
+}
+
 export type KeyProfile =
   | StrikeProfile
   | {
@@ -67,8 +88,8 @@ export type KeyProfile =
       readonly kind: 'sample';
       readonly srcs: readonly string[];
       readonly gain: number;
-      /** 소리를 못 받아왔을 때(오프라인·차단). 그래도 참나무는 참나무로 들린다. */
-      readonly fallback: StrikeProfile;
+      /** 소리를 못 받아왔을 때(오프라인·차단). 그래도 그 타자기로는 들린다. */
+      readonly fallback: StrikeProfile | DropletProfile;
     }
   | {
       readonly kind: 'bubble';
@@ -76,19 +97,7 @@ export type KeyProfile =
       readonly pluckTo: number;
       readonly tinkle: readonly [number, number];
     }
-  | {
-      /**
-       * 이끼 타자기 — 숲속 물방울(ASMR). 타자기 소리를 흉내내지 않는다.
-       * sine 이 살짝 가라앉았다가 위로 미끄러지는 고전적인 물방울 처프('블뤼입')에
-       * 아주 옅은 촉촉한 노이즈가 깔린다. 설탕(버블: 아래로만 떨어지는 pluck +
-       * 높은 tinkle)과는 움직임의 방향이 달라 절대 겹치지 않는다.
-       */
-      readonly kind: 'droplet';
-      readonly start: readonly [number, number];   // 시작 주파수 범위(Hz)
-      readonly dip: number;    // 잠깐 가라앉는 바닥
-      readonly rise: number;   // 위로 미끄러져 닿는 목표
-      readonly moist: number;  // 촉촉한 노이즈 레이어의 크기 (0 이면 없음)
-    };
+  | DropletProfile;
 
 export interface Voice {
   readonly key: KeyProfile;
@@ -189,16 +198,24 @@ export const TYPEWRITERS = [
       { y: 70.5, x0: 25.7, gap: 5.26 },
       { y: 77.5, x0: 28.0, gap: 5.25 },
     ],
-    // 숲속 물방울 (사용자 지정: 타자기 소리가 아니라 듣기 좋은 ASMR 로).
-    // 첫 판은 700Hz 까지 올라가 날카로웠다. 전부 한 옥타브 아래로 —
-    // 270Hz 근방에서 느리게 가라앉았다가 440Hz 로 둥글게 떠오르는 깊은 '동'.
+    // 풀 스치는 소리 (D18). 합성한 물방울이 아니라 **실제 녹음**이다 —
+    // 풀밭을 걸어가며 담은 2.8초에서 어택이 뚜렷한 여섯 곳을 잘라 썼다.
+    // 타자기 소리를 흉내내지 않는다. 한 글자에 풀 한 번 스치는 소리다.
+    // 못 받아오면 예전의 물방울 합성으로 떨어진다.
     voice: {
       key: {
-        kind: 'droplet',
-        start: [240, 320],
-        dip: 170,
-        rise: 440,
-        moist: 0.025,
+        kind: 'sample',
+        srcs: [mossKey1, mossKey2, mossKey3, mossKey4, mossKey5, mossKey6],
+        // 타이핑 한 줄을 렌더링해 재 보면 참나무보다 2dB 아래다.
+        // 기계가 때리는 소리가 아니라 스치는 소리이므로 더 조용한 편이 맞다.
+        gain: .13,
+        fallback: {
+          kind: 'droplet',
+          start: [240, 320],
+          dip: 170,
+          rise: 440,
+          moist: 0.025,
+        },
       },
       bell: [1900, 2850],
       carriage: { from: 700, to: 260, thud: 70 },
