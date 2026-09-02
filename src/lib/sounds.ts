@@ -15,7 +15,7 @@
 
 import { TYPEWRITERS, type Voice } from '../design/typewriters';
 import { keyBuffer, preloadKeySamples } from './keySamples';
-import { isMuted } from './mute';
+import { isMuted, onMuteChange } from './mute';
 
 /** 합성 한 조각. t0 는 컨텍스트 기준 시작 시각. */
 export type Synth = (ctx: BaseAudioContext, out: AudioNode, t0: number) => void;
@@ -303,6 +303,46 @@ export interface TypeSound {
 let ctx: AudioContext | null = null;
 
 /**
+ * Audio Session API — 아직 lib.dom 에 없다. 있는 브라우저에서만 쓴다.
+ * (Safari 16.4+ / iOS 16.4+)
+ */
+interface AudioSessionish { type: string }
+const session = (): AudioSessionish | null => {
+  const n = navigator as Navigator & { audioSession?: AudioSessionish };
+  return n.audioSession ?? null;
+};
+
+/**
+ * **아이폰 옆면의 무음 스위치를 넘어간다.**
+ *
+ * 기본값(`auto`)이면 iOS 는 Web Audio 를 벨소리 취급해서, 무음 스위치가 올라가
+ * 있으면 아무 소리도 안 난다. `playback` 으로 바꾸면 음악 앱과 같은 취급이 되어
+ * 무음 스위치와 무관하게 울린다.
+ *
+ * 대신 재생 중인 음악이 멈춘다 — 그래서 앱 안의 음소거 버튼이 진짜 스위치다.
+ * 음소거를 켜면 `auto` 로 돌려놓아 남의 음악을 붙잡고 있지 않는다.
+ *
+ * 이걸 부르는 곳은 play() 안뿐이다. 음소거 상태에서는 여기까지 오지 않으므로,
+ * 소리를 낼 생각이 없을 때 남의 오디오를 건드리는 일은 없다.
+ */
+function claimPlayback(): void {
+  try {
+    const s = session();
+    if (s && s.type !== 'playback') s.type = 'playback';
+  } catch { /* 지원하지 않는 브라우저 — 무음 스위치를 따른다 */ }
+}
+
+function releasePlayback(): void {
+  try {
+    const s = session();
+    if (s && s.type === 'playback') s.type = 'auto';
+  } catch { /* 무시 */ }
+}
+
+// 음소거를 켜는 순간 오디오 세션을 놓아 준다. 듣던 음악이 바로 돌아온다.
+onMuteChange((muted) => { if (muted) releasePlayback(); });
+
+/**
  * AudioContext 는 지연 생성한다. 페이지가 열리자마자 만들면 브라우저가
  * 사용자 동작 없는 오디오라며 정지시킨다. 첫 소리는 언제나 클릭이나 타건 뒤다.
  */
@@ -310,6 +350,7 @@ function audio(): AudioContext | null {
   try {
     const Ctor = window.AudioContext ?? (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return null;
+    claimPlayback();   // 컨텍스트를 만들기 전에 세션 종류를 정해야 한다
     ctx ??= new Ctor();
     if (ctx.state === 'suspended') void ctx.resume();
     return ctx;
