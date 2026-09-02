@@ -36,7 +36,7 @@ function noise(ctx: BaseAudioContext, seconds: number, amp: (t: number) => numbe
  *
  * strike (강철): 40ms 화이트노이즈 → highpass + triangle 해머. 옵션으로
  *   금속 링, 몸통 저음, 흡음 lowpass 를 얹는다.
- * sample (참나무): 녹음한 나무 자판. 여섯 벌을 돌려 쓴다. (D15)
+ * sample (참나무·이끼): 실제로 녹음한 소리. 여섯 벌을 돌려 쓴다. (D15 · D18)
  * bubble (설탕/푸딩): 활자가 아니라 물방울이다. sine 이 짧게 미끄러지며 떨어지고
  *   그 위에 짧은 반짝(tinkle)이 하나 붙는다. 다른 셋과 성격이 아예 다르다.
  */
@@ -58,7 +58,7 @@ type Droplet = Extract<Voice['key'], { kind: 'droplet' }>;
 let lastSample = -1;
 
 /**
- * 녹음한 타건음 — 참나무. (D15)
+ * 녹음한 타건음 — 참나무(D15)와 이끼(D18).
  *
  * 같은 파일을 그대로 반복하면 두 글자만 쳐도 기계가 붙여넣은 소리라는 게 들린다.
  * 그래서 ① 여섯 벌 중 **직전과 다른 것**을 고르고 ② 재생 속도를 ±3% 흔들고
@@ -72,7 +72,12 @@ const sample = (k: Sample): Synth => (ctx, out, t0) => {
   if (k.srcs.length > 1 && i === lastSample) i = (i + 1) % k.srcs.length;
   const src = k.srcs[i];
   const buf = src === undefined ? null : keyBuffer(ctx, src);
-  if (!buf) { strike(k.fallback)(ctx, out, t0); return; }
+  if (!buf) {
+    // 대역은 타자기마다 다르다 — 참나무는 합성 타건, 이끼는 물방울.
+    const f = k.fallback;
+    (f.kind === 'droplet' ? droplet(f) : strike(f))(ctx, out, t0);
+    return;
+  }
   lastSample = i;
 
   const node = ctx.createBufferSource();

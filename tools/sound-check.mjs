@@ -59,7 +59,11 @@ const data = await page.evaluate(async ({ soundsSrc, twSrc, shapeNames }) => {
       if (v > peak) peak = v;
       if (v > 0.002) last = i;
     }
-    return { d, peak, last };
+    // 어택이 얼마나 급한가 — 때리는 소리와 스치는 소리를 가르는 값이다.
+    // 무게중심(음색)만으로는 둘이 겹칠 수 있어도, 이건 겹치지 않는다.
+    let rise = 0;
+    while (rise < d.length && Math.abs(d[rise]) < peak * 0.8) rise++;
+    return { d, peak, last, rise };
   };
   const mag = (r, freq) => {
     const k = (2 * Math.PI * freq) / RATE, coeff = 2 * Math.cos(k);
@@ -93,6 +97,7 @@ const data = await page.evaluate(async ({ soundsSrc, twSrc, shapeNames }) => {
     const keyR = await render(snd.SYNTHS.playKey(t.voice));
     voices.push({ id: t.id, label: t.label, kind: t.voice.key.kind,
                   keyDur: +(keyR.last / RATE).toFixed(3),
+                  keyRise: +(keyR.rise / RATE * 1000).toFixed(1),
                   keyCentroid: Math.round(c / 5),
                   bell: t.voice.bell, bellMag: probes, off: mag(bellR, 700) });
   }
@@ -118,7 +123,7 @@ for (const [name, spec] of Object.entries(SHAPE)) {
 
 console.log('\n━━━ 네 대가 다르게 들리는가 (D9) ━━━\n');
 for (const v of data.voices) {
-  console.log(`  ${v.id.padEnd(6)} ${v.label.padEnd(4)} [${v.kind.padEnd(6)}] 타건 무게중심 ${String(v.keyCentroid).padStart(4)}Hz   벨 ${v.bell.join(' / ')}Hz`);
+  console.log(`  ${v.id.padEnd(6)} ${v.label.padEnd(4)} [${v.kind.padEnd(6)}] 무게중심 ${String(v.keyCentroid).padStart(4)}Hz  어택 ${String(v.keyRise).padStart(5)}ms  벨 ${v.bell.join(' / ')}Hz`);
 }
 console.log('');
 
@@ -135,15 +140,25 @@ const by = Object.fromEntries(data.voices.map((v) => [v.id, v.keyCentroid]));
 // 강철·참나무는 스트라이크(강철이 위).
 const kinds = Object.fromEntries(data.voices.map((v) => [v.id, v.kind]));
 ok('설탕은 버블이다', kinds.sugar === 'bubble', `sugar.kind = ${kinds.sugar}`);
-ok('이끼는 물방울이다 (ASMR 드롭렛)', kinds.moss === 'droplet', `moss.kind = ${kinds.moss}`);
 ok('강철은 스트라이크다', kinds.steel === 'strike', `steel.kind = ${kinds.steel}`);
 ok('참나무는 녹음이다 (D15)', kinds.oak === 'sample', `oak.kind = ${kinds.oak}`);
-const oakDur = data.voices.find((v) => v.id === 'oak').keyDur;
-ok('참나무 녹음이 실제로 울린다 (합성 fallback 아님)', oakDur > 0.04 && oakDur < 0.08,
-   `길이 ${oakDur}s — 녹음 62ms · fallback 100ms`);
+ok('이끼는 녹음이다 (D18)', kinds.moss === 'sample', `moss.kind = ${kinds.moss}`);
+
+// 녹음을 못 받아오면 조용히 합성으로 떨어진다. 길이로 가른다.
+const dur = Object.fromEntries(data.voices.map((v) => [v.id, v.keyDur]));
+ok('참나무 녹음이 실제로 울린다 (합성 fallback 아님)', dur.oak > 0.04 && dur.oak < 0.08,
+   `길이 ${dur.oak}s — 녹음 62ms · fallback 100ms`);
+ok('이끼 녹음이 실제로 울린다 (물방울 fallback 아님)', dur.moss > 0.12 && dur.moss < 0.19,
+   `길이 ${dur.moss}s — 녹음 145ms · fallback 300ms`);
+
 ok('강철이 참나무보다 높게 친다', by.steel > by.oak, `${by.steel}Hz > ${by.oak}Hz`);
-ok('이끼가 가장 낮고 둥근 소리다', by.moss < by.sugar && by.moss < by.oak,
-   `moss ${by.moss}Hz < sugar ${by.sugar}Hz · oak ${by.oak}Hz`);
+
+// 이끼는 풀 스치는 소리다 (D18). 음색만으로는 강철과 가까워질 수 있지만 —
+// 둘은 어택이 다르다. 때리는 소리는 순식간에 서고, 스치는 소리는 천천히 열린다.
+// 이 값이 무너지면 ASMR 이 아니라 잡음이 된다.
+const rise = Object.fromEntries(data.voices.map((v) => [v.id, v.keyRise]));
+ok('이끼는 때리지 않고 스친다', rise.moss > rise.steel * 3 && rise.moss >= 5,
+   `이끼 ${rise.moss}ms · 강철 ${rise.steel}ms · 참나무 ${rise.oak}ms`);
 const allCentroids = [by.steel, by.oak, by.sugar, by.moss];
 const spread = Math.max(...allCentroids) - Math.min(...allCentroids);
 ok('네 대의 무게중심이 충분히 벌어져 있다', spread >= 500,
