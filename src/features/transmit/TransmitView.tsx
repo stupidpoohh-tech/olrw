@@ -84,11 +84,16 @@ export function TransmitView({ box, envelopes, myId, onSent, onRetract, onOpenRi
 
       {error && <p className="transmit-error" role="alert">{error}</p>}
 
-      {/* 3구역 — 내가 쓴 전보. 남은 높이를 다 쓰고 여기 안에서만 스크롤한다. */}
+      {/* 3구역 — 내가 쓴 전보. 남은 높이를 다 쓰고 여기 안에서만 스크롤한다.
+          비어 있을 때도 머리글을 세운다 — 그래야 빈 자리가 '아직 없는 섹션'으로
+          읽히고, 남은 공백이 버려진 자리로 보이지 않는다. */}
       <section className="recent">
+        <div className="recent-head">
+          <h2 className="section-label">보낸 전보</h2>
+          {mine.length > 0 && <span className="section-count display tnum">{mine.length}</span>}
+        </div>
         {mine.length > 0 ? (
           <>
-            <h2 className="section-label display">최근 송신 · Recent · {mine.length}</h2>
             <div className="recent-list">
               {mine.map((e) => (
                 <TelegramCard
