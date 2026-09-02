@@ -10,6 +10,8 @@
  *   1) 소리마다 들릴 만한 크기와 정해진 길이가 나오는가
  *   2) **네 대의 타자기가 실제로 다르게 들리는가** — 벨은 지정한 주파수에서 가장 세고,
  *      타건음의 무게중심은 강철에서 참나무로 갈수록 낮아져야 한다
+ *   3) 참나무는 **녹음이 실제로 울리는가** — 못 받아오면 조용히 합성으로 떨어지므로
+ *      길이로 가른다. 녹음은 62ms, 합성 fallback 은 100ms 다. (D15)
  */
 import { chromium } from 'playwright';
 import { build } from 'esbuild';
@@ -18,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 const bundle = async (rel) => (await build({
   entryPoints: [fileURLToPath(new URL(rel, import.meta.url))],
   bundle: true, format: 'esm', write: false, platform: 'browser', target: 'es2022',
-  loader: { '.webp': 'dataurl' },
+  loader: { '.webp': 'dataurl', '.wav': 'dataurl' },
 })).outputFiles[0].text;
 
 const soundsSrc = await bundle('../src/lib/sounds.ts');
@@ -43,6 +45,8 @@ const data = await page.evaluate(async ({ soundsSrc, twSrc, shapeNames }) => {
   const load = (s) => import(URL.createObjectURL(new Blob([s], { type: 'text/javascript' })));
   const snd = await load(soundsSrc);
   const tw = await load(twSrc);
+  // 녹음(.wav 은 data: 로 번들됐다)을 다 받은 뒤에 재야 fallback 을 재지 않는다.
+  await snd.keySamplesReady;
   const RATE = 44100;
 
   const render = async (synth) => {
@@ -86,7 +90,9 @@ const data = await page.evaluate(async ({ soundsSrc, twSrc, shapeNames }) => {
     const bellR = await render(snd.SYNTHS.playBell(t.voice));
     const probes = {};
     for (const f of [1500, 1900, 2200, 2900, 2250, 2850, 3300, 4350]) probes[f] = mag(bellR, f);
+    const keyR = await render(snd.SYNTHS.playKey(t.voice));
     voices.push({ id: t.id, label: t.label, kind: t.voice.key.kind,
+                  keyDur: +(keyR.last / RATE).toFixed(3),
                   keyCentroid: Math.round(c / 5),
                   bell: t.voice.bell, bellMag: probes, off: mag(bellR, 700) });
   }
@@ -130,7 +136,11 @@ const by = Object.fromEntries(data.voices.map((v) => [v.id, v.keyCentroid]));
 const kinds = Object.fromEntries(data.voices.map((v) => [v.id, v.kind]));
 ok('설탕은 버블이다', kinds.sugar === 'bubble', `sugar.kind = ${kinds.sugar}`);
 ok('이끼는 물방울이다 (ASMR 드롭렛)', kinds.moss === 'droplet', `moss.kind = ${kinds.moss}`);
-ok('강철·참나무는 스트라이크다', kinds.steel === 'strike' && kinds.oak === 'strike');
+ok('강철은 스트라이크다', kinds.steel === 'strike', `steel.kind = ${kinds.steel}`);
+ok('참나무는 녹음이다 (D15)', kinds.oak === 'sample', `oak.kind = ${kinds.oak}`);
+const oakDur = data.voices.find((v) => v.id === 'oak').keyDur;
+ok('참나무 녹음이 실제로 울린다 (합성 fallback 아님)', oakDur > 0.04 && oakDur < 0.08,
+   `길이 ${oakDur}s — 녹음 62ms · fallback 100ms`);
 ok('강철이 참나무보다 높게 친다', by.steel > by.oak, `${by.steel}Hz > ${by.oak}Hz`);
 ok('이끼가 가장 낮고 둥근 소리다', by.moss < by.sugar && by.moss < by.oak,
    `moss ${by.moss}Hz < sugar ${by.sugar}Hz · oak ${by.oak}Hz`);

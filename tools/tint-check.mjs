@@ -27,7 +27,7 @@ const MAX_TINT_SAT = 0.44;
 const { outputFiles } = await build({
   entryPoints: [fileURLToPath(new URL('../src/design/typewriters.ts', import.meta.url))],
   bundle: true, format: 'esm', write: false, platform: 'browser', target: 'es2022',
-  loader: { '.webp': 'dataurl' },
+  loader: { '.webp': 'dataurl', '.wav': 'dataurl' },
 });
 const source = outputFiles[0].text;
 

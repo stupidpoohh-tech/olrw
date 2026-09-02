@@ -13,6 +13,12 @@
  */
 import moss from '../assets/typewriter/moss.webp';
 import oak from '../assets/typewriter/oak.webp';
+import oakKey1 from '../assets/typewriter/oak-key-1.wav';
+import oakKey2 from '../assets/typewriter/oak-key-2.wav';
+import oakKey3 from '../assets/typewriter/oak-key-3.wav';
+import oakKey4 from '../assets/typewriter/oak-key-4.wav';
+import oakKey5 from '../assets/typewriter/oak-key-5.wav';
+import oakKey6 from '../assets/typewriter/oak-key-6.wav';
 import steel from '../assets/typewriter/steel.webp';
 import sugar from '../assets/typewriter/sugar.webp';
 
@@ -32,23 +38,37 @@ export interface KeyRow {
 /**
  * 타건음의 성격. 타자기마다 다르다.
  *
- * strike: 활자가 종이를 때리는 기계식 소리. 강철 · 참나무 · 이끼가 이 계열이다.
+ * strike: 활자가 종이를 때리는 기계식 소리. 강철이 이 계열이다.
  *   - ring: 강철만. 활자 뒤에 남는 금속의 잔향(작은 두 배음).
- *   - thump: 참나무만. 해머 뒤에 몸통이 울리는 저음.
+ *   - thump: 해머 뒤에 몸통이 울리는 저음.
  *   - extraLp: 예비. 필요할 때 노이즈 앞단에 얇게 걸어 top-end 를 흡수한다.
+ * sample: 참나무만. **진짜 나무 자판을 녹음한 소리다.** (D15)
  * bubble: 설탕(푸딩)만. 물방울이 톡 하고 터지는 소리 — sine 이 짧게 미끄러지고 반짝 하나.
  */
+export interface StrikeProfile {
+  readonly kind: 'strike';
+  readonly decay: number;
+  readonly hp: readonly [number, number];
+  readonly hammer: readonly [number, number];
+  readonly hammerTo: number;
+  readonly hammerGain: number;
+  readonly ring?: readonly [number, number];
+  readonly thump?: number;
+  readonly extraLp?: number;
+}
+
 export type KeyProfile =
+  | StrikeProfile
   | {
-      readonly kind: 'strike';
-      readonly decay: number;
-      readonly hp: readonly [number, number];
-      readonly hammer: readonly [number, number];
-      readonly hammerTo: number;
-      readonly hammerGain: number;
-      readonly ring?: readonly [number, number];
-      readonly thump?: number;
-      readonly extraLp?: number;
+      /**
+       * 녹음한 타건음. 여러 벌을 돌려 쓴다 — 한 벌만 쓰면 두 글자만 쳐도
+       * 기계가 복사한 소리라는 게 들린다.
+       */
+      readonly kind: 'sample';
+      readonly srcs: readonly string[];
+      readonly gain: number;
+      /** 소리를 못 받아왔을 때(오프라인·차단). 그래도 참나무는 참나무로 들린다. */
+      readonly fallback: StrikeProfile;
     }
   | {
       readonly kind: 'bubble';
@@ -121,12 +141,18 @@ export const TYPEWRITERS = [
       { y: 71.5, x0: 24.5, gap: 5.31 },
       { y: 78.5, x0: 26.5, gap: 5.33 },
     ],
-    // 나무는 낮고 둔탁하다. 해머 뒤에 55Hz 몸통 저음이 짧게 얹힌다 — 손끝에 닿는 무게.
+    // 나무는 낮고 둔탁하다. 여기만 합성이 아니라 **실제 녹음**이다 (D15) —
+    // 여섯 벌을 돌려 쓰고, 못 받아오면 아래 fallback 합성으로 떨어진다.
     voice: {
       key: {
-        kind: 'strike',
-        decay: 120, hp: [380, 700], hammer: [88, 110], hammerTo: 42, hammerGain: .15,
-        thump: 55,
+        kind: 'sample',
+        srcs: [oakKey1, oakKey2, oakKey3, oakKey4, oakKey5, oakKey6],
+        gain: .42,
+        fallback: {
+          kind: 'strike',
+          decay: 120, hp: [380, 700], hammer: [88, 110], hammerTo: 42, hammerGain: .15,
+          thump: 55,
+        },
       },
       bell: [1500, 2250],
       carriage: { from: 600, to: 220, thud: 62 },
