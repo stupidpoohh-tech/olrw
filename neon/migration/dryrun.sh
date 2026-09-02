@@ -6,7 +6,7 @@
 #
 # 하는 일
 #   1. 빈 클러스터에 harness + 0001_init.sql 을 올린다
-#   2. 네 사람의 profiles 를 가짜 uuid 로 만든다
+#   2. §1 에 적힌 사람 수만큼 profiles 를 가짜 uuid 로 만든다
 #   3. 0002_legacy.sql 의 §1 빈칸을 그 uuid 로 채워 실행한다
 #   4. 한 번 더 실행해 두 번 부어도 행이 늘지 않는지 확인한다
 #   5. 들어간 것을 전보함별·권별로 세어 보여 준다
@@ -21,20 +21,22 @@ LEGACY="$ROOT/neon/migration/0002_legacy.sql"
 
 [[ -f "$LEGACY" ]] || { echo "0002_legacy.sql 이 없습니다. node neon/migration/build.mjs 를 먼저 돌리세요."; exit 1; }
 
-# 가짜 uuid — 순서는 0002_legacy.sql §1 의 네 줄과 같다.
-FAKE=(
-  '11111111-1111-4111-8111-111111111111'
-  '22222222-2222-4222-8222-222222222222'
-  '33333333-3333-4333-8333-333333333333'
-  '44444444-4444-4444-8444-444444444444'
-)
-
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# §1 의 null 을 위에서부터 차례로 가짜 uuid 로 바꾼다.
-awk -v a="${FAKE[0]}" -v b="${FAKE[1]}" -v c="${FAKE[2]}" -v d="${FAKE[3]}" '
-  /^ +\(.*null\)/ { n++; sub(/null\)/, "'"'"'" (n==1?a:n==2?b:n==3?c:d) "'"'"')") }
+# §1 의 빈칸 수는 옮기기로 한 전보함에 따라 달라진다. 세어 보고 그만큼 만든다.
+N=$(grep -c "^ *(.*null)" "$LEGACY")
+[[ "$N" -ge 1 ]] || { echo "§1 에서 빈칸을 찾지 못했습니다 — 0002_legacy.sql 의 모양이 바뀌었습니다."; exit 1; }
+echo "§1 에 사람 ${N}명"
+
+# 가짜 uuid — 위에서부터 1111…, 2222… 로 채운다.
+awk '
+  function rep(c, n,   s, i) { s = ""; for (i = 0; i < n; i++) s = s c; return s }
+  /^ +\(.*null\)/ {
+    n++
+    u = rep(n,8) "-" rep(n,4) "-4" rep(n,3) "-8" rep(n,3) "-" rep(n,12)
+    sub(/null\)/, "\x27" u "\x27)")
+  }
   { print }
 ' "$LEGACY" > "$WORK/legacy.sql"
 
@@ -43,13 +45,14 @@ if grep -q "null)" "$WORK/legacy.sql"; then
   exit 1
 fi
 
-cat > "$WORK/profiles.sql" <<SQL
-insert into profiles (id, display_name) values
-  ('${FAKE[0]}', 'Dada'),
-  ('${FAKE[1]}', '클레어'),
-  ('${FAKE[2]}', '에피'),
-  ('${FAKE[3]}', '이유경');
-SQL
+# 그 uuid 로 프로필을 만든다. 이름은 아무거나 좋다 — 서가에 뜨는 발신인 이름은
+# 프로필이 아니라 제본 시점 스냅샷(volume_pages)에서 나온다.
+{
+  echo "insert into profiles (id, display_name) values"
+  grep -o "'[0-9a-f]\{8\}-[0-9a-f-]*'" "$WORK/legacy.sql" | sort -u |
+  awk '{ printf "%s  (%s, \x27사람%d\x27)", (NR>1 ? ",\n" : ""), $0, NR }'
+  echo ";"
+} > "$WORK/profiles.sql"
 
 cat > "$WORK/report.sql" <<'SQL'
 \pset border 2

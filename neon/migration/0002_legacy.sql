@@ -5,8 +5,12 @@
 --   생성: node neon/migration/build.mjs  ← 이 파일을 손으로 고치지 않는다
 --   절차: docs/DATA-MIGRATION.md
 --
---   전보함 4 · 참여 8 · 이번 권 전보 1
---   · 제본된 권 14 · 제본된 전보 117
+--   전보함 2 · 참여 5 · 이번 권 전보 1
+--   · 제본된 권 10 · 제본된 전보 109
+--
+-- 옮기지 않는 전보함 (원본에는 그대로 남아 있다):
+--   931614 — 2권 4통
+--   희뜌다 — 2권 4통
 --
 -- 이 파일은 테이블에 직접 INSERT 한다. 앱이 아니라 마이그레이션 안에서만 열리는
 -- 문이다 — 이관은 소유자·초대코드·created_at 을 원본 그대로 살려야 해서
@@ -31,7 +35,7 @@ begin;
 
 -- ═══ 1. 사람 짝짓기 — 여기만 채운다 ═══════════════════════════════════════
 --
--- 옛 파이어베이스 uid 와 새 Neon 계정 uuid 는 서로 남이다. 네 사람이 새 앱에서
+-- 옛 파이어베이스 uid 와 새 Neon 계정 uuid 는 서로 남이다. 아래 3명이 새 앱에서
 -- 먼저 가입해야 하고, uuid 는 Neon 콘솔 → Tables → profiles 에서 받는다.
 --
 -- null 을 '…' 로 바꾼다. 하나라도 비면 아래에서 멈추고 누가 빠졌는지 알려준다.
@@ -49,8 +53,7 @@ create table legacy_user (
 insert into legacy_user (legacy_uid, label, id) values
   ('2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'Dada (stupidpoohh@gmail.com)', null), -- ← 여기에 uuid
   ('7CBIzZaGFMNHS9kvWeC9GFXPeRu2', '클레어',                       null), -- ← 여기에 uuid
-  ('vzGQa9o4k9Nozrc4nQagIrMYKPt2', '에피',                         null), -- ← 여기에 uuid
-  ('mIse6qtQ4OepJAzf5fl50b7M78x1', '이유경',                       null)  -- ← 여기에 uuid
+  ('vzGQa9o4k9Nozrc4nQagIrMYKPt2', '에피',                         null)  -- ← 여기에 uuid
 ;
 
 do $$
@@ -66,7 +69,7 @@ begin
     from legacy_user u left join profiles p on p.id = u.id where p.id is null;
   if v_missing is not null then
     raise exception E'새 앱에 아직 프로필이 없습니다: %'
-      '\n       네 사람이 모두 새 앱에서 가입을 마쳐야 합니다.', v_missing;
+      '\n       위 3명이 모두 새 앱에서 가입을 마쳐야 합니다.', v_missing;
   end if;
 end $$;
 
@@ -79,9 +82,7 @@ insert into boxes (id, name, invite_code, owner_id, current_vol, sealed, created
 select t.id::uuid, t.name, t.code, u.id, t.vol, true, t.created_at::timestamptz
 from (values
   ('d548f9a7-aa87-65a7-362d-99ff8486a2de', 'Def.clar', '3LMA-5J28', '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 4,  '2026-07-21T06:04:38.961Z'), -- Def.clar
-  ('f20bd636-9b7a-f0dd-197a-2d3252f3f910', '예쁘다',   'VYSV-RY65', '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 10, '2026-05-26T00:37:56.992Z'), -- 예쁘다
-  ('f79155b6-5285-c728-f14f-182514cae871', '931614',   '35NW-VCT7', '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 4,  '2026-07-21T06:12:21.961Z'), -- 931614
-  ('217503a1-0675-fa6c-fbb7-2d694d8048f9', '희뜌다',   'Z3QL-S9WP', '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 3,  '2026-07-23T01:51:24.110Z')  -- 희뜌다
+  ('f20bd636-9b7a-f0dd-197a-2d3252f3f910', '예쁘다',   'VYSV-RY65', '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 10, '2026-05-26T00:37:56.992Z')  -- 예쁘다
 ) as t(id, name, code, legacy_uid, vol, created_at)
 join legacy_user u on u.legacy_uid = t.legacy_uid
 on conflict do nothing;
@@ -97,10 +98,7 @@ from (values
   ('d548f9a7-aa87-65a7-362d-99ff8486a2de', '7CBIzZaGFMNHS9kvWeC9GFXPeRu2', 'lilac',  'sugar', '2026-07-21T06:27:46.601Z'), -- Def.clar · 클레어 · 옛 violet
   ('d548f9a7-aa87-65a7-362d-99ff8486a2de', 'vzGQa9o4k9Nozrc4nQagIrMYKPt2', 'blush',  'moss',  '2026-07-21T09:10:25.951Z'), -- Def.clar · 에피 · 옛 green
   ('f20bd636-9b7a-f0dd-197a-2d3252f3f910', '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'powder', 'steel', '2026-07-21T06:07:15.290Z'), -- 예쁘다 · Dada · 옛 blue
-  ('f20bd636-9b7a-f0dd-197a-2d3252f3f910', 'vzGQa9o4k9Nozrc4nQagIrMYKPt2', 'blush',  'moss',  '2026-07-21T09:11:11.834Z'), -- 예쁘다 · 에피 · 옛 green
-  ('f79155b6-5285-c728-f14f-182514cae871', '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'powder', 'oak',   '2026-07-21T06:12:21.576Z'), -- 931614 · Dada · 옛 ochre
-  ('f79155b6-5285-c728-f14f-182514cae871', 'mIse6qtQ4OepJAzf5fl50b7M78x1', 'ivory',  'moss',  '2026-07-23T01:40:37.041Z'), -- 931614 · 이유경 · 옛 teal
-  ('217503a1-0675-fa6c-fbb7-2d694d8048f9', '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'powder', 'sugar', '2026-07-23T01:51:23.787Z')  -- 희뜌다 · Dada · 옛 rose
+  ('f20bd636-9b7a-f0dd-197a-2d3252f3f910', 'vzGQa9o4k9Nozrc4nQagIrMYKPt2', 'blush',  'moss',  '2026-07-21T09:11:11.834Z')  -- 예쁘다 · 에피 · 옛 green
 ) as t(box_id, legacy_uid, paper, type, joined_at)
 join legacy_user u on u.legacy_uid = t.legacy_uid
 on conflict do nothing;
@@ -134,20 +132,16 @@ select t.id::uuid, t.box_id::uuid, t.vol, t.title, 'color', t.cover,
        t.period_start::timestamptz, t.period_end::timestamptz, t.pages, true,
        t.closed_at::timestamptz, t.closed_at::timestamptz
 from (values
-  ('4a4df8c1-620c-c64f-47b9-c074bfe4016d', 'd548f9a7-aa87-65a7-362d-99ff8486a2de', 1, '',               'sage',     '2026-07-21 15:16:00+09', '2026-07-24 11:23:00+09', 14, '2026-07-25T05:32:36.062Z'), -- Def.clar VOL.1 · 옛 표지는 사진
-  ('e1501f61-6d9b-29cf-0e6e-f0fd9d3b0de9', 'd548f9a7-aa87-65a7-362d-99ff8486a2de', 2, '',               'sage',     '2026-07-25 18:59:00+09', '2026-07-31 16:28:00+09', 11, '2026-08-01T07:02:07.296Z'), -- Def.clar VOL.2 · 옛 표지는 사진
-  ('b641027e-01b4-596f-6819-352b6c16792c', 'd548f9a7-aa87-65a7-362d-99ff8486a2de', 3, '사진안찍엇다악', 'sage',     '2026-08-04 14:57:00+09', '2026-08-06 11:03:00+09', 9,  '2026-08-11T04:17:26.376Z'), -- Def.clar VOL.3 · 옛 표지는 사진
-  ('ca588ddc-ff87-f51e-8830-147d25675daf', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 3, '',               'sage',     '2026-05-26 13:40:00+09', '2026-06-03 14:45:00+09', 24, '2026-06-03T06:38:59.711Z'), -- 예쁘다 VOL.3
-  ('6c1aaa84-09a7-c8b3-9e52-1bc2efa239f1', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 4, '',               'sage',     '2026-06-10 07:04:00+09', '2026-06-12 09:33:00+09', 5,  '2026-06-12T00:33:39.095Z'), -- 예쁘다 VOL.4 · 옛 표지는 사진
-  ('a37acdf1-c112-743d-b437-bc1e75c7e464', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 5, '',               'sage',     '2026-06-12 14:59:00+09', '2026-06-18 14:57:00+09', 7,  '2026-06-18T09:32:31.774Z'), -- 예쁘다 VOL.5 · 옛 표지는 사진
-  ('7bd89b3d-dbb4-1de8-32b0-2b9d7c1a0292', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 6, '상수',           'sage',     '2026-06-19 22:39:00+09', '2026-06-29 17:54:00+09', 8,  '2026-06-30T09:11:10.933Z'), -- 예쁘다 VOL.6
-  ('30004ebd-b2b4-4fe9-6451-a7b25497bc7b', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 7, '',               'sage',     '2026-07-02 16:07:00+09', '2026-07-24 11:52:00+09', 20, '2026-07-25T04:49:28.099Z'), -- 예쁘다 VOL.7 · 옛 표지는 사진
-  ('dfdf6125-c8d9-3392-6801-be6875af9abb', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 8, '',               'sage',     '2026-07-27 16:34:00+09', '2026-08-30 20:43:00+09', 7,  '2026-08-30T11:44:04.779Z'), -- 예쁘다 VOL.8 · 옛 표지는 사진
-  ('2be80488-dad2-2725-af07-a86db221a002', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 9, '',               'sage',     '2026-08-31 17:05:00+09', '2026-09-01 17:29:00+09', 4,  '2026-09-01T12:10:13.540Z'), -- 예쁘다 VOL.9 · 옛 표지는 사진
-  ('bfb385d0-729a-8c32-7ea3-b4a1f67a7c5b', 'f79155b6-5285-c728-f14f-182514cae871', 1, '',               'charcoal', '2026-07-21 15:35:00+09', '2026-07-24 10:42:00+09', 3,  '2026-07-24T01:42:16.374Z'), -- 931614 VOL.1
-  ('af6b90d3-96c0-d1eb-a4d6-2faf9e139fd9', 'f79155b6-5285-c728-f14f-182514cae871', 3, '',               'navy',     '2026-08-04 12:20:00+09', '2026-08-04 12:20:00+09', 1,  '2026-08-04T03:20:34.188Z'), -- 931614 VOL.3
-  ('af84defb-74f6-7740-12dd-0139ff29d935', '217503a1-0675-fa6c-fbb7-2d694d8048f9', 1, '',               'charcoal', '2026-07-23 10:52:00+09', '2026-08-07 23:23:00+09', 2,  '2026-08-07T14:23:48.895Z'), -- 희뜌다 VOL.1
-  ('0990e17b-4d67-0465-6e34-1dc6c3b4f023', '217503a1-0675-fa6c-fbb7-2d694d8048f9', 2, '',               'charcoal', '2026-08-15 09:05:00+09', '2026-08-24 13:03:00+09', 2,  '2026-08-24T04:03:23.625Z')  -- 희뜌다 VOL.2
+  ('4a4df8c1-620c-c64f-47b9-c074bfe4016d', 'd548f9a7-aa87-65a7-362d-99ff8486a2de', 1, '',               'sage', '2026-07-21 15:16:00+09', '2026-07-24 11:23:00+09', 14, '2026-07-25T05:32:36.062Z'), -- Def.clar VOL.1 · 옛 표지는 사진
+  ('e1501f61-6d9b-29cf-0e6e-f0fd9d3b0de9', 'd548f9a7-aa87-65a7-362d-99ff8486a2de', 2, '',               'sage', '2026-07-25 18:59:00+09', '2026-07-31 16:28:00+09', 11, '2026-08-01T07:02:07.296Z'), -- Def.clar VOL.2 · 옛 표지는 사진
+  ('b641027e-01b4-596f-6819-352b6c16792c', 'd548f9a7-aa87-65a7-362d-99ff8486a2de', 3, '사진안찍엇다악', 'sage', '2026-08-04 14:57:00+09', '2026-08-06 11:03:00+09', 9,  '2026-08-11T04:17:26.376Z'), -- Def.clar VOL.3 · 옛 표지는 사진
+  ('ca588ddc-ff87-f51e-8830-147d25675daf', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 3, '',               'sage', '2026-05-26 13:40:00+09', '2026-06-03 14:45:00+09', 24, '2026-06-03T06:38:59.711Z'), -- 예쁘다 VOL.3
+  ('6c1aaa84-09a7-c8b3-9e52-1bc2efa239f1', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 4, '',               'sage', '2026-06-10 07:04:00+09', '2026-06-12 09:33:00+09', 5,  '2026-06-12T00:33:39.095Z'), -- 예쁘다 VOL.4 · 옛 표지는 사진
+  ('a37acdf1-c112-743d-b437-bc1e75c7e464', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 5, '',               'sage', '2026-06-12 14:59:00+09', '2026-06-18 14:57:00+09', 7,  '2026-06-18T09:32:31.774Z'), -- 예쁘다 VOL.5 · 옛 표지는 사진
+  ('7bd89b3d-dbb4-1de8-32b0-2b9d7c1a0292', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 6, '상수',           'sage', '2026-06-19 22:39:00+09', '2026-06-29 17:54:00+09', 8,  '2026-06-30T09:11:10.933Z'), -- 예쁘다 VOL.6
+  ('30004ebd-b2b4-4fe9-6451-a7b25497bc7b', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 7, '',               'sage', '2026-07-02 16:07:00+09', '2026-07-24 11:52:00+09', 20, '2026-07-25T04:49:28.099Z'), -- 예쁘다 VOL.7 · 옛 표지는 사진
+  ('dfdf6125-c8d9-3392-6801-be6875af9abb', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 8, '',               'sage', '2026-07-27 16:34:00+09', '2026-08-30 20:43:00+09', 7,  '2026-08-30T11:44:04.779Z'), -- 예쁘다 VOL.8 · 옛 표지는 사진
+  ('2be80488-dad2-2725-af07-a86db221a002', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910', 9, '',               'sage', '2026-08-31 17:05:00+09', '2026-09-01 17:29:00+09', 4,  '2026-09-01T12:10:13.540Z')  -- 예쁘다 VOL.9 · 옛 표지는 사진
 ) as t(id, box_id, vol, title, cover, period_start, period_end, pages, closed_at)
 on conflict do nothing;
 
@@ -345,46 +339,6 @@ from (values
 join legacy_user u on u.legacy_uid = t.legacy_uid
 on conflict do nothing;
 
--- ── 931614 VOL.1 · 3통 ─────────────────────────────────────────────────────
-insert into volume_pages (volume_id, ord, author_id, author_name, paper_color, body, sent_at)
-select t.volume_id::uuid, t.ord, u.id, t.author_name, t.paper, t.body, t.sent_at::timestamptz
-from (values
-  ('bfb385d0-729a-8c32-7ea3-b4a1f67a7c5b', 1, '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'Dada', 'powder', '와주셔서 감사합니둥', '2026-07-21 15:35:00+09'),
-  ('bfb385d0-729a-8c32-7ea3-b4a1f67a7c5b', 2, '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'Dada', 'powder', '서있는 사람들',       '2026-07-21 17:40:00+09'),
-  ('bfb385d0-729a-8c32-7ea3-b4a1f67a7c5b', 3, '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'Dada', 'powder', '예시',                '2026-07-24 10:42:00+09')
-) as t(volume_id, ord, legacy_uid, author_name, paper, body, sent_at)
-join legacy_user u on u.legacy_uid = t.legacy_uid
-on conflict do nothing;
-
--- ── 931614 VOL.3 · 1통 ─────────────────────────────────────────────────────
-insert into volume_pages (volume_id, ord, author_id, author_name, paper_color, body, sent_at)
-select t.volume_id::uuid, t.ord, u.id, t.author_name, t.paper, t.body, t.sent_at::timestamptz
-from (values
-  ('af6b90d3-96c0-d1eb-a4d6-2faf9e139fd9', 1, '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'Dada', 'powder', '류롤ㄹ츄류률', '2026-08-04 12:20:00+09')
-) as t(volume_id, ord, legacy_uid, author_name, paper, body, sent_at)
-join legacy_user u on u.legacy_uid = t.legacy_uid
-on conflict do nothing;
-
--- ── 희뜌다 VOL.1 · 2통 ─────────────────────────────────────────────────────
-insert into volume_pages (volume_id, ord, author_id, author_name, paper_color, body, sent_at)
-select t.volume_id::uuid, t.ord, u.id, t.author_name, t.paper, t.body, t.sent_at::timestamptz
-from (values
-  ('af84defb-74f6-7740-12dd-0139ff29d935', 1, '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'Dada', 'powder', '히히 웰컴 STOP', '2026-07-23 10:52:00+09'),
-  ('af84defb-74f6-7740-12dd-0139ff29d935', 2, '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'Dada', 'powder', '이말해야징',     '2026-08-07 23:23:00+09')
-) as t(volume_id, ord, legacy_uid, author_name, paper, body, sent_at)
-join legacy_user u on u.legacy_uid = t.legacy_uid
-on conflict do nothing;
-
--- ── 희뜌다 VOL.2 · 2통 ─────────────────────────────────────────────────────
-insert into volume_pages (volume_id, ord, author_id, author_name, paper_color, body, sent_at)
-select t.volume_id::uuid, t.ord, u.id, t.author_name, t.paper, t.body, t.sent_at::timestamptz
-from (values
-  ('0990e17b-4d67-0465-6e34-1dc6c3b4f023', 1, '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'Dada', 'powder', '뜌',   '2026-08-15 09:05:00+09'),
-  ('0990e17b-4d67-0465-6e34-1dc6c3b4f023', 2, '2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'Dada', 'powder', '잼얘', '2026-08-24 13:03:00+09')
-) as t(volume_id, ord, legacy_uid, author_name, paper, body, sent_at)
-join legacy_user u on u.legacy_uid = t.legacy_uid
-on conflict do nothing;
-
 -- ═══ 7. 결산 ══════════════════════════════════════════════════════════════
 -- 넣은 만큼 들어갔는지 세어 본다. 하나라도 모자라면 여기서 통째로 되돌린다.
 
@@ -404,8 +358,8 @@ begin
   raise notice '전보함 % · 참여 % · 이번 권 전보 % · 제본된 권 % · 제본된 전보 %',
     v_box, v_mem, v_tg, v_vol, v_page;
 
-  if v_box < 4 or v_mem < 8 or v_tg < 1 or v_vol < 14 or v_page < 117 then
-    raise exception '들어간 행이 모자랍니다. 기대: 전보함 4 · 참여 8 · 전보 1 · 권 14 · 쪽 117';
+  if v_box < 2 or v_mem < 5 or v_tg < 1 or v_vol < 10 or v_page < 109 then
+    raise exception '들어간 행이 모자랍니다. 기대: 전보함 2 · 참여 5 · 전보 1 · 권 10 · 쪽 109';
   end if;
 end $$;
 

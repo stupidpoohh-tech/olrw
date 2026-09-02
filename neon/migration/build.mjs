@@ -23,13 +23,35 @@ const OUT = join(HERE, '0002_legacy.sql');
    uuid 만 사람이 채운다. 나머지 대응은 옛 앱과 새 앱의 어휘가 달라 생긴 것이고,
    근거는 각 표 위에 적었다. */
 
-/** 옛 uid → 표시용 이름. 생성된 SQL 의 빈칸에 주석으로 붙는다. */
-const PEOPLE = [
-  ['2SNxPK1lsnQA29bKrQr2xMJrjYB2', 'Dada (stupidpoohh@gmail.com)'],
-  ['7CBIzZaGFMNHS9kvWeC9GFXPeRu2', '클레어'],
-  ['vzGQa9o4k9Nozrc4nQagIrMYKPt2', '에피'],
-  ['mIse6qtQ4OepJAzf5fl50b7M78x1', '이유경'],
+/**
+ * **옮길 전보함.** 여기 없는 것은 SQL 에 들어가지 않는다.
+ *
+ * 원본에는 넷이 있지만 둘만 옮기기로 했다 (사용자 결정). 나머지 둘은 지우는 것이
+ * 아니라 그대로 `legacy-export.json` 에 남아 있다 — 마음이 바뀌면 여기에 한 줄
+ * 더하고 다시 뽑으면 된다.
+ *
+ * roomId 로 적는다. 이름은 바뀔 수 있고 roomId 는 안 바뀐다.
+ */
+const BOXES = [
+  '1TFenEiLl8b4FjXNL1FS',   // Def.clar — 3권 34통 (Dada · 클레어 · 에피)
+  'Qw7SpKd7F7S5FiruAOtQ',   // 예쁘다   — 7권 75통 (Dada · 에피)
 ];
+
+/**
+ * 옛 uid → 표시용 이름. 생성된 SQL 의 빈칸에 주석으로 붙는다.
+ *
+ * 여기 다 적어 두되, SQL 에는 **고른 전보함에 실제로 등장하는 사람만** 나간다.
+ * 아무 데도 없는 사람의 uuid 를 받아 오라고 하면 그 자리에서 막힌다.
+ */
+const LABELS = {
+  '2SNxPK1lsnQA29bKrQr2xMJrjYB2': 'Dada (stupidpoohh@gmail.com)',
+  '7CBIzZaGFMNHS9kvWeC9GFXPeRu2': '클레어',
+  'vzGQa9o4k9Nozrc4nQagIrMYKPt2': '에피',
+  'mIse6qtQ4OepJAzf5fl50b7M78x1': '이유경',
+};
+
+/** 소유자가 비어 있는 전보함의 주인. `예쁘다` 가 그렇다. */
+const OWNER_FALLBACK = '2SNxPK1lsnQA29bKrQr2xMJrjYB2';
 
 /**
  * 더 옛 형식의 발신인. `예쁘다` VOL.3~7 은 uid 대신 'a' / 'b' 만 적혀 있고
@@ -107,6 +129,29 @@ const rule = (head, w = 74) => `${head} ${'─'.repeat(Math.max(3, w - width(hea
 
 const data = JSON.parse(readFileSync(SRC, 'utf8'));
 
+const chosen = BOXES.map((roomId) => {
+  const box = data.boxes.find((b) => b.roomId === roomId);
+  if (!box) throw new Error(`원본에 없는 전보함입니다: ${roomId}`);
+  return box;
+});
+const skipped = data.boxes.filter((b) => !BOXES.includes(b.roomId));
+
+/** 고른 전보함에 실제로 등장하는 사람만 모은다. 등장 순서를 지킨다. */
+const people = [];
+const meet = (uid) => {
+  const real = LEGACY_ALIAS[uid]?.uid ?? uid;
+  if (!people.includes(real)) people.push(real);
+};
+for (const box of chosen) {
+  meet(box.ownerUid || OWNER_FALLBACK);
+  Object.keys(box.members).forEach(meet);
+  box.telegrams.forEach((t) => meet(t.from));
+  box.volumes.forEach((v) => v.telegrams.forEach((p) => meet(p.from)));
+}
+for (const uid of people) {
+  if (!LABELS[uid]) throw new Error(`이름을 모르는 사람이 있습니다: ${uid}`);
+}
+
 const photoVolumes = [];
 const tally = { boxes: 0, members: 0, telegrams: 0, volumes: 0, pages: 0 };
 const boxRows = [];
@@ -115,10 +160,10 @@ const tgRows = [];
 const volRows = [];
 const pageBlocks = [];
 
-for (const box of data.boxes) {
+for (const box of chosen) {
   const boxId = uuidOf('box', box.roomId);
   // `예쁘다` 는 ownerUid 가 빈 문자열이다. Dada 를 소유자로 놓는다.
-  const owner = box.ownerUid || PEOPLE[0][0];
+  const owner = box.ownerUid || OWNER_FALLBACK;
   tally.boxes += 1;
 
   boxRows.push({
@@ -233,6 +278,14 @@ line('--');
 line(`--   전보함 ${tally.boxes} · 참여 ${tally.members} · 이번 권 전보 ${tally.telegrams}`);
 line(`--   · 제본된 권 ${tally.volumes} · 제본된 전보 ${tally.pages}`);
 line('--');
+if (skipped.length) {
+  line('-- 옮기지 않는 전보함 (원본에는 그대로 남아 있다):');
+  for (const b of skipped) {
+    const n = b.volumes.reduce((a, v) => a + v.telegrams.length, 0);
+    line(`--   ${b.name} — ${b.volumes.length}권 ${n}통`);
+  }
+  line('--');
+}
 line('-- 이 파일은 테이블에 직접 INSERT 한다. 앱이 아니라 마이그레이션 안에서만 열리는');
 line('-- 문이다 — 이관은 소유자·초대코드·created_at 을 원본 그대로 살려야 해서');
 line('-- create_box / join_box 로는 할 수 없다. 앱 코드에는 이 문을 열지 않는다.');
@@ -250,7 +303,7 @@ line();
 
 head('1. 사람 짝짓기 — 여기만 채운다');
 line('--');
-line('-- 옛 파이어베이스 uid 와 새 Neon 계정 uuid 는 서로 남이다. 네 사람이 새 앱에서');
+line(`-- 옛 파이어베이스 uid 와 새 Neon 계정 uuid 는 서로 남이다. 아래 ${people.length}명이 새 앱에서`);
 line('-- 먼저 가입해야 하고, uuid 는 Neon 콘솔 → Tables → profiles 에서 받는다.');
 line('--');
 line("-- null 을 '…' 로 바꾼다. 하나라도 비면 아래에서 멈추고 누가 빠졌는지 알려준다.");
@@ -267,8 +320,8 @@ line(');');
 line();
 line('insert into legacy_user (legacy_uid, label, id) values');
 emit(
-  PEOPLE.map(([uid, label]) => ({
-    cells: [`  (${q(uid)},`, `${q(label)},`, 'null)'],
+  people.map((uid) => ({
+    cells: [`  (${q(uid)},`, `${q(LABELS[uid])},`, 'null)'],
     note: '-- ← 여기에 uuid',
   })),
 ).forEach(line);
@@ -287,7 +340,7 @@ line("  select string_agg(u.label, ', ') into v_missing");
 line('    from legacy_user u left join profiles p on p.id = u.id where p.id is null;');
 line('  if v_missing is not null then');
 line("    raise exception E'새 앱에 아직 프로필이 없습니다: %'");
-line("      '\\n       네 사람이 모두 새 앱에서 가입을 마쳐야 합니다.', v_missing;");
+line(`      '\\n       위 ${people.length}명이 모두 새 앱에서 가입을 마쳐야 합니다.', v_missing;`);
 line('  end if;');
 line('end $$;');
 line();
