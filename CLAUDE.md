@@ -148,6 +148,8 @@ pnpm typecheck
 neon/tests/run.sh              # RLS · 서버 함수 (Neon·Docker 불필요)
 neon/tests/concurrency_test.sh # 동시 마감
 
+pnpm auth:check                    # 세션이 제때 알려지는가 (Neon 불필요)
+
 pnpm build && pnpm preview &       # 아래 셋은 미리보기 서버가 떠 있어야 한다
 pnpm ui:check                      # 인증 · 온보딩 · 전환 바
 pnpm ui:check4                     # 타전실 · 수신함(봉투) · 서가
@@ -157,6 +159,10 @@ pnpm tint:check                    # 타자기 네 대가 한눈에 다른지 (D
 ```
 
 **스키마를 건드리면 테스트를 돌린다.** 봉인·제본·소유자 이양은 눈으로 봐서는 깨진 걸 모른다.
+
+**`ui:check*` 는 전부 memoryStore 로 돈다** (환경변수가 없으니). Neon 어댑터 쪽 계약이
+깨져도 하나도 실패하지 않는다 — 로그인해도 화면이 안 바뀌던 버그가 그렇게 통과했다.
+`src/lib/neonStore.ts` 를 건드리면 `pnpm auth:check` 를 함께 돌린다.
 
 ## 커밋
 
