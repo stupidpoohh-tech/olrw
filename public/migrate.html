@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>옛 전보함 꺼내오기 — OLRW</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400&family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans+KR:wght@300;400;500&display=swap">
+<style>
+  :root{
+    --bg:#fff; --surface:#F5F4F0; --ink:#1A1D18; --mid:#4E5449; --soft:#8A8F82;
+    --rule:#E3E1D8; --accent:#3F6A48; --accent-soft:rgba(63,106,72,.09);
+    --warn:#8A5A2B; --warn-soft:rgba(138,90,43,.09);
+    --body:'IBM Plex Sans KR','Apple SD Gothic Neo',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+    --display:'Fraunces','Iowan Old Style',Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+       font-size:15px;line-height:1.7;word-break:keep-all;-webkit-font-smoothing:antialiased}
+  .sheet{max-width:620px;margin:0 auto;padding:40px 20px 80px}
+  .mast{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+        padding-bottom:9px;border-bottom:1.5px solid var(--ink);margin-bottom:28px}
+  .mast b{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:400}
+  .mast span{font-family:var(--mono);font-size:11px;color:var(--soft)}
+  h1{font-family:var(--display);font-weight:300;font-size:34px;line-height:1.1;
+     letter-spacing:-.02em;margin:0 0 14px}
+  .lede{color:var(--mid);margin:0 0 26px}
+  .lede b{color:var(--ink);font-weight:500}
+
+  fieldset{border:1px solid var(--rule);border-radius:5px;padding:18px;margin:0 0 14px}
+  legend{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+         color:var(--soft);padding:0 7px}
+  label{display:block;font-size:12.5px;color:var(--mid);margin:0 0 5px}
+  input{width:100%;padding:11px 12px;font-family:inherit;font-size:16px;color:var(--ink);
+        background:var(--bg);border:1px solid var(--rule);border-radius:4px;margin-bottom:12px}
+  input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+  button{font-family:inherit;font-size:14px;cursor:pointer;border:none;border-radius:999px;
+         padding:11px 22px;background:var(--ink);color:var(--bg)}
+  button:disabled{opacity:.45;cursor:default}
+  button.ghost{background:none;color:var(--mid);border:1px solid var(--rule)}
+  .row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+
+  .msg{margin:12px 0 0;font-size:13px;padding:11px 13px;border-radius:4px;display:none}
+  .msg.show{display:block}
+  .msg.err{background:var(--warn-soft);color:var(--warn)}
+  .msg.ok{background:var(--accent-soft);color:var(--accent)}
+
+  #out{display:none}
+  #out.show{display:block}
+  .tally{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:1px;
+         background:var(--rule);border:1px solid var(--rule);border-radius:4px;overflow:hidden;margin-bottom:14px}
+  .tally div{background:var(--bg);padding:12px 13px}
+  .tally dt{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--soft)}
+  .tally dd{margin:2px 0 0;font-family:var(--mono);font-size:19px;font-variant-numeric:tabular-nums}
+  textarea{width:100%;height:210px;font-family:var(--mono);font-size:11px;line-height:1.5;
+           padding:11px;border:1px solid var(--rule);border-radius:4px;background:var(--surface);
+           color:var(--mid);resize:vertical}
+  .note{margin-top:28px;padding-top:16px;border-top:1px solid var(--rule);
+        font-size:12.5px;color:var(--soft);line-height:1.75}
+  .note b{color:var(--mid);font-weight:500}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="mast"><b>OLRW · 이관 도구</b><span>임시 페이지</span></div>
+
+  <h1>옛 전보함을<br>꺼내옵니다</h1>
+  <p class="lede">
+    예전 파이어베이스 전보함에 있는 전보를 한 덩어리로 꺼냅니다.
+    <b>여기서는 읽기만 합니다</b> — 옛 데이터는 그대로 두고, 꺼낸 것을 새 전보함에
+    옮겨 심는 일은 그다음입니다.
+  </p>
+
+  <fieldset>
+    <legend>옛 계정으로 로그인</legend>
+    <label for="email">이메일</label>
+    <input id="email" type="email" autocomplete="username" placeholder="예전에 쓰던 이메일">
+    <label for="pw">비밀번호</label>
+    <input id="pw" type="password" autocomplete="current-password">
+    <div class="row">
+      <button id="go">꺼내오기</button>
+      <button id="out-btn" class="ghost" style="display:none">로그아웃</button>
+    </div>
+    <p class="msg" id="msg"></p>
+  </fieldset>
+
+  <div id="out">
+    <dl class="tally">
+      <div><dt>전보함</dt><dd id="nBox">0</dd></div>
+      <div><dt>전보</dt><dd id="nTg">0</dd></div>
+      <div><dt>제본된 권</dt><dd id="nVol">0</dd></div>
+      <div><dt>참여자</dt><dd id="nMem">0</dd></div>
+    </dl>
+    <div class="row" style="margin-bottom:10px">
+      <button id="copy">전부 복사</button>
+      <span style="font-size:12.5px;color:var(--mid)">복사한 뒤 대화창에 붙여넣어 주세요.</span>
+    </div>
+    <textarea id="json" readonly spellcheck="false"></textarea>
+  </div>
+
+  <div class="note">
+    <p><b>비밀번호는 어디로도 안 갑니다.</b> 이 페이지가 파이어베이스에 직접 넘기고,
+    우리 쪽으로는 아무것도 보내지 않습니다. 꺼낸 내용은 위 칸에 그대로 보이고,
+    복사해서 넘기실지는 직접 정하시면 됩니다.</p>
+    <p><b>이 페이지는 옮기고 나면 지웁니다.</b> 이관이 끝나면 리포에서 삭제합니다.</p>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+// 옛 프로젝트의 웹 config. 공개 전제의 값이고, 이미 리포(docs/reference/index.html)에 있다.
+firebase.initializeApp({
+  apiKey: "AIzaSyAwyYKMsdpIm-Vhf-zp-5SSISwxc4tG24E",
+  authDomain: "our-love-rightly-written.firebaseapp.com",
+  projectId: "our-love-rightly-written",
+  storageBucket: "our-love-rightly-written.firebasestorage.app",
+  messagingSenderId: "450715176844",
+  appId: "1:450715176844:web:dc24c7d4b93a07743a90a9",
+});
+const auth = firebase.auth(), db = firebase.firestore();
+
+const $ = (id) => document.getElementById(id);
+const say = (text, kind) => {
+  const m = $('msg');
+  m.textContent = text;
+  m.className = 'msg show ' + (kind || '');
+};
+
+/**
+ * 옛 구조 (docs/reference/store.jsx)
+ *   users/{uid}                  → displayName, email, roomIds[]
+ *   rooms/{roomId}               → name, coupleCode, ownerUid, memberUids[],
+ *                                  members{uid:{name,paper,type,joinedAt}}, currentVol, createdAt
+ *   rooms/{roomId}/telegrams/{id}→ from, text, time, vol
+ *   rooms/{roomId}/volumes/{id}  → vol, title, period, count, cover, closedAt, telegrams[]
+ *
+ * 잠금 규칙은 "그 방의 멤버" 에게 읽기를 허용한다. 그래서 로그인한 사람이 속한
+ * 방만 나온다 — 넷이 같은 방이면 누가 해도 같은 결과다.
+ */
+async function pull(uid) {
+  const me = await db.collection('users').doc(uid).get();
+  const user = me.exists ? me.data() : {};
+  const roomIds = Array.isArray(user.roomIds) ? user.roomIds : [];
+
+  const boxes = [];
+  for (const rid of roomIds) {
+    const rs = await db.collection('rooms').doc(rid).get();
+    if (!rs.exists) continue;
+    const room = rs.data();
+    const tg = await db.collection('rooms').doc(rid).collection('telegrams').orderBy('time').get();
+    const vol = await db.collection('rooms').doc(rid).collection('volumes').orderBy('vol').get();
+    boxes.push({
+      roomId: rid,
+      name: room.name || '',
+      coupleCode: room.coupleCode || '',
+      ownerUid: room.ownerUid || '',
+      currentVol: room.currentVol || 1,
+      createdAt: room.createdAt || null,
+      members: room.members || {},
+      telegrams: tg.docs.map((d) => ({ id: d.id, ...d.data() })),
+      volumes: vol.docs.map((d) => ({ id: d.id, ...d.data() })),
+    });
+  }
+  return {
+    exportedAt: new Date().toISOString(),
+    me: { uid, email: user.email || auth.currentUser.email || '', displayName: user.displayName || '' },
+    boxes,
+  };
+}
+
+$('go').addEventListener('click', async () => {
+  const email = $('email').value.trim().toLowerCase(), pw = $('pw').value;
+  if (!email || !pw) { say('이메일과 비밀번호를 넣어 주세요.', 'err'); return; }
+  $('go').disabled = true;
+  say('로그인하는 중…');
+  try {
+    const cred = await auth.signInWithEmailAndPassword(email, pw);
+    say('전보를 꺼내는 중…');
+    const data = await pull(cred.user.uid);
+
+    const tg = data.boxes.reduce((n, b) => n + b.telegrams.length, 0);
+    const vl = data.boxes.reduce((n, b) => n + b.volumes.length, 0);
+    const mem = new Set();
+    data.boxes.forEach((b) => Object.keys(b.members).forEach((u) => mem.add(u)));
+    $('nBox').textContent = data.boxes.length;
+    $('nTg').textContent = tg;
+    $('nVol').textContent = vl;
+    $('nMem').textContent = mem.size;
+    $('json').value = JSON.stringify(data, null, 1);
+    $('out').classList.add('show');
+    $('out-btn').style.display = '';
+    say(data.boxes.length ? '꺼냈습니다. 아래 내용을 복사해 주세요.' : '이 계정에 속한 전보함이 없습니다.',
+        data.boxes.length ? 'ok' : 'err');
+  } catch (e) {
+    const code = (e && e.code) || '';
+    say(
+      code.includes('wrong-password') || code.includes('invalid-credential')
+        ? '이메일 또는 비밀번호가 맞지 않습니다.'
+        : code.includes('user-not-found') ? '그런 계정이 없습니다.'
+        : code.includes('permission-denied') ? '읽을 권한이 없습니다. 규칙이 막고 있는지 확인이 필요합니다.'
+        : ('꺼내지 못했습니다. ' + (e && e.message ? e.message : '')),
+      'err');
+  } finally {
+    $('go').disabled = false;
+  }
+});
+
+$('copy').addEventListener('click', async () => {
+  const t = $('json');
+  try { await navigator.clipboard.writeText(t.value); say('복사했습니다.', 'ok'); }
+  catch { t.select(); say('직접 선택해서 복사해 주세요.', 'err'); }
+});
+
+$('out-btn').addEventListener('click', async () => {
+  await auth.signOut();
+  $('json').value = ''; $('out').classList.remove('show');
+  $('out-btn').style.display = 'none'; $('pw').value = '';
+  say('로그아웃했습니다.', 'ok');
+});
+</script>
+</body>
+</html>
