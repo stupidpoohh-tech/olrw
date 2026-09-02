@@ -87,16 +87,28 @@ profiles   boxes   box_members   telegrams   volumes   volume_pages   join_attem
 Supabase 와 달리 **키가 없습니다.** 주소 하나면 됩니다 — 권한은 전적으로 로그인한
 사람의 JWT 와 RLS 가 정합니다.
 
-대시보드 → **Connect**. 거기 접속 문자열에서 **호스트**와 **데이터베이스 이름**만
-뽑아 `https://` 를 붙입니다.
+> **대시보드 첫 화면의 `Connect` 창은 쓰지 않습니다.** 거기 있는
+> `postgresql://…` 는 서버가 Postgres 에 직접 붙을 때 쓰는 접속 문자열이고,
+> 비밀번호가 들어 있습니다. 브라우저는 다른 주소로 말합니다. 게다가 그 창은 기본이
+> **연결 풀러**(`-pooler` 가 붙은 호스트)라 그대로 고치면 틀린 주소가 나옵니다.
+
+왼쪽 **Data API** 페이지를 엽니다. 거기 **Data API URL** 이 그대로 적혀 있습니다.
+거기서 **두 군데만 지웁니다.**
 
 ```
-접속 문자열   postgresql://user:pw@ep-xxxx-yyyy.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
-넣을 값       https://ep-xxxx-yyyy.c-2.ap-southeast-1.aws.neon.tech/neondb
+적혀 있는 것   https://ep-xxxx-yyyy.apirest.c-4.ap-southeast-1.aws.neon.tech/neondb/rest/v1
+                                  ~~~~~~~~                                          ~~~~~~~~
+넣을 값        https://ep-xxxx-yyyy.c-4.ap-southeast-1.aws.neon.tech/neondb
 ```
 
-사용자 이름도, 비밀번호도, `?sslmode=...` 도 떼어냅니다. SDK 가 이 주소 하나에서
-인증 주소(`…neonauth…/auth`)와 Data API 주소(`…apirest…/rest/v1`)를 각각 유도합니다.
+| 지울 것 | 왜 |
+|---|---|
+| 호스트 중간의 `.apirest` | SDK 가 알아서 붙입니다 |
+| 맨 끝의 `/rest/v1` | 이것도 SDK 가 붙입니다 |
+
+리전(`c-4.ap-southeast-1.aws.neon.tech`)과 데이터베이스 이름(`/neondb`)은 그대로 둡니다.
+SDK 가 이 주소 하나에서 인증 주소(`…neonauth…/auth`)와 Data API 주소
+(`…apirest…/rest/v1`)를 각각 다시 만들어 씁니다.
 
 리포 루트에 `.env.local` 을 만듭니다.
 
@@ -105,7 +117,7 @@ cp .env.example .env.local
 ```
 
 ```
-VITE_NEON_URL=https://ep-xxxx-yyyy.c-2.ap-southeast-1.aws.neon.tech/neondb
+VITE_NEON_URL=https://ep-xxxx-yyyy.c-4.ap-southeast-1.aws.neon.tech/neondb
 ```
 
 `.env.local` 은 `.gitignore` 에 들어 있어 커밋되지 않습니다.
@@ -120,8 +132,8 @@ VITE_NEON_URL=https://ep-xxxx-yyyy.c-2.ap-southeast-1.aws.neon.tech/neondb
 
 대시보드 → **Settings** → **Auth**
 
-- **Sign-up with Email** — 켭니다
-- **Verify at Sign-up** — 메일 확인을 요구할지 정합니다
+- **Sign-up with Email** — 켭니다. 이메일+비밀번호 가입을 여는 스위치입니다
+- **Verify at Sign-up** — **끄시길 권합니다** (아래 참고)
 
 | | 켜 두면 | 꺼 두면 |
 |---|---|---|
@@ -246,6 +258,7 @@ https://olrw-8pt.pages.dev
 | `권한이 없습니다. 다시 로그인해 주세요` | RLS 가 막고 있다 (정상 동작) | 로그아웃 후 다시 로그인 |
 | 전보함이 만들어지지 않는다 | 서버 함수가 없다 | SQL Editor 에서 `select create_box('t','ivory','steel',true);` 를 실행해 오류를 봅니다 |
 | 배포 주소에서만 전부 실패한다 | CORS 출처에 그 주소가 없다 | §8 맨 아래 |
+| 주소를 넣었는데 아무것도 안 붙는다 | `Connect` 창의 `-pooler` 주소를 고쳐 썼다 | §4 — **Data API** 페이지의 주소를 씁니다 |
 | 사진 표지 버튼이 안 보인다 | 정상입니다 | §6 |
 
 ## 스키마를 고칠 때
