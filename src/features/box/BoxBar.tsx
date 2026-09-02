@@ -82,7 +82,6 @@ export function BoxBar({ box, boxes, onSwitch, onAddBox, onSettings, onChanged }
             aria-expanded={open} aria-haspopup="menu">
             <span className="boxbar-dot" style={{ background: myTint }} />
             <span className="boxbar-name">{box.name || '이름 없는 전보함'}</span>
-            {box.sealed && <span className="boxbar-seal" title="봉인함">봉인</span>}
             <span className={`boxbar-chev ${open ? 'up' : ''}`} aria-hidden="true">▾</span>
           </button>
         )}
@@ -94,7 +93,10 @@ export function BoxBar({ box, boxes, onSwitch, onAddBox, onSettings, onChanged }
         </button>
       </div>
 
+      {/* 두 번째 줄은 전부 '상태' 다 — 봉인 여부와 누가 있는지. 이름·초대 코드와
+          성격이 다르므로 줄을 나누고 크기와 색을 한 단계 낮춘다. */}
       <div className="boxbar-members">
+        {box.sealed && <span className="boxbar-seal" title="봉인함">봉인</span>}
         {box.members.map((m) => (
           <span className="boxbar-member" key={m.userId}>
             <span className="boxbar-swatch" style={paperSwatchStyle(m.paper)} />

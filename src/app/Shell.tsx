@@ -137,7 +137,9 @@ export function Shell() {
     <div className={`app ${tab === 'transmit' ? 'app-fixed' : ''}`}>
       {session.isGuest && <GuestTour />}
       <header className="header">
-        <h1 className="brand display">Our love, rightly written</h1>
+        {/* 줄바꿈은 의도다. 폭에 맡기면 'Our love, rightly / written' 으로 끊겨
+            제호가 문장처럼 읽힌다. 짧은 화면에서는 CSS 가 이 br 을 지운다. */}
+        <h1 className="brand display">Our love, <br />rightly written</h1>
         <div className="header-tools">
           <MuteButton />
           <button className="link" onClick={() => void store.signOut()}>로그아웃</button>

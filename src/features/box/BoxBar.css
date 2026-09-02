@@ -1,41 +1,53 @@
+/* ── 전보함 줄 ─────────────────────────────────────────────────────────────
+   성격이 다른 세 가지가 여기 모인다. 알약과 테두리로 나누면 상자 세 개가 되므로
+   줄과 여백으로만 나눈다.
+     1줄 — 어디에 있는가 : 전보함 이름 (읽을 것) · 초대 코드 (건넬 것)
+     2줄 — 어떤 상태인가 : 봉인 · 참여자 · 남은 자리
+   이 아래의 가로줄 하나가 머리글 묶음 전체를 닫는다. */
 .boxbar { position: relative; border-bottom: 1px solid var(--divider);
-  padding: 10px 0 9px; margin-bottom: 14px; }
+  padding: var(--gap-lg) 0; }
 
-.boxbar-main { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.boxbar-main { display: flex; align-items: baseline; gap: 12px; justify-content: space-between; }
 
-.boxbar-switch { display: flex; align-items: center; gap: 7px; min-width: 0; flex: 1;
-  padding: 3px 0; }
-.boxbar-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-.boxbar-name { font-size: 14.5px; color: var(--ink); overflow: hidden;
-  text-overflow: ellipsis; white-space: nowrap; }
-.boxbar-seal { font-size: 10px; color: var(--ink-faded); border: 1px solid var(--divider);
-  border-radius: var(--radius-btn); padding: 1px 7px; flex: none; }
-.boxbar-chev { font-size: 10px; color: var(--ink-faded); flex: none;
+.boxbar-switch { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;
+  padding: 0; }
+.boxbar-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.boxbar-name { font-size: 15px; color: var(--ink); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; letter-spacing: -.008em; }
+.boxbar-chev { font-size: 9px; color: var(--ink-light); flex: none;
   transition: transform var(--t-fast) var(--ease); }
 .boxbar-chev.up { transform: rotate(180deg); }
 
-.boxbar-rename { flex: 1; border: 1px solid var(--ink-light); background: var(--surface);
-  border-radius: var(--radius-btn); padding: 4px 10px; font-size: 14.5px; color: var(--ink); }
+.boxbar-rename { flex: 1; border: none; border-bottom: 1px solid var(--ink-light);
+  background: none; border-radius: 0; padding: 0 0 2px; font-size: 15px; color: var(--ink); }
+.boxbar-rename:focus { outline: none; border-bottom-color: var(--ink); }
 
-.boxbar-code { display: flex; align-items: center; gap: 6px; flex: none;
-  font-size: 12px; letter-spacing: .1em; color: var(--ink-mid);
-  border: 1px solid var(--divider); border-radius: var(--radius-btn); padding: 4px 10px;
-  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
-.boxbar-code:hover { border-color: var(--ink-light); color: var(--ink); }
-.boxbar-code.copied { border-color: var(--ink); color: var(--ink); }
-.boxbar-code-ico { font-size: 10px; color: var(--ink-faded); }
+/* 초대 코드는 건네는 값이다 — 읽히되 이름과 겨루지 않게 각인처럼 눕힌다.
+   테두리를 두르면 이름 옆에 알약이 하나 더 생긴다. */
+.boxbar-code { display: inline-flex; align-items: center; gap: 7px; flex: none;
+  font-size: 12px; letter-spacing: .16em; color: var(--ink-faded);
+  border: none; padding: 0;
+  transition: color var(--t-fast) var(--ease); }
+.boxbar-code:hover { color: var(--ink-mid); }
+.boxbar-code.copied { color: var(--ink); }
+.boxbar-code-ico { font-size: 10px; letter-spacing: 0; color: var(--ink-faint); }
+.boxbar-code.copied .boxbar-code-ico { color: var(--ink); }
 
-.boxbar-members { display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 8px; }
-.boxbar-member { display: inline-flex; align-items: center; gap: 5px;
+.boxbar-members { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px;
+  margin-top: var(--gap-md); }
+.boxbar-member { display: inline-flex; align-items: center; gap: 6px;
   font-size: 11.5px; color: var(--ink-mid); }
-.boxbar-swatch { width: 11px; height: 11px; border-radius: 1px;
+/* 봉인은 상태이지 사람이 아니다. 얇은 세로줄로 사람 목록과 갈라 둔다. */
+.boxbar-seal { font-size: 11px; color: var(--ink-faded); letter-spacing: .06em;
+  padding-right: 10px; border-right: 1px solid var(--divider); }
+.boxbar-swatch { width: 10px; height: 10px; border-radius: 1px;
   border-style: solid; border-width: 1px; }
-.boxbar-tag { font-size: 9.5px; color: var(--ink-faded); letter-spacing: .04em; }
+.boxbar-tag { font-size: 9.5px; color: var(--ink-light); letter-spacing: .04em; }
 .boxbar-tag::before { content: '('; }
 .boxbar-tag::after { content: ')'; }
 .boxbar-open { font-size: 11px; color: var(--ink-light); }
 
-.boxbar-error { font-size: 12px; color: var(--accent); margin: 8px 0 0; }
+.boxbar-error { font-size: 12px; color: var(--accent); margin: var(--gap-md) 0 0; }
 
 .boxbar-menu { position: absolute; top: 100%; left: 0; z-index: 20; min-width: 250px;
   background: var(--surface); border: 1px solid var(--divider);
