@@ -77,6 +77,17 @@ const data = await page.evaluate(async ({ soundsSrc, twSrc, shapeNames }) => {
     for (let f = 100; f <= 6000; f += 100) { const m = mag(r, f); num += f * m; den += m; }
     return den ? num / den : 0;
   };
+  /**
+   * 스펙트럼 평탄도 — 소리결. 음(音)이면 몇 군데만 솟아 0 에 가깝고,
+   * 잡음이면 고르게 퍼져 1 에 가깝다. 물방울과 풀을 가르는 것은 이 값이다.
+   */
+  const flatness = (r) => {
+    let logSum = 0, sum = 0, n = 0;
+    for (let f = 100; f <= 6000; f += 100) {
+      const m = mag(r, f) + 1e-12; logSum += Math.log(m); sum += m; n++;
+    }
+    return Math.exp(logSum / n) / (sum / n);
+  };
 
   const steel = tw.TYPEWRITERS[0].voice;
   const shape = {};
@@ -95,9 +106,12 @@ const data = await page.evaluate(async ({ soundsSrc, twSrc, shapeNames }) => {
     const probes = {};
     for (const f of [1500, 1900, 2200, 2900, 2250, 2850, 3300, 4350]) probes[f] = mag(bellR, f);
     const keyR = await render(snd.SYNTHS.playKey(t.voice));
+    let fl = 0;
+    for (let i = 0; i < 5; i++) fl += flatness(await render(snd.SYNTHS.playKey(t.voice)));
     voices.push({ id: t.id, label: t.label, kind: t.voice.key.kind,
                   keyDur: +(keyR.last / RATE).toFixed(3),
                   keyRise: +(keyR.rise / RATE * 1000).toFixed(1),
+                  keyFlat: +(fl / 5).toFixed(3),
                   keyCentroid: Math.round(c / 5),
                   bell: t.voice.bell, bellMag: probes, off: mag(bellR, 700) });
   }
@@ -123,7 +137,7 @@ for (const [name, spec] of Object.entries(SHAPE)) {
 
 console.log('\n━━━ 네 대가 다르게 들리는가 (D9) ━━━\n');
 for (const v of data.voices) {
-  console.log(`  ${v.id.padEnd(6)} ${v.label.padEnd(4)} [${v.kind.padEnd(6)}] 무게중심 ${String(v.keyCentroid).padStart(4)}Hz  어택 ${String(v.keyRise).padStart(5)}ms  벨 ${v.bell.join(' / ')}Hz`);
+  console.log(`  ${v.id.padEnd(6)} ${v.label.padEnd(4)} [${v.kind.padEnd(6)}] 무게중심 ${String(v.keyCentroid).padStart(4)}Hz  어택 ${String(v.keyRise).padStart(5)}ms  소리결 ${v.keyFlat.toFixed(2)}  벨 ${v.bell.join(' / ')}Hz`);
 }
 console.log('');
 
@@ -163,8 +177,22 @@ const allCentroids = [by.steel, by.oak, by.sugar, by.moss];
 const spread = Math.max(...allCentroids) - Math.min(...allCentroids);
 ok('네 대의 무게중심이 충분히 벌어져 있다', spread >= 500,
    `가장 높은 것과 낮은 것의 차이 ${spread}Hz`);
-ok('네 대 모두 서로 다른 무게중심을 가진다',
-   new Set(allCentroids).size === 4, `[${allCentroids.join(', ')}]`);
+
+// D9 의 약속 — 네 대가 **서로** 다르게 들린다. 한 가지 잣대로는 못 가른다.
+// 설탕(물방울)과 이끼(풀)는 무게중심이 130Hz 밖에 안 떨어져 있어도 하나는
+// 음이고 하나는 잡음이다. 그래서 셋 중 하나만 벌어져 있으면 통과로 본다:
+//   음색(무게중심 250Hz) · 어택(3배) · 소리결(평탄도 2배)
+const flat = Object.fromEntries(data.voices.map((v) => [v.id, v.keyFlat]));
+const apart = (a, b, f, k) => Math.max(f[a], f[b]) >= Math.min(f[a], f[b]) * k;
+const ids = ['steel', 'oak', 'sugar', 'moss'];
+const pairs = ids.flatMap((a, i) => ids.slice(i + 1).map((b) => [a, b]));
+const tooClose = pairs.filter(([a, b]) =>
+  Math.abs(by[a] - by[b]) < 250 && !apart(a, b, rise, 3) && !apart(a, b, flat, 2));
+ok('두 대가 같은 소리로 들리는 짝이 없다', tooClose.length === 0,
+   tooClose.length
+     ? tooClose.map(([a, b]) => `${a}↔${b}`).join(' ')
+     : pairs.map(([a, b]) =>
+         `${a}↔${b} ${Math.abs(by[a] - by[b])}Hz`).join(' · '));
 
 console.log(failed ? `\n━━━ 실패 ${failed}건 ━━━` : '\n━━━ 전부 통과 ━━━');
 process.exit(failed ? 1 : 0);
