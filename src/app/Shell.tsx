@@ -142,7 +142,12 @@ export function Shell() {
         <h1 className="brand display">Our love, <br />rightly written</h1>
         <div className="header-tools">
           <MuteButton />
-          <button className="link" onClick={() => void store.signOut()}>로그아웃</button>
+          {/* 체험 중에 '로그아웃' 이 서 있으면 로그인한 것처럼 읽힌다. 나갈 문은
+              푸터의 '로그인 · 계정 만들기' 이고, 여기는 지금 무엇으로 보고 있는지만
+              말한다. 로그인한 사람에게는 그대로 나가는 문이다. */}
+          {session.isGuest
+            ? <span className="header-state">체험 모드</span>
+            : <button className="link" onClick={() => void store.signOut()}>로그아웃</button>}
         </div>
       </header>
 
