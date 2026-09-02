@@ -1,7 +1,7 @@
 /**
  * 타자기 사운드 — docs/PORTING-SPEC.md §6-1
  *
- * 전부 코드로 합성한다. 오디오 에셋 0바이트.
+ * 참나무 타건음 하나만 실제 녹음이고(16.7KB, D15), 나머지는 전부 코드로 합성한다.
  *
  * **타전실 소리(타건·벨·캐리지)는 타자기마다 다르다.** 강철은 밝고 날카롭게,
  * 참나무는 낮고 둔탁하게 — 화면을 보지 않아도 어느 전보함인지 안다. (docs/decisions.md D9)
@@ -13,7 +13,8 @@
  * 귀로만 확인하면 조용히 망가진 걸 모른다. (tools/sound-check.mjs)
  */
 
-import type { Voice } from '../design/typewriters';
+import { TYPEWRITERS, type Voice } from '../design/typewriters';
+import { keyBuffer, preloadKeySamples } from './keySamples';
 import { isMuted } from './mute';
 
 /** 합성 한 조각. t0 는 컨텍스트 기준 시작 시각. */
@@ -33,8 +34,9 @@ function noise(ctx: BaseAudioContext, seconds: number, amp: (t: number) => numbe
 /**
  * 타건음 — 타자기 종류에 따라 갈라진다. (docs/decisions.md D9)
  *
- * strike (강철·참나무·이끼): 40ms 화이트노이즈 → highpass + triangle 해머. 옵션으로
- *   금속 링(강철), 몸통 저음(참나무), 흡음 lowpass(이끼)를 얹는다.
+ * strike (강철): 40ms 화이트노이즈 → highpass + triangle 해머. 옵션으로
+ *   금속 링, 몸통 저음, 흡음 lowpass 를 얹는다.
+ * sample (참나무): 녹음한 나무 자판. 여섯 벌을 돌려 쓴다. (D15)
  * bubble (설탕/푸딩): 활자가 아니라 물방울이다. sine 이 짧게 미끄러지며 떨어지고
  *   그 위에 짧은 반짝(tinkle)이 하나 붙는다. 다른 셋과 성격이 아예 다르다.
  */
@@ -42,13 +44,45 @@ export const key = (v: Voice): Synth => {
   switch (v.key.kind) {
     case 'bubble':  return bubble(v.key);
     case 'droplet': return droplet(v.key);
+    case 'sample':  return sample(v.key);
     default:        return strike(v.key);
   }
 };
 
 type Strike = Extract<Voice['key'], { kind: 'strike' }>;
+type Sample = Extract<Voice['key'], { kind: 'sample' }>;
 type Bubble = Extract<Voice['key'], { kind: 'bubble' }>;
 type Droplet = Extract<Voice['key'], { kind: 'droplet' }>;
+
+/** 방금 낸 벌. 연달아 같은 것이 나오면 복사한 소리로 들린다. */
+let lastSample = -1;
+
+/**
+ * 녹음한 타건음 — 참나무. (D15)
+ *
+ * 같은 파일을 그대로 반복하면 두 글자만 쳐도 기계가 붙여넣은 소리라는 게 들린다.
+ * 그래서 ① 여섯 벌 중 **직전과 다른 것**을 고르고 ② 재생 속도를 ±3% 흔들고
+ * ③ 크기를 ±8% 흔든다. 사람의 손가락은 같은 세기로 두 번 누르지 못한다.
+ *
+ * 아직 안 받아왔으면 합성으로 떨어진다. 첫 글자 한두 개가 합성일 수는 있어도
+ * 소리가 안 나는 일은 없다.
+ */
+const sample = (k: Sample): Synth => (ctx, out, t0) => {
+  let i = Math.floor(Math.random() * k.srcs.length);
+  if (k.srcs.length > 1 && i === lastSample) i = (i + 1) % k.srcs.length;
+  const src = k.srcs[i];
+  const buf = src === undefined ? null : keyBuffer(ctx, src);
+  if (!buf) { strike(k.fallback)(ctx, out, t0); return; }
+  lastSample = i;
+
+  const node = ctx.createBufferSource();
+  node.buffer = buf;
+  node.playbackRate.value = 0.97 + Math.random() * 0.06;
+  const g = ctx.createGain();
+  g.gain.value = k.gain * (0.92 + Math.random() * 0.16);
+  node.connect(g).connect(out);
+  node.start(t0);
+};
 
 const strike = (k: Strike): Synth => (ctx, out, t0) => {
   const src = ctx.createBufferSource();
@@ -292,6 +326,14 @@ function play(synth: Synth): void {
     synth(c, c.destination, c.currentTime);
   } catch { /* 어떤 이유로든 소리는 조용히 포기한다 */ }
 }
+
+/**
+ * 녹음을 미리 받아 둔다. 모듈이 뜨는 순간 시작하므로 첫 타건보다 한참 앞선다.
+ * 16.7KB 라 켜지자마자 받아도 부담이 없고, 실패해도 조용히 합성으로 떨어진다.
+ */
+export const keySamplesReady: Promise<void> = Promise.all(
+  TYPEWRITERS.flatMap((t) => (t.voice.key.kind === 'sample' ? [preloadKeySamples(t.voice.key.srcs)] : [])),
+).then(() => undefined);
 
 export const sounds: TypeSound = {
   playKey: (v) => play(key(v)),

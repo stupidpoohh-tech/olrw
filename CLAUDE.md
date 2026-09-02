@@ -43,7 +43,8 @@
 - 배포: 정적 호스트 아무거나 (Cloudflare Pages · Vercel). GitHub 연동 자동배포.
   Production = `main`, 그 밖의 가지 = 미리보기. 서버 코드 없음 — `dist/` 만 올라간다
 - 스타일: CSS 변수 + 모듈 CSS. UI 프레임워크 없음, 애니메이션 라이브러리 없음
-- 사운드: Web Audio API 합성. 오디오 에셋 0바이트 — 이끼도 합성 물방울이다
+- 사운드: Web Audio API 합성. 참나무 타건음만 실제 녹음(16.7KB)이다 — 나무는
+  합성으로 나무처럼 안 들렸다 (D15). 나머지 셋은 에셋 0바이트
 
 ## 디렉터리
 
@@ -69,6 +70,7 @@ src/
     guestStore.ts    체험 모드를 브라우저 안에 가둔다 (D14)
     memoryStore.ts   테스트용
     sounds.ts     §6-1
+    keySamples.ts 참나무 녹음을 동기로 뜯어 쓴다 (D15)
     neon.ts       클라이언트
 neon/migrations/       번호순 SQL. 손으로 DB 만지지 않는다
 docs/PORTING-SPEC.md
