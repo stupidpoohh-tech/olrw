@@ -1,0 +1,271 @@
+{
+  "_note": "옛 Firestore 에서 /migrate.html 로 꺼낸 원본. 표지 base64(data:image/jpeg;...)는 용량 때문에 \"photo\" 로 바꿨다 — Neon 에 Storage 가 없어 어차피 색 표지만 쓴다 (D14). 그 밖의 값은 원본 그대로.",
+  "exportedAt": "2026-09-02T02:35:46.411Z",
+  "me": { "uid": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "email": "stupidpoohh@gmail.com", "displayName": "Dada" },
+  "boxes": [
+    {
+      "roomId": "1TFenEiLl8b4FjXNL1FS",
+      "name": "Def.clar",
+      "coupleCode": "3LMA-5J28",
+      "ownerUid": "2SNxPK1lsnQA29bKrQr2xMJrjYB2",
+      "currentVol": 4,
+      "createdAt": "2026-07-21T06:04:38.961Z",
+      "members": {
+        "2SNxPK1lsnQA29bKrQr2xMJrjYB2": { "name": "Dada",  "paper": "powder", "type": "violet", "joinedAt": "2026-07-21T06:04:38.560Z" },
+        "7CBIzZaGFMNHS9kvWeC9GFXPeRu2": { "name": "클레어", "paper": "lilac",  "type": "violet", "joinedAt": "2026-07-21T06:27:46.601Z" },
+        "vzGQa9o4k9Nozrc4nQagIrMYKPt2": { "name": "에피",   "paper": "blush",  "type": "green",  "joinedAt": "2026-07-21T09:10:25.951Z" }
+      },
+      "telegrams": [
+        { "id": "wahPIemb1Rh7Z56rp0sf", "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "text": "방향성 여럿모임?", "time": "2026-08-11T04:17:52.197Z", "vol": 4 }
+      ],
+      "volumes": [
+        {
+          "id": "vol-1", "vol": 1, "label": "VOL.1", "title": "VOL.1", "count": 14,
+          "period": "2026.07.21 — 2026.07.24", "closedAt": "2026-07-25T05:32:36.062Z", "cover": "photo",
+          "telegrams": [
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "머리 쓰다듬어줘", "time": "07.21 15:16" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "홍대 전주 확장 고민", "time": "07.21 15:16" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "티켓발행 애니메이션 밤티야?", "time": "07.21 15:16" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "전체 미감 색상 UI/UX 같은거", "time": "07.21 15:16" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "티켓 미감에 힘을 써주이소", "time": "07.21 15:16" },
+            { "from": "7CBIzZaGFMNHS9kvWeC9GFXPeRu2", "name": "클레어", "paper": "lilac", "text": "이렇게 쓰면 등록되는 건가?", "time": "07.21 15:30" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "서비스 정식 배포 언제부터?", "time": "07.21 15:36" },
+            { "from": "vzGQa9o4k9Nozrc4nQagIrMYKPt2", "name": "에피", "paper": "blush", "text": "completed!", "time": "07.21 18:10" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "배포 전 전체 점검 url 등", "time": "07.22 10:17" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "큐레이션 추천의 기회", "time": "07.22 10:24" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "사우나 웰니스", "time": "07.23 18:09" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "만트...라 프리티걸프리티걸..", "time": "07.23 18:15" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "있으면 좋은거 말고 없으면 불편한거", "time": "07.24 11:23" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "불편해서 에라이만들자", "time": "07.24 11:23" }
+          ]
+        },
+        {
+          "id": "vol-2", "vol": 2, "label": "VOL.2", "title": "VOL.2", "count": 11,
+          "period": "2026.07.25 — 2026.07.31", "closedAt": "2026-08-01T07:02:07.296Z", "cover": "photo",
+          "telegrams": [
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "쩝쩝박사 논문디펜스 쩝쩝력", "time": "07.25 18:59" },
+            { "from": "7CBIzZaGFMNHS9kvWeC9GFXPeRu2", "name": "클레어", "paper": "lilac", "text": "한강 수영장은 어땠나요 공주들", "time": "07.25 22:48" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "대학교 메타버스느낌", "time": "07.27 08:17" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "브랜드컬러 시스템", "time": "07.31 13:03" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "티켓 애니메이션", "time": "07.31 13:03" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "티켓 디자인", "time": "07.31 13:03" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "홈화면 팝업 담기배치 UI", "time": "07.31 13:03" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "카카오연동정책", "time": "07.31 13:03" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "회원정책 점검, 프로세스 ui/ux 해보며 재점검, 배포전최종점검", "time": "07.31 13:09" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "마케팅 기획", "time": "07.31 13:09" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "일단 머리쓰다듬어주고시작", "time": "07.31 16:28" }
+          ]
+        },
+        {
+          "id": "vol-3", "vol": 3, "label": "VOL.3", "title": "사진안찍엇다악", "count": 9,
+          "period": "2026.08.04 — 2026.08.06", "closedAt": "2026-08-11T04:17:26.376Z", "cover": "photo",
+          "telegrams": [
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "큐레이션!!!", "time": "08.04 14:57" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "티켓 같이", "time": "08.04 16:20" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "팝업 특전..?", "time": "08.04 16:20" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "마케팅 고민", "time": "08.04 16:20" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "배포!!!!!", "time": "08.04 16:21" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "머리쓰다듬!!!!", "time": "08.04 16:22" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "그전에 전체점검", "time": "08.04 16:22" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "냠냠대학:단과대, 입학, 학사시스템, 선서, 입학장, 강의, 과제, 밈콘텐츠 바이럴, 웹기획", "time": "08.04 16:31" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "티켓애니메이션", "time": "08.06 11:03" }
+          ]
+        }
+      ]
+    },
+    {
+      "roomId": "Qw7SpKd7F7S5FiruAOtQ",
+      "name": "예쁘다",
+      "coupleCode": "VYSV-RY65",
+      "ownerUid": "",
+      "currentVol": 10,
+      "createdAt": "2026-05-26T00:37:56.992Z",
+      "members": {
+        "2SNxPK1lsnQA29bKrQr2xMJrjYB2": { "name": "Dada", "paper": "powder", "type": "blue",  "joinedAt": "2026-07-21T06:07:15.290Z" },
+        "vzGQa9o4k9Nozrc4nQagIrMYKPt2": { "name": "에피",  "paper": "blush",  "type": "green", "joinedAt": "2026-07-21T09:11:11.834Z" }
+      },
+      "telegrams": [],
+      "volumes": [
+        {
+          "id": "vol-3", "vol": 3, "label": "VOL.3", "title": "VOL.3", "count": 24,
+          "period": "2026.05.26 — 2026.06.03", "closedAt": "2026-06-03T06:38:59.711Z", "cover": "sage",
+          "_legacyAuthors": "from 이 'a'(=Dada) / 'b'(=에피) 인 옛 형식",
+          "telegrams": [
+            { "from": "a", "text": "보이나요 나의 마음이 헤헤 STOP", "time": "05.26 13:40" },
+            { "from": "b", "text": "돼따!!!", "time": "05.26 15:06" },
+            { "from": "a", "text": "펜팔 N의 경험 STOP", "time": "05.26 16:37" },
+            { "from": "a", "text": "황소 미역국 STOP", "time": "05.26 16:38" },
+            { "from": "a", "text": "담배꽁초를 버리지 맙시다 그리고 맡은 바 일하기 STOP", "time": "05.26 16:39" },
+            { "from": "a", "text": "주하 자전거 STOP", "time": "05.26 16:39" },
+            { "from": "a", "text": "melting down. STOP", "time": "05.26 16:44" },
+            { "from": "a", "text": "John Parkhain STOP", "time": "05.26 16:45" },
+            { "from": "a", "text": "나를 브랜딩/기획? 서사? 경험? 콘텐츠? STOP", "time": "05.26 16:45" },
+            { "from": "a", "text": "상품은 3D STOP", "time": "05.26 16:46" },
+            { "from": "b", "text": "하도싶은 말을 저으면 되는 걸가요", "time": "05.26 18:55" },
+            { "from": "a", "text": "쥭지고않꼬 모동숲 STOP", "time": "05.27 10:36" },
+            { "from": "a", "text": "카카오마켓 1위, 언젠가 STOP", "time": "05.28 13:31" },
+            { "from": "a", "text": "셋로그 삼총사 STOP", "time": "05.28 13:31" },
+            { "from": "a", "text": "About 이직 엉덩이 STOP", "time": "06.01 14:05" },
+            { "from": "a", "text": "법적 대응 재수 STOP", "time": "06.01 14:33" },
+            { "from": "a", "text": "모동숲 주민 STOP", "time": "06.01 14:33" },
+            { "from": "a", "text": "퇴직금이라는 것 STOP", "time": "06.01 14:50" },
+            { "from": "a", "text": "알림 0 vs 몇천 STOP", "time": "06.01 15:56" },
+            { "from": "a", "text": "찌질의 역사 STOP", "time": "06.01 16:07" },
+            { "from": "a", "text": "4출.. STOP", "time": "06.01 19:38" },
+            { "from": "a", "text": "토스미니앱?! STOP", "time": "06.02 14:06" },
+            { "from": "a", "text": "당신과 함께라면 지옥불이라도 STOP", "time": "06.02 16:34" },
+            { "from": "b", "text": "다 들어줄게!!! 기다려!!!", "time": "06.03 14:45" }
+          ]
+        },
+        {
+          "id": "vol-4", "vol": 4, "label": "VOL.4", "title": "VOL.4", "count": 5,
+          "period": "2026.06.10 — 2026.06.12", "closedAt": "2026-06-12T00:33:39.095Z", "cover": "photo",
+          "telegrams": [
+            { "from": "a", "text": "성세천하2!!!!!", "time": "06.10 07:04" },
+            { "from": "a", "text": "다다리스닝 헤헤", "time": "06.10 09:02" },
+            { "from": "a", "text": "유갱 하닉!!! 과 찌찔이", "time": "06.10 15:42" },
+            { "from": "a", "text": "취업선물", "time": "06.10 21:45" },
+            { "from": "a", "text": "현지아프지마", "time": "06.12 09:33" }
+          ]
+        },
+        {
+          "id": "vol-5", "vol": 5, "label": "VOL.5", "title": "VOL.5", "count": 7,
+          "period": "2026.06.12 — 2026.06.18", "closedAt": "2026-06-18T09:32:31.774Z", "cover": "photo",
+          "telegrams": [
+            { "from": "a", "text": "대충 안됐다", "time": "06.12 14:59" },
+            { "from": "a", "text": "조선의4번타자", "time": "06.16 13:05" },
+            { "from": "a", "text": "공모전헌터", "time": "06.17 12:37" },
+            { "from": "a", "text": "연차 단한개", "time": "06.17 12:37" },
+            { "from": "a", "text": "다슬기즙", "time": "06.17 12:37" },
+            { "from": "a", "text": "사주야호", "time": "06.17 17:53" },
+            { "from": "a", "text": "낭만백수달", "time": "06.18 14:57" }
+          ]
+        },
+        {
+          "id": "vol-6", "vol": 6, "label": "VOL.6", "title": "상수", "count": 8,
+          "period": "2026.06.19 — 2026.06.29", "closedAt": "2026-06-30T09:11:10.933Z", "cover": "sage",
+          "telegrams": [
+            { "from": "a", "text": "쮸베룩", "time": "06.19 22:39" },
+            { "from": "a", "text": "밤티 흑흑", "time": "06.22 17:19" },
+            { "from": "a", "text": "After all, what matters is the people who are with us.", "time": "06.22 20:08" },
+            { "from": "a", "text": "반성도 버릇이다", "time": "06.24 11:00" },
+            { "from": "a", "text": "인바디 인종", "time": "06.24 11:00" },
+            { "from": "a", "text": "서있는사람", "time": "06.26 12:45" },
+            { "from": "a", "text": "스피또 계약직", "time": "06.29 15:00" },
+            { "from": "a", "text": "pms", "time": "06.29 17:54" }
+          ]
+        },
+        {
+          "id": "vol-7", "vol": 7, "label": "VOL.7", "title": "VOL.7", "count": 20,
+          "period": "2026.07.02 — 2026.07.24", "closedAt": "2026-07-25T04:49:28.099Z", "cover": "photo",
+          "telegrams": [
+            { "from": "a", "name": "?", "paper": "ivory", "text": "성과와 근태", "time": "07.02 16:07" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "내향수달", "time": "07.02 16:07" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "또괜히청하마실뻔", "time": "07.03 08:49" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "욕심없음", "time": "07.03 08:49" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "리모트워크", "time": "07.03 16:40" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "투덜의 농도", "time": "07.06 16:42" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "AI랑 바보랑 규제권장", "time": "07.06 17:43" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "상하이 치안 -9", "time": "07.20 14:50" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "현대미술 민화 카디비, 어떤 대척점", "time": "07.20 14:50" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "여수외래해충은 죽은척한다", "time": "07.20 14:50" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "결제화면 12월 어떻게?", "time": "07.20 14:50" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "제네시스 찐따의사 선크림에도 불구하고 유전", "time": "07.20 14:50" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "영관 말타는 사진", "time": "07.20 15:10" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "정정: 다색캥거루잎벌레", "time": "07.20 17:35" },
+            { "from": "a", "name": "?", "paper": "ivory", "text": "에고", "time": "07.21 13:20" },
+            { "from": "vzGQa9o4k9Nozrc4nQagIrMYKPt2", "name": "에피", "paper": "blush", "text": "나 근데 잼얘있어", "time": "07.21 18:11" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "스팀..입사의꿈", "time": "07.23 18:14" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "명예영국인..", "time": "07.23 20:57" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "범성 분한 눈물", "time": "07.24 10:34" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "웹팩스 팔자 넣자", "time": "07.24 11:52" }
+          ]
+        },
+        {
+          "id": "vol-8", "vol": 8, "label": "VOL.8", "title": "VOL.8", "count": 7,
+          "period": "2026.07.27 — 2026.08.30", "closedAt": "2026-08-30T11:44:04.779Z", "cover": "photo",
+          "telegrams": [
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "관리화면 취미... 재심사...", "time": "07.27 16:34" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "두명의 재심사.. 반전의 반전같이..", "time": "07.28 11:09" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "신도리코의 젠몬 크리에이터와 진짜 젠몬크리에이터.. 자문..", "time": "07.31 13:04" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "바보캘린더를 보면 천재가 된거같아 헤헤", "time": "08.07 11:59" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "언제나 안믿음", "time": "08.11 14:52" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "내 꿈: 사우나 마련", "time": "08.19 09:16" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "모난돌", "time": "08.30 20:43" }
+          ]
+        },
+        {
+          "id": "vol-9", "vol": 9, "label": "VOL.9", "title": "VOL.9", "count": 4,
+          "period": "2026.08.31 — 2026.09.01", "closedAt": "2026-09-01T12:10:13.540Z", "cover": "photo",
+          "telegrams": [
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "팀장님이 막아줄거다", "time": "08.31 17:05" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "준혁이의 배경화면..", "time": "09.01 16:42" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "36살 럽스타", "time": "09.01 16:42" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "영상 서너개", "time": "09.01 17:29" }
+          ]
+        }
+      ]
+    },
+    {
+      "roomId": "n3igWzI66g0Q21mkeeD1",
+      "name": "931614",
+      "coupleCode": "35NW-VCT7",
+      "ownerUid": "2SNxPK1lsnQA29bKrQr2xMJrjYB2",
+      "currentVol": 4,
+      "createdAt": "2026-07-21T06:12:21.961Z",
+      "members": {
+        "2SNxPK1lsnQA29bKrQr2xMJrjYB2": { "name": "Dada",   "paper": "powder", "type": "ochre", "joinedAt": "2026-07-21T06:12:21.576Z" },
+        "mIse6qtQ4OepJAzf5fl50b7M78x1": { "name": "이유경", "paper": "ivory",  "type": "teal",  "joinedAt": "2026-07-23T01:40:37.041Z" }
+      },
+      "telegrams": [],
+      "volumes": [
+        {
+          "id": "vol-1", "vol": 1, "label": "VOL.1", "title": "VOL.1", "count": 3,
+          "period": "2026.07.21 — 2026.07.24", "closedAt": "2026-07-24T01:42:16.374Z", "cover": "charcoal",
+          "telegrams": [
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "와주셔서 감사합니둥", "time": "07.21 15:35" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "서있는 사람들", "time": "07.21 17:40" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "예시", "time": "07.24 10:42" }
+          ]
+        },
+        {
+          "id": "vol-3", "vol": 3, "label": "VOL.3", "title": "VOL.3", "count": 1,
+          "period": "2026.08.04 — 2026.08.04", "closedAt": "2026-08-04T03:20:34.188Z", "cover": "navy",
+          "telegrams": [
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "류롤ㄹ츄류률", "time": "08.04 12:20" }
+          ]
+        }
+      ]
+    },
+    {
+      "roomId": "zKRaKM4An28ipR03JE9p",
+      "name": "희뜌다",
+      "coupleCode": "Z3QL-S9WP",
+      "ownerUid": "2SNxPK1lsnQA29bKrQr2xMJrjYB2",
+      "currentVol": 3,
+      "createdAt": "2026-07-23T01:51:24.110Z",
+      "members": {
+        "2SNxPK1lsnQA29bKrQr2xMJrjYB2": { "name": "Dada", "paper": "powder", "type": "rose", "joinedAt": "2026-07-23T01:51:23.787Z" }
+      },
+      "telegrams": [],
+      "volumes": [
+        {
+          "id": "vol-1", "vol": 1, "label": "VOL.1", "title": "VOL.1", "count": 2,
+          "period": "2026.07.23 — 2026.08.07", "closedAt": "2026-08-07T14:23:48.895Z", "cover": "charcoal",
+          "telegrams": [
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "히히 웰컴 STOP", "time": "07.23 10:52" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "이말해야징", "time": "08.07 23:23" }
+          ]
+        },
+        {
+          "id": "vol-2", "vol": 2, "label": "VOL.2", "title": "VOL.2", "count": 2,
+          "period": "2026.08.15 — 2026.08.24", "closedAt": "2026-08-24T04:03:23.625Z", "cover": "charcoal",
+          "telegrams": [
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "뜌", "time": "08.15 09:05" },
+            { "from": "2SNxPK1lsnQA29bKrQr2xMJrjYB2", "name": "Dada", "paper": "powder", "text": "잼얘", "time": "08.24 13:03" }
+          ]
+        }
+      ]
+    }
+  ]
+}
