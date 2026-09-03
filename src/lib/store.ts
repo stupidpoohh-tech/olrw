@@ -37,6 +37,25 @@ export interface BoxStore {
   signUp(input: { email: string; password: string; displayName: string }):
     Promise<{ needsConfirmation: boolean }>;
   signIn(input: { email: string; password: string }): Promise<void>;
+
+  /**
+   * 비밀번호 재설정 메일을 보낸다.
+   *
+   * **없는 계정이어도 성공으로 답한다.** 여기서 "그런 계정 없습니다" 를 알려 주면
+   * 누구나 이메일을 넣어 보며 가입 여부를 캘 수 있다. 화면 문구도 그에 맞춘다 —
+   * "보냈습니다" 라고만 하고 계정이 있었는지는 말하지 않는다.
+   *
+   * `redirectTo` 는 메일 링크가 돌아올 주소다. 로그인 서버의 신뢰 도메인 목록에
+   * 있어야 한다 (docs/SETUP.md §5-1).
+   */
+  requestPasswordReset(email: string): Promise<void>;
+
+  /**
+   * 메일 링크로 받아 온 토큰으로 비밀번호를 새로 정한다.
+   * 성공해도 로그인되지 않는다 — 새 비밀번호로 다시 들어가야 한다.
+   */
+  resetPassword(input: { token: string; newPassword: string }): Promise<void>;
+
   /**
    * 계정 없이 열어 보기.
    *

@@ -53,6 +53,10 @@ export function withGuestMode(real: BoxStore, guest: BoxStore): BoxStore {
       await real.signIn(input);
       await dropGuest();
     },
+    // 재설정은 정식 계정의 일이다. 체험 세션에는 비밀번호가 없다.
+    requestPasswordReset: (email) => real.requestPasswordReset(email),
+    resetPassword: (input) => real.resetPassword(input),
+
     enterAsGuest: () => guest.enterAsGuest(),
     async signOut() {
       // 어느 쪽으로 들어왔든 나가면 둘 다 비운다.
