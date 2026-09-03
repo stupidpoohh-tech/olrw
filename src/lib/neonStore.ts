@@ -11,6 +11,11 @@ const asType = (v: unknown): TypeId => (isTypeId(v) ? v : 'steel');
 const asBucket = (v: unknown): LengthBucket =>
   v === 'medium' || v === 'long' ? v : 'short';
 
+/** 어댑터가 "세션을 못 찾았다" 고 할 때. 가입 직후에 이 오류가 자주 온다. */
+const isSessionMissing = (e: unknown): boolean =>
+  typeof e === 'object' && e !== null
+  && (e as { code?: unknown }).code === 'session_not_found';
+
 interface MemberRow {
   user_id: string;
   paper_color: string;
@@ -126,14 +131,35 @@ export function createNeonStore(client?: ReturnType<typeof neon>): BoxStore {
     async signUp({ email, password, displayName }) {
       const name = displayName.trim().slice(0, 12);
       if (!name) throw new Error('표시 이름을 입력해 주세요.');
+      const mail = email.trim().toLowerCase();
+
       // displayName 은 Better Auth 의 name 으로 실려 가고, 첫 hydrate 에서
       // ensure_profile() 이 그것으로 프로필을 세운다.
-      const { data, error } = await db.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: { data: { displayName: name } },
+      let data;
+      const made = await db.auth.signUp({
+        email: mail, password, options: { data: { displayName: name } },
       });
-      if (error) throw error;
+
+      if (made.error && isSessionMissing(made.error)) {
+        /**
+         * **계정은 만들어졌는데 세션만 못 받아온 경우.**
+         *
+         * 어댑터는 사용자를 만든 직후 getSession() 을 부르고, 그게 비어 오면
+         * session_not_found 를 던진다. 그대로 흘려보내면 화면에는 "가입 실패" 가
+         * 뜨지만 계정은 남는다 — 다시 가입하면 "이미 가입된 이메일" 이고,
+         * 로그인 탭에서도 못 들어가면 어느 문도 열리지 않는 막다른 길이 된다.
+         *
+         * 그래서 방금 만든 그 자격으로 바로 로그인해 본다. 되면 가입이 성공한
+         * 것이고, 안 되면 원래 오류를 그대로 보여준다.
+         */
+        const back = await db.auth.signInWithPassword({ email: mail, password });
+        if (back.error) throw made.error;
+        data = back.data;
+      } else {
+        if (made.error) throw made.error;
+        data = made.data;
+      }
+
       // 메일 확인을 요구하도록 켜 두면 사용자만 생기고 세션은 없다.
       await apply(data.session ?? null);
       return { needsConfirmation: data.session === null };
