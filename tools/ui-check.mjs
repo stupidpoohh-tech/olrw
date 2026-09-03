@@ -205,6 +205,72 @@ await page.waitForSelector('.boxbar', { timeout: 5000 });
 ok('새로고침해도 보던 전보함으로 돌아온다',
    (await page.textContent('.boxbar-name')).trim() === '주말 전보함');
 
+console.log('\n━━━ 비밀번호 재설정 ━━━');
+// 메일을 보낼 곳이 없으므로 memoryStore 가 링크를 콘솔에 적는다. 그걸 따라간다.
+{
+  const links = [];
+  page.on('console', (m) => {
+    const t = m.text();
+    if (t.includes('재설정 링크:')) links.push(t.slice(t.indexOf('http')));
+  });
+
+  // 앞 절에서 재이로 로그인한 채다. 나가서 로그인 화면을 연다.
+  await page.click('.link:has-text("로그아웃")');
+  await page.waitForSelector('.maker-auth-link', { timeout: 8000 });
+  while (await page.$('.tour-next')) { await page.click('.tour-next'); await page.waitForTimeout(200); }
+  await page.click('.maker-auth-link:has-text("로그인")');
+  await page.waitForSelector('.auth', { timeout: 8000 });
+  await page.click('.auth-forgot');
+  ok('로그인에서 재설정으로 갈 수 있다', await page.isVisible('.auth-forgot'));
+  ok('재설정 화면에는 비밀번호 칸이 없다',
+     (await page.$$('.auth-input[type=password]')).length === 0);
+  await page.fill('.auth-input[type=email]', 'b@olrw.test');
+  await page.click('.auth-submit');
+  await page.waitForSelector('text=메일함을', { timeout: 8000 });
+  ok('보내고 나면 메일함을 확인하라고 한다', true);
+
+  await page.waitForTimeout(300);
+  ok('재설정 링크가 만들어진다', links.length === 1, links[0] ?? '없음');
+
+  // 링크를 따라가 새 비밀번호를 정한다
+  await page.goto(links[0], { waitUntil: 'networkidle' });
+  await page.waitForSelector('.auth', { timeout: 8000 });
+  ok('링크로 오면 새 비밀번호 화면이 뜬다', (await page.textContent('.auth-sub')).includes('새 비밀번호'));
+  ok('그 화면에는 이메일 칸이 없다', (await page.$$('.auth-input[type=email]')).length === 0);
+  await page.fill('.auth-input[type=password]', 'newpassword1');
+  await page.click('.auth-submit');
+  await page.waitForSelector('.auth-notice', { timeout: 8000 });
+  ok('바꾸고 나면 로그인 탭으로 돌려보낸다',
+     (await page.textContent('.auth-notice')).includes('새 비밀번호로'));
+
+  // 옛 비밀번호는 막히고 새 비밀번호는 들어간다
+  await page.fill('.auth-input[type=email]', 'b@olrw.test');
+  await page.fill('.auth-input[type=password]', 'demo1234');   // 가입 때 쓴 것
+  await page.click('.auth-submit');
+  await page.waitForSelector('.auth-error', { timeout: 8000 });
+  ok('옛 비밀번호로는 못 들어간다',
+     (await page.textContent('.auth-error')).includes('일치하지'));
+
+  await page.fill('.auth-input[type=password]', 'newpassword1');
+  await page.click('.auth-submit');
+  await page.waitForSelector('.boxbar, .onb-tabs-row', { timeout: 8000 });
+  ok('새 비밀번호로는 들어간다', true);
+
+  // 만료된 링크
+  await page.goto(links[0], { waitUntil: 'networkidle' });
+  await page.waitForSelector('.auth', { timeout: 8000 });
+  await page.fill('.auth-input[type=password]', 'another12345');
+  await page.click('.auth-submit');
+  await page.waitForSelector('.auth-error', { timeout: 8000 });
+  ok('한 번 쓴 링크는 다시 안 통한다',
+     (await page.textContent('.auth-error')).includes('만료'));
+
+  await page.goto(`http://localhost:${PORT}/?error=INVALID_TOKEN`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('.auth-notice', { timeout: 8000 });
+  ok('만료 링크로 오면 체험 모드로 빠지지 않고 사정을 알린다',
+     (await page.textContent('.auth-notice')).includes('만료'));
+}
+
 console.log('\n━━━ 접근성 ━━━');
 const noZoom = await page.$$eval('meta[name=viewport]', (m) =>
   m.some((x) => /user-scalable\s*=\s*no|maximum-scale/.test(x.content)));

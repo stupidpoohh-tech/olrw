@@ -176,6 +176,23 @@ export function createNeonStore(client?: ReturnType<typeof neon>): BoxStore {
       await apply(data.session ?? null);
     },
 
+    async requestPasswordReset(email) {
+      const { error } = await db.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+        // 메일 링크는 서버를 한 번 거쳐 이 주소로 ?token=… 을 달고 돌아온다.
+        // 이 주소가 Auth → Configuration → Domains 에 없으면 서버가 거른다.
+        redirectTo: `${location.origin}/`,
+      });
+      if (error) throw error;
+    },
+
+    async resetPassword({ token, newPassword }) {
+      // 어댑터에는 이걸 끝내는 문이 없다 (0.5.0-beta 는 보내는 쪽만 감쌌다).
+      // 그래서 밑에 깔린 Better Auth 클라이언트를 직접 부른다.
+      const { error } = await db.auth.getBetterAuthInstance()
+        .resetPassword({ token, newPassword });
+      if (error) throw error;
+    },
+
     /**
      * 여기로는 오지 않는다. 체험 모드는 브라우저 안에서만 도는 memoryStore 가
      * 맡고, guestStore 가 그쪽으로 돌린다 (D14). Neon 의 anonymous 역할은 사용자

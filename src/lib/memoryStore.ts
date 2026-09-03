@@ -37,6 +37,8 @@ interface VolumeRow {
 }
 interface Db {
   users: User[]; boxes: BoxRow[]; telegrams: TelegramRow[]; volumes: VolumeRow[];
+  /** 비밀번호 재설정 토큰 → 사용자. 메일이 없으므로 콘솔로 건넨다. */
+  resets?: Record<string, Uuid>;
   sessionUserId: Uuid | null;
 }
 
@@ -136,7 +138,7 @@ export function createMemoryStore(): BoxStore {
       const mail = email.trim().toLowerCase();
       const name = displayName.trim().slice(0, 12);
       if (!mail.includes('@')) throw new Error('이메일 형식이 올바르지 않습니다.');
-      if (password.length < 6) throw new Error('비밀번호는 6자 이상이어야 합니다.');
+      if (password.length < 8) throw new Error('비밀번호는 8자 이상이어야 합니다.');
       if (!name) throw new Error('표시 이름을 입력해 주세요.');
       if (db.users.some((u) => u.email === mail)) throw new Error('이미 가입된 이메일입니다.');
       const user: User = { id: uuid(), email: mail, password, displayName: name };
@@ -152,6 +154,39 @@ export function createMemoryStore(): BoxStore {
       if (!u || u.password !== password) throw new Error('이메일 또는 비밀번호가 일치하지 않습니다.');
       db.sessionUserId = u.id;
       emitSession();
+    },
+
+    /**
+     * 메일을 보낼 곳이 없으므로 **링크를 콘솔에 적는다.**
+     *
+     * 이 구현은 환경변수가 없을 때(오프라인 개발)와 체험 모드에서만 돈다.
+     * 그래도 흐름을 끝까지 밟아 볼 수 있어야 화면이 실제로 도는지 알 수 있다 —
+     * `ui:check` 가 이 줄을 읽어 링크를 따라간다.
+     *
+     * 없는 계정이어도 조용히 성공한다. 진짜 서버와 같은 태도다.
+     */
+    async requestPasswordReset(email) {
+      const mail = email.trim().toLowerCase();
+      const u = db.users.find((x) => x.email === mail && !x.isGuest);
+      if (!u) return;
+      const token = uuid();
+      db.resets = { ...(db.resets ?? {}), [token]: u.id };
+      save();
+      try {
+        console.info(`[olrw] 재설정 링크: ${location.origin}/?token=${token}`);
+      } catch { /* 콘솔이 없음 */ }
+    },
+
+    async resetPassword({ token, newPassword }) {
+      if (newPassword.length < 8) throw new Error('비밀번호는 8자 이상이어야 합니다.');
+      const userId = db.resets?.[token];
+      const u = userId ? db.users.find((x) => x.id === userId) : undefined;
+      if (!u) throw new Error('링크가 만료되었습니다. 다시 요청해 주세요.');
+      u.password = newPassword;
+      // 한 번 쓴 토큰은 버린다.
+      const { [token]: _used, ...rest } = db.resets ?? {};
+      db.resets = rest;
+      save();
     },
 
     async enterAsGuest() {

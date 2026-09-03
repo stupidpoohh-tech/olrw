@@ -10,7 +10,7 @@ import { useSession, useStore } from '../lib/storeContext';
 import { toUserMessage } from '../lib/errors';
 import type { Box, BoxSummary, Envelope } from '../lib/types';
 import { Modal } from './Modal';
-import { PublicGate } from './PublicGate';
+import { PublicGate, hasResetLink } from './PublicGate';
 import { GuestTour } from '../features/tour/GuestTour';
 import { MuteButton } from './MakerMark';
 import './Shell.css';
@@ -103,6 +103,11 @@ export function Shell() {
     try { await store.deleteTelegram(id); await reloadEnvelopes(); }
     catch (e) { setError(toUserMessage(e, '전보를 회수하지 못했습니다.')); }
   }, [store, reloadEnvelopes]);
+
+  // 비밀번호 재설정 링크는 세션보다 앞선다. 미로그인 방문자도 체험 세션이
+  // 생기므로(D12), 세션부터 보면 링크가 타전실에 삼켜져 아무 일도 안 일어난다.
+  // 로그인한 사람이 눌렀을 때도 새 비밀번호를 정하는 것이 맞다.
+  if (hasResetLink()) return <PublicGate />;
 
   // 로그인 전에는 소개 화면이 선다. 계정을 만들기 전에 무엇인지 볼 수 있어야 한다.
   if (!session) return <PublicGate />;
