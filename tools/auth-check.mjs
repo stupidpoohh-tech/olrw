@@ -122,6 +122,46 @@ for (const [label, act] of [
   off();
 }
 
+/* 계정은 만들어졌는데 세션만 못 받아온 가입.
+   어댑터는 사용자를 만든 직후 getSession() 을 부르고, 비어 오면 session_not_found
+   를 던진다. 그때 화면에 "가입 실패" 를 띄우면 계정은 남고 문은 닫힌다 —
+   다시 가입하면 "이미 가입된 이메일", 로그인도 안 되면 막다른 길이다. */
+{
+  const client = fakeClient();
+  let tried = 0;
+  client.auth.signUp = async () => {
+    tried++;
+    return { data: { user: null, session: null },
+             error: { code: 'session_not_found', message: 'Failed to retrieve user session' } };
+  };
+  const store = createNeonStore(client);
+  await store.ready();
+  let threw = null;
+  try {
+    await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: 'Dada' });
+  } catch (e) { threw = e; }
+  ok('세션만 못 받아온 가입은 그 자리에서 로그인해 살린다', threw === null,
+    threw ? String(threw.message ?? threw) : `signUp 1회 · 세션 ${store.getSession() ? '있음' : '없음'}`);
+  ok('그러고 나면 들어가 있다', store.getSession()?.displayName === 'Dada');
+  void tried;
+}
+
+/* 그 자리 로그인마저 실패하면 원래 오류를 그대로 보여준다 — 조용히 삼키지 않는다. */
+{
+  const client = fakeClient();
+  client.auth.signUp = async () => ({ data: { user: null, session: null },
+    error: { code: 'session_not_found', message: 'Failed to retrieve user session' } });
+  client.auth.signInWithPassword = async () => ({ data: { user: null, session: null },
+    error: { code: 'invalid_credentials', message: 'Invalid email or password' } });
+  const store = createNeonStore(client);
+  await store.ready();
+  let code = '';
+  try {
+    await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: 'Dada' });
+  } catch (e) { code = e?.code ?? ''; }
+  ok('되살리기도 실패하면 원래 오류가 올라온다', code === 'session_not_found', `code = ${code}`);
+}
+
 /* 프로필이 없는 첫 로그인 — ensure_profile 로 이름을 세운다. */
 {
   const client = fakeClient();

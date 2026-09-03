@@ -107,9 +107,11 @@ export function AuthScreen({ initialMode = 'signin', onBack }: Props) {
           </label>
           <label className="auth-field">
             <span className="auth-label">비밀번호</span>
-            <input className="auth-input" type="password" value={password} required minLength={6}
+            {/* 서버(Better Auth)가 요구하는 최소는 8자다. 6으로 두면 브라우저는
+                통과시키고 서버가 막아, 사용자는 왜 막혔는지 모른 채 서 있게 된다. */}
+            <input className="auth-input" type="password" value={password} required minLength={8}
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-              placeholder="6자 이상"
+              placeholder="8자 이상"
               onChange={(e) => setPassword(e.target.value)} />
           </label>
 
