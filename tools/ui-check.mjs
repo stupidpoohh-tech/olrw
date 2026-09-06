@@ -250,6 +250,10 @@ console.log('\n━━━ 비밀번호 재설정 ━━━');
   await page.waitForSelector('.auth-error', { timeout: 8000 });
   ok('옛 비밀번호로는 못 들어간다',
      (await page.textContent('.auth-error')).includes('일치하지'));
+  // 표식은 우리가 옮기지 못한 오류에만 붙는다. 아는 오류에 영어가 따라붙으면
+  // 담백한 문장 옆에 군더더기가 선다.
+  ok('아는 오류에는 영어 표식이 붙지 않는다',
+     (await page.locator('.auth-error-tag').count()) === 0);
 
   await page.fill('.auth-input[type=password]', 'newpassword1');
   await page.click('.auth-submit');

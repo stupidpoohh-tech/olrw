@@ -11,10 +11,48 @@ const asType = (v: unknown): TypeId => (isTypeId(v) ? v : 'steel');
 const asBucket = (v: unknown): LengthBucket =>
   v === 'medium' || v === 'long' ? v : 'short';
 
-/** 어댑터가 "세션을 못 찾았다" 고 할 때. 가입 직후에 이 오류가 자주 온다. */
-const isSessionMissing = (e: unknown): boolean =>
-  typeof e === 'object' && e !== null
-  && (e as { code?: unknown }).code === 'session_not_found';
+const errCode = (e: unknown): string => {
+  if (typeof e !== 'object' || e === null) return '';
+  const c = (e as { code?: unknown }).code;
+  return typeof c === 'string' ? c : '';
+};
+
+/**
+ * 어댑터가 "세션을 못 찾았다" 고 할 때.
+ *
+ * 이건 자격 증명이 틀렸다는 뜻이 **아니다**. 어댑터(0.5.0-beta)는 로그인·가입
+ * 요청이 200 으로 성공한 **뒤에** `getSession()` 을 한 번 더 부르고, 그게 비어
+ * 오면 이 오류로 실패시킨다. 즉 비밀번호는 맞았는데 세션이 이 브라우저에
+ * 남지 않은 상태다.
+ */
+const isSessionMissing = (e: unknown): boolean => errCode(e) === 'session_not_found';
+
+/**
+ * 가입 요청이 여기서 끊겼다면 계정은 아직 만들어지지 않았다.
+ * 되살리려고 로그인을 시도할 이유가 없다 (시도 횟수만 축낸다).
+ */
+const NOT_CREATED: ReadonlySet<string> = new Set([
+  'weak_password', 'email_address_invalid', 'validation_failed', 'bad_json',
+  'user_already_exists', 'email_exists', 'invalid_credentials',
+  'feature_not_supported', 'over_request_rate_limit', 'signup_disabled',
+]);
+
+/**
+ * 자격은 통과했는데 세션이 이 브라우저에 남지 않는 경우.
+ *
+ * 로그인 서버는 다른 사이트(`*.neon.tech`)에 있고, 세션은 그 사이트의 쿠키로
+ * 유지된다. 브라우저가 크로스 사이트 쿠키를 막으면 로그인은 성공해도 그 다음
+ * 조회가 늘 빈손으로 돌아온다 — 새로고침해도 마찬가지다.
+ *
+ * 여기서 문장을 직접 만든다. errors.ts 는 한국어 문장을 그대로 흘려보내므로,
+ * 가입에서 온 것과 로그인에서 온 것을 다르게 말할 수 있다.
+ */
+const notStored = (opening: string): Error => Object.assign(
+  new Error(`${opening} 이 브라우저가 로그인 상태를 저장하지 못했습니다. `
+    + '쿠키 차단(사파리 「크로스 사이트 추적 방지」)을 끄거나 다른 브라우저에서 '
+    + '다시 시도해 주세요.'),
+  { code: 'session_not_stored' },
+);
 
 interface MemberRow {
   user_id: string;
@@ -83,6 +121,22 @@ export function createNeonStore(client?: ReturnType<typeof neon>): BoxStore {
     emit();
   };
 
+  /**
+   * 로그인하고 세션을 돌려준다. 없으면 null — 던지지 않는다.
+   *
+   * 어댑터가 `session_not_found` 로 실패해도 한 번 더 직접 물어본다. 그 오류는
+   * 자격이 틀렸다는 뜻이 아니라 세션 조회가 빈손이었다는 뜻이고, 쿠키가 막 심긴
+   * 직후라 한 박자 늦게 잡히는 경우가 있다. 자격이 틀린 경우(`invalid_credentials`
+   * 등)는 그대로 올려 보낸다.
+   */
+  const login = async (mail: string, password: string): Promise<AuthSession | null> => {
+    const { data, error } = await db.auth.signInWithPassword({ email: mail, password });
+    if (!error && data.session) return data.session;
+    if (error && !isSessionMissing(error)) throw error;
+    const again = await db.auth.getSession();
+    return again.data.session ?? null;
+  };
+
   const booted = (async () => {
     const { data } = await db.auth.getSession();
     await apply(data.session ?? null);
@@ -135,45 +189,49 @@ export function createNeonStore(client?: ReturnType<typeof neon>): BoxStore {
 
       // displayName 은 Better Auth 의 name 으로 실려 가고, 첫 hydrate 에서
       // ensure_profile() 이 그것으로 프로필을 세운다.
-      let data;
       const made = await db.auth.signUp({
         email: mail, password, options: { data: { displayName: name } },
       });
 
-      if (made.error && isSessionMissing(made.error)) {
+      // 메일 확인을 요구하도록 켜 두면 사용자만 생기고 세션은 없다.
+      let session_: AuthSession | null = made.error ? null : (made.data.session ?? null);
+
+      if (made.error) {
         /**
-         * **계정은 만들어졌는데 세션만 못 받아온 경우.**
+         * **계정은 만들어졌는데 그 뒤에서 끊긴 경우.**
          *
          * 어댑터는 사용자를 만든 직후 getSession() 을 부르고, 그게 비어 오면
-         * session_not_found 를 던진다. 그대로 흘려보내면 화면에는 "가입 실패" 가
-         * 뜨지만 계정은 남는다 — 다시 가입하면 "이미 가입된 이메일" 이고,
-         * 로그인 탭에서도 못 들어가면 어느 문도 열리지 않는 막다른 길이 된다.
+         * session_not_found 를 던진다. 세션을 서버가 저장하지 못하면
+         * internal_error 로 온다. 어느 쪽이든 계정은 남는다 — 그대로 흘려보내면
+         * 다시 가입할 때 "이미 가입된 이메일" 이고, 로그인 탭에서도 못 들어가면
+         * 어느 문도 열리지 않는 막다른 길이 된다.
          *
-         * 그래서 방금 만든 그 자격으로 바로 로그인해 본다. 되면 가입이 성공한
-         * 것이고, 안 되면 원래 오류를 그대로 보여준다.
+         * 그래서 계정이 만들어졌을 수 있는 오류에서는 방금 그 자격으로 바로
+         * 로그인해 본다. 되면 가입이 성공한 것이다.
          */
-        const back = await db.auth.signInWithPassword({ email: mail, password });
-        if (back.error) throw made.error;
-        data = back.data;
-      } else {
-        if (made.error) throw made.error;
-        data = made.data;
+        if (NOT_CREATED.has(errCode(made.error))) throw made.error;
+        try {
+          session_ = await login(mail, password);
+        } catch {
+          throw made.error;   // 되살리기도 실패했다 — 원래 오류를 그대로 보여준다
+        }
+        // 계정은 섰는데 세션이 이 브라우저에 남지 않는다. 여기서 멈추면 사용자는
+        // 무엇이 막혔는지 모른 채 "문제가 생겼습니다" 만 본다.
+        if (!session_) throw notStored('계정은 만들었지만');
       }
 
-      // 메일 확인을 요구하도록 켜 두면 사용자만 생기고 세션은 없다.
-      await apply(data.session ?? null);
-      return { needsConfirmation: data.session === null };
+      await apply(session_);
+      return { needsConfirmation: session_ === null };
     },
 
     async signIn({ email, password }) {
-      const { data, error } = await db.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-      if (error) throw error;
+      const session_ = await login(email.trim().toLowerCase(), password);
+      // 비밀번호가 틀렸으면 login() 이 이미 던졌다. 여기까지 와서 비어 있다는 것은
+      // 자격은 통과했는데 세션이 이 브라우저에 남지 않는다는 뜻이다.
+      if (!session_) throw notStored('비밀번호는 맞았지만');
       // 돌려받은 세션을 바로 반영한다. onAuthStateChange 를 기다리면 내 탭에는
       // 영영 오지 않아, 화면이 로그인 폼으로 되돌아간다.
-      await apply(data.session ?? null);
+      await apply(session_);
     },
 
     async requestPasswordReset(email) {

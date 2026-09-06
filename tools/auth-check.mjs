@@ -42,17 +42,24 @@ const SESSION = { access_token: 'tok', user: USER };
 function fakeClient() {
   let signedIn = false;
   const rpcCalls = [];
+  const calls = { signIn: 0, signUp: 0, getSession: 0 };
   return {
     rpcCalls,
+    calls,
     auth: {
-      getSession: async () => ({ data: { session: signedIn ? SESSION : null }, error: null }),
+      getSession: async () => {
+        calls.getSession++;
+        return { data: { session: signedIn ? SESSION : null }, error: null };
+      },
       // 내 탭에는 아무것도 오지 않는다 — 어댑터의 실제 동작이다.
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
       signInWithPassword: async () => {
+        calls.signIn++;
         signedIn = true;
         return { data: { user: USER, session: SESSION }, error: null };
       },
       signUp: async () => {
+        calls.signUp++;
         signedIn = true;
         return { data: { user: USER, session: SESSION }, error: null };
       },
@@ -175,6 +182,120 @@ for (const [label, act] of [
     client.rpcCalls.some(([n, a]) => n === 'ensure_profile' && a?.p_display_name === '안'),
     JSON.stringify(client.rpcCalls));
   ok('그 이름이 세션에 실린다', store.getSession()?.displayName === '안');
+}
+
+/* ═══ 세션이 이 브라우저에 남지 않을 때 ═══════════════════════════════════
+   어댑터(0.5.0-beta)는 로그인·가입 요청이 200 으로 성공한 **뒤에**
+   getSession() 을 한 번 더 부르고, 그게 비어 오면 session_not_found 로
+   실패시킨다. 로그인 서버는 다른 사이트(*.neon.tech)에 있으므로, 브라우저가
+   크로스 사이트 쿠키를 막으면 늘 빈손이 온다 — 비밀번호가 맞아도 못 들어간다.
+
+   그때 "문제가 생겼습니다" 만 뜨면 사용자는 무엇이 막혔는지 알 길이 없다. */
+
+/** 자격은 통과하지만 세션은 끝내 잡히지 않는 클라이언트. */
+function noSessionClient() {
+  const c = fakeClient();
+  c.auth.getSession = async () => { c.calls.getSession++; return { data: { session: null }, error: null }; };
+  c.auth.signInWithPassword = async () => {
+    c.calls.signIn++;
+    return { data: { user: null, session: null },
+             error: { code: 'session_not_found', message: 'Failed to retrieve user session' } };
+  };
+  c.auth.signUp = async () => {
+    c.calls.signUp++;
+    return { data: { user: null, session: null },
+             error: { code: 'session_not_found', message: 'Failed to retrieve user session' } };
+  };
+  return c;
+}
+
+{
+  const client = noSessionClient();
+  const store = createNeonStore(client);
+  await store.ready();
+  let e = null;
+  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  catch (err) { e = err; }
+  ok('세션이 안 남으면 로그인은 그 사실을 말한다', e?.code === 'session_not_stored',
+    `code = ${e?.code} · ${e?.message ?? ''}`);
+  ok('그 문장이 무엇을 해 보라고 말한다',
+    typeof e?.message === 'string' && e.message.includes('브라우저'), e?.message);
+  ok('세션은 비어 있다', store.getSession() === null);
+}
+
+{
+  const client = noSessionClient();
+  const store = createNeonStore(client);
+  await store.ready();
+  let e = null;
+  try {
+    await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: '안' });
+  } catch (err) { e = err; }
+  ok('세션이 안 남으면 가입도 그 사실을 말한다', e?.code === 'session_not_stored',
+    `code = ${e?.code} · ${e?.message ?? ''}`);
+  ok('가입 쪽 문장은 계정이 만들어졌다고 알린다',
+    typeof e?.message === 'string' && e.message.startsWith('계정은 만들었지만'), e?.message);
+}
+
+/* 한 박자 늦게 잡히는 경우 — 어댑터는 실패로 봤지만 곧 세션이 선다.
+   여기서 포기하면 멀쩡한 로그인을 실패로 돌려보내게 된다. */
+{
+  const client = fakeClient();
+  let asked = 0;
+  client.auth.signInWithPassword = async () => {
+    client.calls.signIn++;
+    return { data: { user: null, session: null },
+             error: { code: 'session_not_found', message: 'Failed to retrieve user session' } };
+  };
+  client.auth.getSession = async () => {
+    client.calls.getSession++;
+    return { data: { session: ++asked >= 2 ? SESSION : null }, error: null };
+  };
+  const store = createNeonStore(client);
+  await store.ready();
+  let e = null;
+  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  catch (err) { e = err; }
+  ok('세션이 한 박자 늦게 서면 그대로 들어간다',
+    e === null && store.getSession()?.displayName === '안', e ? String(e.message ?? e) : '');
+}
+
+/* 가입이 세션 저장에서 끊긴 경우(internal_error). 계정은 이미 섰다 —
+   그대로 실패로 돌려보내면 다시 가입할 수도 로그인할 수도 없는 길이 된다. */
+{
+  const client = fakeClient();
+  client.auth.signUp = async () => {
+    client.calls.signUp++;
+    return { data: { user: null, session: null },
+             error: { code: 'internal_error', message: 'Failed to create session' } };
+  };
+  const store = createNeonStore(client);
+  await store.ready();
+  let e = null;
+  try { await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: '안' }); }
+  catch (err) { e = err; }
+  ok('세션 저장에서 끊긴 가입도 로그인으로 살린다',
+    e === null && store.getSession()?.displayName === '안', e ? String(e.message ?? e) : '');
+  ok('그때 로그인을 한 번 시도한다', client.calls.signIn === 1, `signIn ${client.calls.signIn}회`);
+}
+
+/* 반대로, 계정이 만들어지기 전에 끊긴 오류에서는 로그인을 시도하지 않는다.
+   헛수고인 데다 시도 횟수 제한만 축낸다. */
+{
+  const client = fakeClient();
+  client.auth.signUp = async () => {
+    client.calls.signUp++;
+    return { data: { user: null, session: null },
+             error: { code: 'weak_password', message: 'Password too short' } };
+  };
+  const store = createNeonStore(client);
+  await store.ready();
+  let code = '';
+  try {
+    await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: '안' });
+  } catch (e) { code = e?.code ?? ''; }
+  ok('계정이 서기 전에 끊긴 가입은 그대로 알린다', code === 'weak_password', `code = ${code}`);
+  ok('그때는 로그인을 시도하지 않는다', client.calls.signIn === 0, `signIn ${client.calls.signIn}회`);
 }
 
 console.log(failed ? `\n━━━ ${failed}건 실패 ━━━` : '\n━━━ 전부 통과 ━━━');

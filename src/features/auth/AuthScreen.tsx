@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useStore } from '../../lib/storeContext';
-import { toUserMessage } from '../../lib/errors';
+import { errorTag, toUserMessage } from '../../lib/errors';
 import './AuthScreen.css';
 
 /**
@@ -31,6 +31,9 @@ export function AuthScreen({ initialMode = 'signin', resetToken, notice: opening
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
+  /** 오류 아래 작게 남기는 표식. 휴대폰에서는 콘솔을 볼 수 없다 — 어느 자리에서
+      막혔는지는 이 한 조각으로만 알아낼 수 있다. */
+  const [errorCode, setErrorCode] = useState('');
   const [busy, setBusy] = useState(false);
   /** 가입은 됐지만 메일 확인이 남았을 때. */
   const [pendingEmail, setPendingEmail] = useState('');
@@ -39,6 +42,7 @@ export function AuthScreen({ initialMode = 'signin', resetToken, notice: opening
     e.preventDefault();
     if (busy) return;
     setError('');
+    setErrorCode('');
     setBusy(true);
     try {
       if (mode === 'signup') {
@@ -64,13 +68,14 @@ export function AuthScreen({ initialMode = 'signin', resetToken, notice: opening
       }
     } catch (err) {
       setError(toUserMessage(err));
+      setErrorCode(errorTag(err));
     } finally {
       setBusy(false);
     }
   };
 
   const switchTo = (m: Mode) => {
-    setMode(m); setError(''); setPendingEmail(''); setSentTo(''); setNotice('');
+    setMode(m); setError(''); setErrorCode(''); setPendingEmail(''); setSentTo(''); setNotice('');
   };
 
   if (pendingEmail) {
@@ -183,7 +188,12 @@ export function AuthScreen({ initialMode = 'signin', resetToken, notice: opening
             </label>
           )}
 
-          {error && <p className="auth-error" role="alert">{error}</p>}
+          {error && (
+            <p className="auth-error" role="alert">
+              {error}
+              {errorCode && <span className="auth-error-tag">{errorCode}</span>}
+            </p>
+          )}
 
           <button className="auth-submit" type="submit" disabled={busy}>
             {busy

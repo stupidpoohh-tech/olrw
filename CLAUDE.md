@@ -158,6 +158,7 @@ neon/tests/run.sh              # RLS · 서버 함수 (Neon·Docker 불필요)
 neon/tests/concurrency_test.sh # 동시 마감
 
 pnpm auth:check                    # 세션이 제때 알려지는가 (Neon 불필요)
+pnpm errors:check                  # 어댑터가 내는 오류 코드를 하나도 빠짐없이 옮기는가
 
 pnpm build && pnpm preview &       # 아래 셋은 미리보기 서버가 떠 있어야 한다
 pnpm ui:check                      # 인증 · 온보딩 · 전환 바
@@ -172,6 +173,11 @@ pnpm tint:check                    # 타자기 네 대가 한눈에 다른지 (D
 **`ui:check*` 는 전부 memoryStore 로 돈다** (환경변수가 없으니). Neon 어댑터 쪽 계약이
 깨져도 하나도 실패하지 않는다 — 로그인해도 화면이 안 바뀌던 버그가 그렇게 통과했다.
 `src/lib/neonStore.ts` 를 건드리면 `pnpm auth:check` 를 함께 돌린다.
+
+**오류 문구 표는 비워 두지 않는다.** 어댑터가 내는 코드 중 하나라도 `src/lib/errors.ts`
+에 없으면 화면에는 "문제가 생겼습니다" 만 뜨고 사용자도 우리도 어느 자리인지 알 수
+없다 — 비밀번호가 맞는데 가입도 로그인도 안 되는 사람이 그 문장만 보고 서 있었다.
+`pnpm errors:check` 가 설치된 패키지와 표를 대조한다.
 
 ## 커밋
 
