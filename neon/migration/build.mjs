@@ -50,6 +50,20 @@ const LABELS = {
   'DDDDDDDDDDDDDDDDDDDDDDDDDDD4': '라',
 };
 
+/**
+ * 이미 받아 둔 새 계정 uuid. 여기 적힌 사람은 §1 에 채워진 채로 나온다.
+ *
+ * 손으로 SQL 을 고치는 대신 여기에 적는다 — 0002_legacy.sql 은 생성물이라
+ * 다시 뽑으면 손댄 자리가 사라진다.
+ *
+ * 값은 Neon 콘솔 → Tables → profiles 의 `id`(= Auth → Users 의 `ID`)다.
+ */
+const KNOWN = {
+  'AAAAAAAAAAAAAAAAAAAAAAAAAAA1': '00000000-0000-4000-8000-000000000001', // 안
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBB2': '00000000-0000-4000-8000-000000000002', // 보
+  'CCCCCCCCCCCCCCCCCCCCCCCCCCC3': '00000000-0000-4000-8000-000000000003', // 에피
+};
+
 /** 소유자가 비어 있는 전보함의 주인. `견본 전보함 2` 가 그렇다. */
 const OWNER_FALLBACK = 'AAAAAAAAAAAAAAAAAAAAAAAAAAA1';
 
@@ -347,8 +361,8 @@ line();
 line('insert into legacy_user (legacy_uid, label, id) values');
 emit(
   people.map((uid) => ({
-    cells: [`  (${q(uid)},`, `${q(LABELS[uid])},`, 'null)'],
-    note: '-- ← 여기에 uuid',
+    cells: [`  (${q(uid)},`, `${q(LABELS[uid])},`, `${KNOWN[uid] ? q(KNOWN[uid]) : 'null'})`],
+    note: KNOWN[uid] ? '' : '-- ← 여기에 uuid',
   })),
 ).forEach(line);
 line(';');

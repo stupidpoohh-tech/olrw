@@ -31,57 +31,58 @@ LEGACY="$ROOT/neon/migration/0002_legacy.sql"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# §1 의 빈칸 수는 옮기기로 한 전보함에 따라 달라진다. 세어 보고 그만큼 만든다.
-N=$(grep -c "← 여기에 uuid" "$LEGACY")
-[[ "$N" -ge 1 ]] || { echo "§1 에서 빈칸을 찾지 못했습니다 — 0002_legacy.sql 의 모양이 바뀌었습니다."; exit 1; }
-echo "§1 에 사람 ${N}명"
-
-# 가짜 uuid — 위에서부터 1111…, 2222… 로 채운다.
-# SKIP 에 적은 이름이 든 줄은 비운 채로 둔다 (아직 가입하지 않은 사람).
+# §1 의 사람 줄은 `insert into legacy_user … ;` 블록 안에 있다. 그 블록만 만진다 —
+# 파일 다른 곳에도 uuid(전보함 id)가 있어서 파일 전체를 훑으면 엉뚱한 것을 집는다.
+#
+#   이미 채워진 줄  그대로 둔다 (build.mjs 의 KNOWN 에서 온 진짜 uuid)
+#   null 인 줄      가짜 uuid 로 채운다
+#   SKIP 에 걸린 줄 채워져 있어도 null 로 되돌린다 — 아직 못 들어온 사람 흉내
 SKIP="${SKIP:-}"
 [[ -n "$SKIP" ]] && echo "빼고 부어 봅니다: $SKIP"
-awk -v skip="$SKIP" '
-  function rep(c, n,   s, i) { s = ""; for (i = 0; i < n; i++) s = s c; return s }
-  /← 여기에 uuid/ {
-    n++
-    if (skip == "" || index($0, skip) == 0) {
-      u = rep(n,8) "-" rep(n,4) "-4" rep(n,3) "-8" rep(n,3) "-" rep(n,12)
-      sub(/null\)/, "\x27" u "\x27)")
-    }
-  }
-  { print }
-' "$LEGACY" > "$WORK/legacy.sql"
 
-if [[ -z "$SKIP" ]] && grep -q "null), *-- ← 여기에 uuid\|null) *-- ← 여기에 uuid" "$WORK/legacy.sql"; then
-  echo "§1 의 빈칸을 다 채우지 못했습니다 — 0002_legacy.sql 의 모양이 바뀌었습니다."
-  exit 1
-fi
-
-# 빼고 부어 본 뒤에는, 그 사람이 가입한 뒤 마저 붓는 것까지 이어서 해 본다.
-# 실제 절차가 그 순서이고, 거기서 어긋나면 서가가 반쪽으로 남는다.
-if [[ -n "$SKIP" ]]; then
-  awk '
+fill() {   # $1 = SKIP 으로 비울 이름 (빈 문자열이면 전부 채운다)
+  awk -v skip="$1" '
     function rep(c, n,   s, i) { s = ""; for (i = 0; i < n; i++) s = s c; return s }
-    /← 여기에 uuid/ {
+    /^insert into legacy_user/ { inblock = 1; print; next }
+    inblock && /^;/            { inblock = 0; print; next }
+    inblock {
       n++
-      u = rep(n,8) "-" rep(n,4) "-4" rep(n,3) "-8" rep(n,3) "-" rep(n,12)
-      sub(/null\)/, "\x27" u "\x27)")
+      if (skip != "" && index($0, skip) > 0) {
+        sub(/\x27[0-9a-f-]+\x27\)/, "null)")
+      } else if ($0 ~ /null\)/) {
+        u = rep(n,8) "-" rep(n,4) "-4" rep(n,3) "-8" rep(n,3) "-" rep(n,12)
+        sub(/null\)/, "\x27" u "\x27)")
+      }
     }
     { print }
-  ' "$LEGACY" > "$WORK/legacy-full.sql"
-fi
+  ' "$LEGACY"
+}
 
-# 그 uuid 로 프로필을 만든다. 이름은 아무거나 좋다 — 서가에 뜨는 발신인 이름은
-# 프로필이 아니라 제본 시점 스냅샷(volume_pages)에서 나온다.
+fill "$SKIP" > "$WORK/legacy.sql"
+
+# §1 안에 남은 uuid 들이 그대로 프로필이 된다. 이름은 아무거나 좋다 — 서가에 뜨는
+# 발신인 이름은 프로필이 아니라 제본 시점 스냅샷(volume_pages)에서 나온다.
 profiles_from() {
   echo "insert into profiles (id, display_name) values"
-  grep "← 여기에 uuid" "$1" |
+  awk '/^insert into legacy_user/ { i = 1; next } i && /^;/ { i = 0 } i' "$1" |
   grep -o "'[0-9a-f]\{8\}-[0-9a-f-]*'" | sort -u |
   awk '{ printf "%s  (%s, \x27사람%d\x27)", (NR>1 ? ",\n" : ""), $0, NR }'
   echo " on conflict do nothing;"
 }
 profiles_from "$WORK/legacy.sql" > "$WORK/profiles.sql"
-[[ -n "$SKIP" ]] && profiles_from "$WORK/legacy-full.sql" > "$WORK/profiles-full.sql"
+
+if ! grep -q "^  (" "$WORK/profiles.sql"; then
+  echo "§1 에서 uuid 를 하나도 찾지 못했습니다 — 0002_legacy.sql 의 모양이 바뀌었습니다."
+  exit 1
+fi
+echo "§1 에 채워진 사람 $(grep -c "^  (" "$WORK/profiles.sql")명"
+
+# 빼고 부어 본 뒤에는, 그 사람이 들어온 뒤 마저 붓는 것까지 이어서 해 본다.
+# 실제 절차가 그 순서이고, 거기서 어긋나면 서가가 반쪽으로 남는다.
+if [[ -n "$SKIP" ]]; then
+  fill "" > "$WORK/legacy-full.sql"
+  profiles_from "$WORK/legacy-full.sql" > "$WORK/profiles-full.sql"
+fi
 
 cat > "$WORK/report.sql" <<'SQL'
 \pset border 2
