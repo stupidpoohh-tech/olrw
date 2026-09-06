@@ -11,6 +11,13 @@
 #   4. 한 번 더 실행해 두 번 부어도 행이 늘지 않는지 확인한다
 #   5. 들어간 것을 전보함별·권별로 세어 보여 준다
 #
+# 아직 가입하지 않은 사람이 있으면 그 사람만 빼고 부어 볼 수 있다.
+#
+#   SKIP=보 neon/migration/dryrun.sh
+#
+# 그 사람이 필요한 전보함은 건너뛰고 나머지만 들어가야 한다. 그 뒤 SKIP 없이
+# 한 번 더 부으면 건너뛴 것이 마저 들어간다 — 실제 절차가 그 순서다.
+#
 # 진짜 Neon 에 부을 때는 §1 을 콘솔에서 받은 uuid 로 사람이 채운다.
 set -euo pipefail
 
@@ -25,34 +32,56 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 # §1 의 빈칸 수는 옮기기로 한 전보함에 따라 달라진다. 세어 보고 그만큼 만든다.
-N=$(grep -c "^ *(.*null)" "$LEGACY")
+N=$(grep -c "← 여기에 uuid" "$LEGACY")
 [[ "$N" -ge 1 ]] || { echo "§1 에서 빈칸을 찾지 못했습니다 — 0002_legacy.sql 의 모양이 바뀌었습니다."; exit 1; }
 echo "§1 에 사람 ${N}명"
 
 # 가짜 uuid — 위에서부터 1111…, 2222… 로 채운다.
-awk '
+# SKIP 에 적은 이름이 든 줄은 비운 채로 둔다 (아직 가입하지 않은 사람).
+SKIP="${SKIP:-}"
+[[ -n "$SKIP" ]] && echo "빼고 부어 봅니다: $SKIP"
+awk -v skip="$SKIP" '
   function rep(c, n,   s, i) { s = ""; for (i = 0; i < n; i++) s = s c; return s }
-  /^ +\(.*null\)/ {
+  /← 여기에 uuid/ {
     n++
-    u = rep(n,8) "-" rep(n,4) "-4" rep(n,3) "-8" rep(n,3) "-" rep(n,12)
-    sub(/null\)/, "\x27" u "\x27)")
+    if (skip == "" || index($0, skip) == 0) {
+      u = rep(n,8) "-" rep(n,4) "-4" rep(n,3) "-8" rep(n,3) "-" rep(n,12)
+      sub(/null\)/, "\x27" u "\x27)")
+    }
   }
   { print }
 ' "$LEGACY" > "$WORK/legacy.sql"
 
-if grep -q "null)" "$WORK/legacy.sql"; then
+if [[ -z "$SKIP" ]] && grep -q "null), *-- ← 여기에 uuid\|null) *-- ← 여기에 uuid" "$WORK/legacy.sql"; then
   echo "§1 의 빈칸을 다 채우지 못했습니다 — 0002_legacy.sql 의 모양이 바뀌었습니다."
   exit 1
 fi
 
+# 빼고 부어 본 뒤에는, 그 사람이 가입한 뒤 마저 붓는 것까지 이어서 해 본다.
+# 실제 절차가 그 순서이고, 거기서 어긋나면 서가가 반쪽으로 남는다.
+if [[ -n "$SKIP" ]]; then
+  awk '
+    function rep(c, n,   s, i) { s = ""; for (i = 0; i < n; i++) s = s c; return s }
+    /← 여기에 uuid/ {
+      n++
+      u = rep(n,8) "-" rep(n,4) "-4" rep(n,3) "-8" rep(n,3) "-" rep(n,12)
+      sub(/null\)/, "\x27" u "\x27)")
+    }
+    { print }
+  ' "$LEGACY" > "$WORK/legacy-full.sql"
+fi
+
 # 그 uuid 로 프로필을 만든다. 이름은 아무거나 좋다 — 서가에 뜨는 발신인 이름은
 # 프로필이 아니라 제본 시점 스냅샷(volume_pages)에서 나온다.
-{
+profiles_from() {
   echo "insert into profiles (id, display_name) values"
-  grep -o "'[0-9a-f]\{8\}-[0-9a-f-]*'" "$WORK/legacy.sql" | sort -u |
+  grep "← 여기에 uuid" "$1" |
+  grep -o "'[0-9a-f]\{8\}-[0-9a-f-]*'" | sort -u |
   awk '{ printf "%s  (%s, \x27사람%d\x27)", (NR>1 ? ",\n" : ""), $0, NR }'
-  echo ";"
-} > "$WORK/profiles.sql"
+  echo " on conflict do nothing;"
+}
+profiles_from "$WORK/legacy.sql" > "$WORK/profiles.sql"
+[[ -n "$SKIP" ]] && profiles_from "$WORK/legacy-full.sql" > "$WORK/profiles-full.sql"
 
 cat > "$WORK/report.sql" <<'SQL'
 \pset border 2
@@ -98,6 +127,10 @@ if [[ -n "${PGHOST:-}" ]]; then
   psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$WORK/legacy.sql"
   echo "── 두 번째 적용 (행이 늘지 않아야 한다) ──"
   psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$WORK/legacy.sql"
+  if [[ -n "$SKIP" ]]; then
+    echo "── 빠졌던 사람이 가입한 뒤 마저 붓는다 ──"
+    psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$WORK/profiles-full.sql" -f "$WORK/legacy-full.sql"
+  fi
   psql -v ON_ERROR_STOP=1 -d "$DB" -f "$WORK/report.sql"
   exit
 fi
@@ -122,4 +155,8 @@ run "$PSQL -v ON_ERROR_STOP=1 -q -f $HARNESS -f $INIT -f $WORK/profiles.sql"
 run "$PSQL -v ON_ERROR_STOP=1 -q -f $WORK/legacy.sql"
 echo "── 두 번째 적용 (행이 늘지 않아야 한다) ──"
 run "$PSQL -v ON_ERROR_STOP=1 -q -f $WORK/legacy.sql"
+if [[ -n "$SKIP" ]]; then
+  echo "── 빠졌던 사람이 가입한 뒤 마저 붓는다 ──"
+  run "$PSQL -v ON_ERROR_STOP=1 -q -f $WORK/profiles-full.sql -f $WORK/legacy-full.sql"
+fi
 run "$PSQL -v ON_ERROR_STOP=1 -f $WORK/report.sql"

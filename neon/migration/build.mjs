@@ -154,6 +154,20 @@ for (const uid of people) {
 
 const photoVolumes = [];
 const tally = { boxes: 0, members: 0, telegrams: 0, volumes: 0, pages: 0 };
+/**
+ * 전보함 하나가 온전히 들어가려면 누가 있어야 하고, 몇 행이 들어가는가.
+ *
+ * 세 사람이 동시에 가입을 마치기를 기다릴 이유가 없다. 사람이 다 모인
+ * 전보함만 먼저 넣고, 나머지는 그 사람이 가입한 뒤 같은 파일을 다시 부으면
+ * 그때 들어간다 — id 가 전부 결정론적이라 두 번 부어도 겹치지 않는다.
+ */
+const perBox = new Map();
+const boxOf = (id, name) => {
+  if (!perBox.has(id)) {
+    perBox.set(id, { name, needs: new Set(), members: 0, telegrams: 0, volumes: 0, pages: 0 });
+  }
+  return perBox.get(id);
+};
 const boxRows = [];
 const memberRows = [];
 const tgRows = [];
@@ -165,6 +179,8 @@ for (const box of chosen) {
   // `견본 전보함 2` 는 ownerUid 가 빈 문자열이다. 안 를 소유자로 놓는다.
   const owner = box.ownerUid || OWNER_FALLBACK;
   tally.boxes += 1;
+  const acc = boxOf(boxId, box.name);
+  acc.needs.add(owner);
 
   boxRows.push({
     cells: [
@@ -182,6 +198,8 @@ for (const box of chosen) {
     const type = TYPEWRITER[m.type];
     if (!type) throw new Error(`모르는 타자기 색: ${m.type}`);
     tally.members += 1;
+    acc.members += 1;
+    acc.needs.add(uid);
     memberRows.push({
       cells: [`  (${q(boxId)},`, `${q(uid)},`, `${q(m.paper)},`, `${q(type)},`, `${q(m.joinedAt)})`],
       note: `-- ${box.name} · ${m.name} · 옛 ${m.type}`,
@@ -190,6 +208,8 @@ for (const box of chosen) {
 
   for (const t of box.telegrams) {
     tally.telegrams += 1;
+    acc.telegrams += 1;
+    acc.needs.add(t.from);
     tgRows.push({
       cells: [
         `  (${q(uuidOf('tg', box.roomId, t.id))},`,
@@ -241,6 +261,9 @@ for (const box of chosen) {
 
     tally.volumes += 1;
     tally.pages += pages.length;
+    acc.volumes += 1;
+    acc.pages += pages.length;
+    pages.forEach((p) => acc.needs.add(p.uid));
 
     volRows.push({
       cells: [
@@ -306,7 +329,10 @@ line('--');
 line(`-- 옛 파이어베이스 uid 와 새 Neon 계정 uuid 는 서로 남이다. 아래 ${people.length}명이 새 앱에서`);
 line('-- 먼저 가입해야 하고, uuid 는 Neon 콘솔 → Tables → profiles 에서 받는다.');
 line('--');
-line("-- null 을 '…' 로 바꾼다. 하나라도 비면 아래에서 멈추고 누가 빠졌는지 알려준다.");
+line("-- null 을 '…' 로 바꾼다. **아는 사람만 채워도 된다.**");
+line('-- 사람이 다 모인 전보함만 이번에 들어가고, 나머지는 조용히 건너뛴다. 빠진');
+line('-- 사람이 가입한 뒤 이 파일을 그대로 다시 부으면 그때 들어간다 — id 가 전부');
+line('-- 결정론적이라 이미 들어간 것은 두 번 들어가지 않는다.');
 line('--');
 line('-- 임시 테이블이 아니라 진짜 테이블이다 — 편집기가 문장을 따로 실행해도 살아');
 line('-- 있어야 한다. 맨 끝(§7)에서 지운다.');
@@ -327,20 +353,72 @@ emit(
 ).forEach(line);
 line(';');
 line();
+line('-- 전보함마다 누가 있어야 온전한가. 한 사람이라도 비면 그 전보함은 건너뛴다.');
+line('drop table if exists legacy_box_need;');
+line('create table legacy_box_need (box_id uuid, legacy_uid text, primary key (box_id, legacy_uid));');
+line('insert into legacy_box_need (box_id, legacy_uid) values');
+emit(
+  [...perBox.entries()].flatMap(([boxId, b]) =>
+    [...b.needs].map((uid) => ({
+      cells: [`  (${q(boxId)},`, `${q(uid)})`],
+      note: `-- ${b.name} · ${LABELS[uid]}`,
+    })),
+  ),
+).forEach(line);
+line(';');
+line();
+line('-- 그 전보함이 온전히 들어갔다면 몇 행이어야 하는가 (§7 이 대조한다).');
+line('drop table if exists legacy_box_expect;');
+line('create table legacy_box_expect (');
+line('  box_id uuid primary key, name text not null,');
+line('  members int, telegrams int, volumes int, pages int');
+line(');');
+line('insert into legacy_box_expect (box_id, name, members, telegrams, volumes, pages) values');
+emit(
+  [...perBox.entries()].map(([boxId, b]) => ({
+    cells: [
+      `  (${q(boxId)},`,
+      `${q(b.name)},`,
+      `${b.members},`,
+      `${b.telegrams},`,
+      `${b.volumes},`,
+      `${b.pages})`,
+    ],
+    note: '',
+  })),
+).forEach(line);
+line(';');
+line();
 line('do $$');
-line('declare v_missing text;');
+line('declare v_missing text; v_skip text;');
 line('begin');
-line("  select string_agg(label, ', ') into v_missing from legacy_user where id is null;");
+line('  -- 채운 uuid 가 진짜 그 사람인지부터 본다. 오타는 여기서 걸린다.');
+line("  select string_agg(u.label, ', ') into v_missing");
+line('    from legacy_user u left join profiles p on p.id = u.id');
+line('   where u.id is not null and p.id is null;');
 line('  if v_missing is not null then');
-line("    raise exception E'아직 uuid 를 채우지 않았습니다: %'");
-line("      '\\n       Neon 콘솔 → Tables → profiles 에서 받아 이 파일 §1 에 적으세요.', v_missing;");
+line("    raise exception E'그 uuid 로 된 프로필이 없습니다: %'");
+line("      '\\n       Neon 콘솔 → Tables → profiles 의 id 를 그대로 붙여 넣으세요.', v_missing;");
 line('  end if;');
 line();
-line("  select string_agg(u.label, ', ') into v_missing");
-line('    from legacy_user u left join profiles p on p.id = u.id where p.id is null;');
+line('  -- 아직 안 채운 사람이 있으면 알리되 멈추지는 않는다.');
+line("  select string_agg(label, ', ') into v_missing from legacy_user where id is null;");
 line('  if v_missing is not null then');
-line("    raise exception E'새 앱에 아직 프로필이 없습니다: %'");
-line(`      '\\n       위 ${people.length}명이 모두 새 앱에서 가입을 마쳐야 합니다.', v_missing;`);
+line("    raise notice '아직 uuid 가 없는 사람: %', v_missing;");
+line('  end if;');
+line();
+line("  select string_agg(e.name, ', ') into v_skip");
+line('    from legacy_box_expect e');
+line('   where exists (select 1 from legacy_box_need n');
+line('                   join legacy_user u on u.legacy_uid = n.legacy_uid');
+line('                  where n.box_id = e.box_id and u.id is null);');
+line('  if v_skip is not null then');
+line("    raise notice '이번에 건너뛰는 전보함: % (그 사람이 가입한 뒤 이 파일을 다시 부으면 들어갑니다)', v_skip;");
+line('  end if;');
+line();
+line('  if not exists (select 1 from legacy_user where id is not null) then');
+line("    raise exception E'uuid 를 하나도 채우지 않았습니다.'");
+line("      '\\n       Neon 콘솔 → Tables → profiles 에서 받아 이 파일 §1 에 적으세요.';");
 line('  end if;');
 line('end $$;');
 line();
@@ -356,6 +434,12 @@ line('from (values');
 emit(boxRows).forEach(line);
 line(') as t(id, name, code, legacy_uid, vol, created_at)');
 line('join legacy_user u on u.legacy_uid = t.legacy_uid');
+line('-- 한 사람이라도 아직 없으면 이 전보함은 통째로 건너뛴다. 반쪽만 넣으면');
+line('-- 권의 쪽수가 어긋나 서가가 거짓말을 한다.');
+line('where not exists (');
+line('  select 1 from legacy_box_need n');
+line('    join legacy_user lu on lu.legacy_uid = n.legacy_uid');
+line('   where n.box_id = t.id::uuid and lu.id is null)');
 line('on conflict do nothing;');
 line();
 
@@ -369,6 +453,8 @@ line('from (values');
 emit(memberRows).forEach(line);
 line(') as t(box_id, legacy_uid, paper, type, joined_at)');
 line('join legacy_user u on u.legacy_uid = t.legacy_uid');
+line('-- §2 에서 건너뛴 전보함은 여기에도 없다. 조건을 두 번 적지 않는다.');
+line('join boxes b on b.id = t.box_id::uuid');
 line('on conflict do nothing;');
 line();
 
@@ -380,6 +466,7 @@ line('from (values');
 emit(tgRows).forEach(line);
 line(') as t(id, box_id, legacy_uid, body, vol, created_at)');
 line('join legacy_user u on u.legacy_uid = t.legacy_uid');
+line('join boxes b on b.id = t.box_id::uuid');
 line('on conflict do nothing;');
 line();
 
@@ -404,6 +491,7 @@ line('       t.closed_at::timestamptz, t.closed_at::timestamptz');
 line('from (values');
 emit(volRows).forEach(line);
 line(') as t(id, box_id, vol, title, cover, period_start, period_end, pages, closed_at)');
+line('join boxes b on b.id = t.box_id::uuid');
 line('on conflict do nothing;');
 line();
 
@@ -433,41 +521,71 @@ for (const b of pageBlocks) {
   ).forEach(line);
   line(') as t(volume_id, ord, legacy_uid, author_name, paper, body, sent_at)');
   line('join legacy_user u on u.legacy_uid = t.legacy_uid');
+  line('join volumes v on v.id = t.volume_id::uuid');
   line('on conflict do nothing;');
   line();
 }
 
 head('7. 결산');
-line('-- 넣은 만큼 들어갔는지 세어 본다. 하나라도 모자라면 여기서 통째로 되돌린다.');
+line('-- 이번에 들어가기로 한 전보함마다, 있어야 할 행이 다 있는지 하나씩 센다.');
+line('-- 하나라도 모자라면 여기서 통째로 되돌린다 — 반쯤 들어간 서가를 남기지 않는다.');
+line('-- 건너뛴 전보함은 세지 않는다. 그것은 실패가 아니라 다음 차례다.');
 line();
 line('do $$');
 line('declare');
-line('  v_box int; v_mem int; v_tg int; v_vol int; v_page int;');
-line('  v_mine  uuid[] := array(select id from legacy_user);');
-line('  v_boxes uuid[];');
+line('  r record;');
+line('  v_mem int; v_tg int; v_vol int; v_page int;');
+line('  v_done int := 0; v_skip int := 0;');
 line('begin');
-line('  v_boxes := array(select distinct box_id from box_members where user_id = any (v_mine));');
-line('  v_box   := coalesce(array_length(v_boxes, 1), 0);');
-line('  select count(*) into v_mem  from box_members  where user_id   = any (v_mine);');
-line('  select count(*) into v_tg   from telegrams    where author_id = any (v_mine);');
-line('  select count(*) into v_vol  from volumes      where box_id    = any (v_boxes);');
-line('  select count(*) into v_page from volume_pages where author_id = any (v_mine);');
+line('  for r in');
+line('    select e.* from legacy_box_expect e');
+line('     where not exists (select 1 from legacy_box_need n');
+line('                         join legacy_user u on u.legacy_uid = n.legacy_uid');
+line('                        where n.box_id = e.box_id and u.id is null)');
+line('     order by e.name');
+line('  loop');
+line('    if not exists (select 1 from boxes where id = r.box_id) then');
+line("      raise exception '% : 전보함이 들어가지 않았습니다.', r.name;");
+line('    end if;');
+line('    select count(*) into v_mem  from box_members where box_id = r.box_id;');
+line('    select count(*) into v_tg   from telegrams');
+line('      where box_id = r.box_id and deleted_at is null;');
+line('    select count(*) into v_vol  from volumes where box_id = r.box_id;');
+line('    select coalesce(sum(v.page_count), 0) into v_page');
+line('      from volumes v where v.box_id = r.box_id;');
 line();
-line("  raise notice '전보함 % · 참여 % · 이번 권 전보 % · 제본된 권 % · 제본된 전보 %',");
-line('    v_box, v_mem, v_tg, v_vol, v_page;');
+line("    raise notice '% : 참여 %/% · 이번 권 전보 %/% · 제본된 권 %/% · 쪽 %/%',");
+line('      r.name, v_mem, r.members, v_tg, r.telegrams, v_vol, r.volumes, v_page, r.pages;');
 line();
-line(
-  `  if v_box < ${tally.boxes} or v_mem < ${tally.members} or v_tg < ${tally.telegrams}` +
-    ` or v_vol < ${tally.volumes} or v_page < ${tally.pages} then`,
-);
-line(
-  `    raise exception '들어간 행이 모자랍니다. 기대: 전보함 ${tally.boxes} · 참여 ${tally.members}` +
-    ` · 전보 ${tally.telegrams} · 권 ${tally.volumes} · 쪽 ${tally.pages}';`,
-);
+line('    if v_mem < r.members or v_tg < r.telegrams');
+line('       or v_vol < r.volumes or v_page < r.pages then');
+line("      raise exception '% : 들어간 행이 모자랍니다.', r.name;");
+line('    end if;');
+line('    v_done := v_done + 1;');
+line('  end loop;');
+line();
+line('  -- 권마다 적어 둔 쪽수와 실제 스냅샷 수가 어긋나면 서가가 거짓말을 한다.');
+line('  if exists (');
+line('    select 1 from volumes v');
+line('      join legacy_box_expect e on e.box_id = v.box_id');
+line('     where v.page_count <> (select count(*) from volume_pages p where p.volume_id = v.id)');
+line('  ) then');
+line("    raise exception '쪽수가 어긋난 권이 있습니다.';");
+line('  end if;');
+line();
+line('  select count(*) into v_skip from legacy_box_expect e');
+line('   where exists (select 1 from legacy_box_need n');
+line('                   join legacy_user u on u.legacy_uid = n.legacy_uid');
+line('                  where n.box_id = e.box_id and u.id is null);');
+line("  raise notice '들어간 전보함 % · 건너뛴 전보함 %', v_done, v_skip;");
+line('  if v_done = 0 then');
+line("    raise exception '들어간 전보함이 하나도 없습니다. §1 에 uuid 를 채우세요.';");
 line('  end if;');
 line('end $$;');
 line();
 line('drop table legacy_user;');
+line('drop table legacy_box_need;');
+line('drop table legacy_box_expect;');
 line();
 line('commit;');
 line();
