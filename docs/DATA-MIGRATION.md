@@ -232,12 +232,59 @@ NOTICE: 들어간 전보함 1 · 건너뛴 전보함 1
 
 | 메시지 | 뜻 | 할 일 |
 |---|---|---|
-| `그 uuid 로 된 프로필이 없습니다: …` | 그 사람이 계정만 만들고 앱에 못 들어왔거나, uuid 를 잘못 붙였다 | 1 · 2-1 |
-| `uuid 를 하나도 채우지 않았습니다` | §1 이 전부 `null` 이다 | 2-2 |
+| `uuid 를 하나도 채우지 않았습니다` | §1 이 전부 `null` 이다 | 2 |
 | `invalid input syntax for type uuid` | uuid 에 따옴표를 안 씌웠거나 글자가 빠졌다 | 2-2 |
 | `… : 들어간 행이 모자랍니다` | 그 전보함이 반만 들어갔다 (전부 되돌아갔다) | 그대로 다시 Run |
 | `쪽수가 어긋난 권이 있습니다` | 권에 적힌 쪽수와 실제 쪽 수가 다르다 (전부 되돌아갔다) | 그대로 다시 Run · 계속되면 알려 주세요 |
 | `들어간 전보함이 하나도 없습니다` | 채운 사람만으로 온전한 전보함이 없다 | 2-1 로 돌아가 한 명 더 채웁니다 |
+
+### 프로필은 SQL 이 알아서 세웁니다
+
+`profiles` 행은 원래 앱이 첫 로그인 때 만듭니다. 계정만 만들고 **앱 화면까지 아직
+못 들어온 사람**은 그 행이 없고, `boxes.owner_id` 와 `volume_pages.author_id` 가
+`profiles` 를 참조하므로 이관이 통째로 막힙니다.
+
+그래서 §1 다음에 없는 프로필을 **옛 이름으로 세웁니다.** 무엇을 세웠는지 알려 줍니다.
+
+```
+NOTICE: 프로필을 새로 세운 사람: 보 (00000000-0000-4000-8000-000000000002)
+```
+
+그 사람이 나중에 로그인해도 이름이 덮이지 않습니다 — `ensure_profile()` 은
+`on conflict (id) do nothing` 입니다. 옛 이름이 그대로 남습니다.
+
+**여기 낯선 이름이나 모르는 uuid 가 있으면 uuid 를 잘못 넣은 것입니다.** 아래
+「잘못 넣었을 때」로 되돌리고 다시 부으면 됩니다.
+
+### 잘못 넣었을 때
+
+전부 지우고 처음부터 다시 부을 수 있습니다. 옮긴 것만 지우므로 앱에서 새로 만든
+전보함은 건드리지 않습니다.
+
+```sql
+begin;
+delete from volume_pages where volume_id in (
+  select id from volumes where box_id in (
+    'd548f9a7-aa87-65a7-362d-99ff8486a2de',   -- 견본 전보함 1
+    'f20bd636-9b7a-f0dd-197a-2d3252f3f910')); -- 견본 전보함 2
+delete from volumes     where box_id in (
+  'd548f9a7-aa87-65a7-362d-99ff8486a2de', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910');
+delete from telegrams   where box_id in (
+  'd548f9a7-aa87-65a7-362d-99ff8486a2de', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910');
+delete from box_members where box_id in (
+  'd548f9a7-aa87-65a7-362d-99ff8486a2de', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910');
+delete from boxes       where id in (
+  'd548f9a7-aa87-65a7-362d-99ff8486a2de', 'f20bd636-9b7a-f0dd-197a-2d3252f3f910');
+commit;
+```
+
+이관이 잘못 세운 프로필까지 지우려면 그 uuid 로 한 줄 더 돌립니다. 실제로 쓰는
+사람의 프로필이면 다른 곳에서 참조하고 있어 삭제가 막히므로, 지워지는 것은
+쓰이지 않는 프로필뿐입니다.
+
+```sql
+delete from profiles where id = '지울-uuid';
+```
 
 ---
 
@@ -318,8 +365,12 @@ neon/migration/dryrun.sh        # 일회용 Postgres 에 부어 보고 세어 �
 ```
 
 ```bash
-SKIP=보 neon/migration/dryrun.sh   # 그 사람만 빼고 부어 본다
+SKIP=보 neon/migration/dryrun.sh      # 그 사람만 빼고 부어 본다
+NOPROFILES=1 neon/migration/dryrun.sh    # 프로필을 하나도 미리 만들지 않는다
 ```
+
+`NOPROFILES` 는 계정만 만들고 앱에는 아직 못 들어온 상태를 재현한다. 이관 SQL 이
+스스로 프로필을 세우고 끝까지 가야 한다. 둘을 함께 줄 수도 있다.
 
 `SKIP` 을 주면 그 사람 줄을 `null` 로 남긴 판을 먼저 붓고, 이어서 전부 채운 판을
 붓는다 — 실제 절차(§3 → §3-1)를 그대로 밟아 본다. 두 번에 나눠 부은 결과가 한 번에

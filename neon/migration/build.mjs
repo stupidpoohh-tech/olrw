@@ -152,15 +152,19 @@ const skipped = data.boxes.filter((b) => !BOXES.includes(b.roomId));
 
 /** 고른 전보함에 실제로 등장하는 사람만 모은다. 등장 순서를 지킨다. */
 const people = [];
-const meet = (uid) => {
+/** 옛 앱에서 쓰던 표시 이름. profiles 를 대신 세워 줄 때 이 이름으로 넣는다. */
+const NAMES = {};
+const meet = (uid, name) => {
   const real = LEGACY_ALIAS[uid]?.uid ?? uid;
   if (!people.includes(real)) people.push(real);
+  const shown = LEGACY_ALIAS[uid]?.name ?? name;
+  if (shown && !NAMES[real]) NAMES[real] = String(shown).trim().slice(0, 12);
 };
 for (const box of chosen) {
   meet(box.ownerUid || OWNER_FALLBACK);
-  Object.keys(box.members).forEach(meet);
+  Object.entries(box.members).forEach(([uid, m]) => meet(uid, m.name));
   box.telegrams.forEach((t) => meet(t.from));
-  box.volumes.forEach((v) => v.telegrams.forEach((p) => meet(p.from)));
+  box.volumes.forEach((v) => v.telegrams.forEach((p) => meet(p.from, p.name)));
 }
 for (const uid of people) {
   if (!LABELS[uid]) throw new Error(`이름을 모르는 사람이 있습니다: ${uid}`);
@@ -353,15 +357,21 @@ line('-- 있어야 한다. 맨 끝(§7)에서 지운다.');
 line();
 line('drop table if exists legacy_user;');
 line('create table legacy_user (');
-line('  legacy_uid text primary key,');
-line('  label      text not null,');
-line('  id         uuid');
+line('  legacy_uid   text primary key,');
+line('  label        text not null,');
+line('  display_name text not null,   -- 프로필이 없을 때 이 이름으로 세운다');
+line('  id           uuid');
 line(');');
 line();
-line('insert into legacy_user (legacy_uid, label, id) values');
+line('insert into legacy_user (legacy_uid, label, display_name, id) values');
 emit(
   people.map((uid) => ({
-    cells: [`  (${q(uid)},`, `${q(LABELS[uid])},`, `${KNOWN[uid] ? q(KNOWN[uid]) : 'null'})`],
+    cells: [
+      `  (${q(uid)},`,
+      `${q(LABELS[uid])},`,
+      `${q(NAMES[uid] ?? LABELS[uid].split(' (')[0])},`,
+      `${KNOWN[uid] ? q(KNOWN[uid]) : 'null'})`,
+    ],
     note: KNOWN[uid] ? '' : '-- ← 여기에 uuid',
   })),
 ).forEach(line);
@@ -403,16 +413,36 @@ emit(
 ).forEach(line);
 line(';');
 line();
+line('-- 프로필이 아직 없는 사람은 여기서 옛 이름으로 세운다.');
+line('--');
+line('-- profiles 행은 원래 앱이 첫 로그인 때 ensure_profile() 로 만든다. 그런데');
+line('-- 계정만 만들고 아직 앱 화면까지 못 들어온 사람은 그 행이 없고, boxes.owner_id');
+line('-- 와 volume_pages.author_id 가 profiles 를 참조하므로 이관이 통째로 막힌다.');
+line('--');
+line('-- 옛 이름으로 세워 두면 그 사람이 나중에 로그인해도 이름이 덮이지 않는다 —');
+line("-- ensure_profile() 은 'on conflict (id) do nothing' 이다.");
+line('drop table if exists legacy_made_profile;');
+line('create table legacy_made_profile (id uuid, display_name text);');
+line('with made as (');
+line('  insert into profiles (id, display_name)');
+line('  select u.id, u.display_name from legacy_user u');
+line('   where u.id is not null');
+line('     and not exists (select 1 from profiles p where p.id = u.id)');
+line('  on conflict (id) do nothing');
+line('  returning id, display_name');
+line(')');
+line('insert into legacy_made_profile select id, display_name from made;');
+line();
 line('do $$');
-line('declare v_missing text; v_skip text;');
+line('declare v_missing text; v_skip text; v_made text;');
 line('begin');
-line('  -- 채운 uuid 가 진짜 그 사람인지부터 본다. 오타는 여기서 걸린다.');
-line("  select string_agg(u.label, ', ') into v_missing");
-line('    from legacy_user u left join profiles p on p.id = u.id');
-line('   where u.id is not null and p.id is null;');
-line('  if v_missing is not null then');
-line("    raise exception E'그 uuid 로 된 프로필이 없습니다: %'");
-line("      '\\n       Neon 콘솔 → Tables → profiles 의 id 를 그대로 붙여 넣으세요.', v_missing;");
+line('  -- 방금 세운 프로필을 눈으로 확인할 수 있게 적어 둔다. 여기 낯선 이름이');
+line('  -- 있으면 uuid 를 잘못 넣은 것이다 — 그때는 되돌리고 다시 부으면 된다');
+line('  -- (docs/DATA-MIGRATION.md 의 「잘못 넣었을 때」).');
+line("  select string_agg(display_name || ' (' || id || ')', ', ') into v_made");
+line('    from legacy_made_profile;');
+line('  if v_made is not null then');
+line("    raise notice '프로필을 새로 세운 사람: %', v_made;");
 line('  end if;');
 line();
 line('  -- 아직 안 채운 사람이 있으면 알리되 멈추지는 않는다.');
@@ -600,6 +630,7 @@ line();
 line('drop table legacy_user;');
 line('drop table legacy_box_need;');
 line('drop table legacy_box_expect;');
+line('drop table legacy_made_profile;');
 line();
 line('commit;');
 line();

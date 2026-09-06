@@ -71,11 +71,21 @@ profiles_from() {
 }
 profiles_from "$WORK/legacy.sql" > "$WORK/profiles.sql"
 
+
 if ! grep -q "^  (" "$WORK/profiles.sql"; then
   echo "§1 에서 uuid 를 하나도 찾지 못했습니다 — 0002_legacy.sql 의 모양이 바뀌었습니다."
   exit 1
 fi
 echo "§1 에 채워진 사람 $(grep -c "^  (" "$WORK/profiles.sql")명"
+
+# 진짜 상황 재현 — 계정만 만들고 앱에는 아직 못 들어온 사람은 profiles 행이 없다.
+# 그때 이관 SQL 이 스스로 프로필을 세우는지 본다.
+#
+#   NOPROFILES=1 neon/migration/dryrun.sh
+if [[ -n "${NOPROFILES:-}" ]]; then
+  echo "프로필을 미리 만들지 않습니다 — SQL 이 스스로 세워야 합니다"
+  echo "select 1;" > "$WORK/profiles.sql"
+fi
 
 # 빼고 부어 본 뒤에는, 그 사람이 들어온 뒤 마저 붓는 것까지 이어서 해 본다.
 # 실제 절차가 그 순서이고, 거기서 어긋나면 서가가 반쪽으로 남는다.
