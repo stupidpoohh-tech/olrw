@@ -48,7 +48,11 @@
 
 - Vite + React 18 + TypeScript (strict)
 - Neon: Postgres + Data API(PostgREST) + Managed Better Auth + RLS (D14)
-- 배포: Cloudflare Pages, GitHub 연동 자동배포. 서버 코드 없음 — `dist/` 만 올라간다.
+- 배포: Cloudflare Pages, GitHub 연동 자동배포. 서버 코드는 **하나뿐**이다 —
+  `functions/auth/[[path]].js` 가 로그인만 우리 주소 밑으로 중계한다. 사파리의
+  크로스 사이트 추적 방지가 로그인 쿠키를 막기 때문이고, 앱은 평소 Neon 에 직접
+  붙다가 세션이 안 남는 그 사람에게만 그 자리에서 갈아탄다. 어디까지 함수를
+  타는지는 `public/_routes.json` 이 정한다 (`/auth/*` 하나).
   **프로덕션 가지 = `claude/telegram-messenger-migration-eggni4`** → `olrw-8pt.pages.dev`.
   그 밖의 가지는 전부 미리보기 주소로만 뜬다. `main` 은 없다 —
   이 가지를 바꾸려면 Cloudflare 대시보드에서 사용자가 바꿔야 하므로, 그 전까지는
@@ -159,6 +163,7 @@ neon/tests/concurrency_test.sh # 동시 마감
 
 pnpm auth:check                    # 세션이 제때 알려지는가 (Neon 불필요)
 pnpm errors:check                  # 어댑터가 내는 오류 코드를 하나도 빠짐없이 옮기는가
+pnpm proxy:check                   # 로그인 중계 함수 (Cloudflare 없이 Node 에서 돈다)
 
 pnpm build && pnpm preview &       # 아래 셋은 미리보기 서버가 떠 있어야 한다
 pnpm ui:check                      # 인증 · 온보딩 · 전환 바
@@ -178,6 +183,10 @@ pnpm tint:check                    # 타자기 네 대가 한눈에 다른지 (D
 에 없으면 화면에는 "문제가 생겼습니다" 만 뜨고 사용자도 우리도 어느 자리인지 알 수
 없다 — 비밀번호가 맞는데 가입도 로그인도 안 되는 사람이 그 문장만 보고 서 있었다.
 `pnpm errors:check` 가 설치된 패키지와 표를 대조한다.
+
+**`functions/` 를 건드리면 `pnpm proxy:check` 를 돌린다.** 그 코드는 Cloudflare
+위에서만 돌아 배포 전에는 아무도 실행해 보지 않는데, 어긋나면 로그인이 통째로
+막힌다. 시험은 `fetch` 만 가짜로 끼워 Node 에서 그대로 돌려 본다.
 
 ## 커밋
 

@@ -85,7 +85,10 @@ const stubNeon = {
     b.onResolve({ filter: /^\.\/neon$/ }, () => ({ path: 'neon-stub', namespace: 'stub' }));
     b.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({
       contents: 'export const hasNeonConfig = false;'
-        + ' export function neon() { throw new Error("시험에서는 클라이언트를 직접 넘긴다"); }',
+        + ' export function neon() { throw new Error("시험에서는 클라이언트를 직접 넘긴다"); }'
+        + ' export function onAuthProxy() { return false; }'
+        + ' export function useAuthProxy() { throw new Error("시험에서는 길도 직접 넘긴다"); }'
+        + ' export function forgetAuthProxy() {}',
       loader: 'js',
     }));
   },
@@ -209,9 +212,17 @@ function noSessionClient() {
   return c;
 }
 
+/** 갈아탈 길이 이미 소진된 상태 — 우리 주소 밑으로 돌려도 세션이 안 남는다. */
+let forgotten = 0;
+const NO_ROUTE = {
+  on: () => true,
+  use: () => { throw new Error('갈아탈 곳이 없다'); },
+  forget: () => { forgotten++; },
+};
+
 {
   const client = noSessionClient();
-  const store = createNeonStore(client);
+  const store = createNeonStore(client, NO_ROUTE);
   await store.ready();
   let e = null;
   try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
@@ -219,13 +230,17 @@ function noSessionClient() {
   ok('세션이 안 남으면 로그인은 그 사실을 말한다', e?.code === 'session_not_stored',
     `code = ${e?.code} · ${e?.message ?? ''}`);
   ok('그 문장이 무엇을 해 보라고 말한다',
-    typeof e?.message === 'string' && e.message.includes('브라우저'), e?.message);
+    typeof e?.message === 'string' && e.message.includes('다른 브라우저'), e?.message);
+  // 여기까지 왔다는 것은 우리 주소 밑으로 돌려 봐도 안 됐다는 뜻이다.
+  // 이제 와서 설정을 끄라고 하면, 이미 그 설정과 무관한 길을 시도한 뒤라 앞뒤가 안 맞는다.
+  ok('설정을 끄라고 하지 않는다',
+    typeof e?.message === 'string' && !e.message.includes('추적 방지'), e?.message);
   ok('세션은 비어 있다', store.getSession() === null);
 }
 
 {
   const client = noSessionClient();
-  const store = createNeonStore(client);
+  const store = createNeonStore(client, NO_ROUTE);
   await store.ready();
   let e = null;
   try {
@@ -296,6 +311,119 @@ function noSessionClient() {
   } catch (e) { code = e?.code ?? ''; }
   ok('계정이 서기 전에 끊긴 가입은 그대로 알린다', code === 'weak_password', `code = ${code}`);
   ok('그때는 로그인을 시도하지 않는다', client.calls.signIn === 0, `signIn ${client.calls.signIn}회`);
+}
+
+/* ═══ 쿠키가 막혔을 때 길을 바꾼다 ═══════════════════════════════════════
+   세션이 안 잡히는 이유는 거의 언제나 브라우저가 다른 사이트의 쿠키를 막고
+   있어서다. 그럴 때 로그인만 우리 주소 밑(functions/auth)으로 돌리면 쿠키가
+   퍼스트파티가 되어 그 차단과 무관해진다.
+
+   여기서 지키는 것은 셋이다.
+     1. 세션이 잡히는 사람의 경로는 건드리지 않는다
+     2. 안 잡히면 갈아타고 한 번 더 해 본다
+     3. 갈아탄 뒤에도 안 되면 그때 사정을 말한다 (무한히 갈아타지 않는다) */
+
+{
+  const blocked = noSessionClient();
+  const working = fakeClient();
+  let switched = 0;
+  const route = { on: () => switched > 0, use: () => { switched++; return working; }, forget: () => {} };
+
+  const store = createNeonStore(blocked, route);
+  await store.ready();
+  let e = null;
+  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  catch (err) { e = err; }
+
+  ok('세션이 안 잡히면 길을 바꿔 한 번 더 해 본다', switched === 1, `갈아타기 ${switched}회`);
+  ok('그 길로 들어가진다', e === null && store.getSession()?.displayName === '안',
+    e ? String(e.message ?? e) : '');
+  ok('바꾼 길로 로그인을 한 번만 시도한다', working.calls.signIn === 1,
+    `signIn ${working.calls.signIn}회`);
+}
+
+{
+  const blocked = noSessionClient();
+  let switched = 0;
+  // 갈아탄 길에서도 세션이 안 잡히는 경우.
+  const route = { on: () => switched > 0, use: () => { switched++; return noSessionClient(); }, forget: () => {} };
+
+  const store = createNeonStore(blocked, route);
+  await store.ready();
+  let e = null;
+  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  catch (err) { e = err; }
+  ok('갈아탄 뒤에도 안 되면 그때 사정을 말한다', e?.code === 'session_not_stored',
+    `code = ${e?.code}`);
+  ok('갈아타기는 한 번뿐이다', switched === 1, `갈아타기 ${switched}회`);
+}
+
+{
+  // 이미 그 길로 붙어 있으면 다시 갈아타지 않는다.
+  const blocked = noSessionClient();
+  let switched = 0;
+  const route = { on: () => true, use: () => { switched++; return fakeClient(); }, forget: () => {} };
+  const store = createNeonStore(blocked, route);
+  await store.ready();
+  let e = null;
+  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  catch (err) { e = err; }
+  ok('이미 그 길이면 갈아타지 않는다', switched === 0 && e?.code === 'session_not_stored');
+}
+
+{
+  // 세션이 잡히는 사람은 애초에 갈아탈 일이 없다.
+  const client = fakeClient();
+  let switched = 0;
+  const route = { on: () => false, use: () => { switched++; return client; }, forget: () => {} };
+  const store = createNeonStore(client, route);
+  await store.ready();
+  await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) });
+  ok('잘 되는 사람의 경로는 그대로다', switched === 0 && store.getSession()?.displayName === '안');
+}
+
+{
+  // 가입도 같은 길을 쓴다. 계정은 이미 만들어졌으므로 여기서 포기하면 막다른 길이다.
+  const blocked = noSessionClient();
+  const working = fakeClient();
+  let switched = 0;
+  const route = { on: () => switched > 0, use: () => { switched++; return working; }, forget: () => {} };
+  const store = createNeonStore(blocked, route);
+  await store.ready();
+  let e = null;
+  try { await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: '안' }); }
+  catch (err) { e = err; }
+  ok('가입도 길을 바꿔 살린다', e === null && store.getSession()?.displayName === '안',
+    e ? String(e.message ?? e) : '');
+}
+
+/* 그 길도 소용없었으면 기억을 지운다. 안 지우면 이 브라우저는 영영 그 길로만
+   가고, 프록시 쪽이 고장난 경우 직접 붙어 볼 기회가 사라진다. */
+ok('길을 바꿔도 안 되면 그 기억을 지운다', forgotten === 2, `지움 ${forgotten}회`);
+
+{
+  // 중계가 아직 배포되지 않아 404 가 오는 경우. 그 오류를 그대로 옮기면
+  // "가입되지 않은 이메일입니다" 가 떠서, 계정이 있는 사람이 없다는 말을 듣는다.
+  const blocked = noSessionClient();
+  const notDeployed = fakeClient();
+  notDeployed.auth.signInWithPassword = async () => ({
+    data: { user: null, session: null },
+    error: { code: 'user_not_found', status: 404, message: 'Not Found' },
+  });
+  notDeployed.auth.getSession = async () => ({ data: { session: null }, error: null });
+  let switched = 0;
+  const route = {
+    on: () => switched > 0,
+    use: () => { switched++; return notDeployed; },
+    forget: () => {},
+  };
+  const store = createNeonStore(blocked, route);
+  await store.ready();
+  let e = null;
+  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  catch (err) { e = err; }
+  ok('바꾼 길이 없더라도 엉뚱한 말을 하지 않는다', e?.code === 'session_not_stored',
+    `code = ${e?.code} · ${e?.message ?? ''}`);
 }
 
 console.log(failed ? `\n━━━ ${failed}건 실패 ━━━` : '\n━━━ 전부 통과 ━━━');

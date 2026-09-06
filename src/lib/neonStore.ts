@@ -1,6 +1,6 @@
 import { isPaperId, type PaperId } from '../design/colors';
 import { isTypeId, type TypeId } from '../design/typewriters';
-import { neon } from './neon';
+import { forgetAuthProxy, neon, onAuthProxy, useAuthProxy } from './neon';
 import type { BoxStore } from './store';
 import type {
   BoxSummary, Envelope, LengthBucket, Member, Session, Volume, VolumePage,
@@ -44,13 +44,16 @@ const NOT_CREATED: ReadonlySet<string> = new Set([
  * 유지된다. 브라우저가 크로스 사이트 쿠키를 막으면 로그인은 성공해도 그 다음
  * 조회가 늘 빈손으로 돌아온다 — 새로고침해도 마찬가지다.
  *
- * 여기서 문장을 직접 만든다. errors.ts 는 한국어 문장을 그대로 흘려보내므로,
+ * 그래서 앱은 먼저 로그인만 우리 주소 밑으로 돌려 다시 해 본다
+ * (`functions/auth/[[path]].js`). 이 오류는 **그것마저 통하지 않았을 때**만
+ * 나온다. 그러니 브라우저 설정을 바꾸라는 말은 하지 않는다 — 이미 그 설정을
+ * 건드리지 않는 길로 시도해 본 뒤다.
+ *
+ * 문장을 여기서 직접 만든다. errors.ts 는 한국어 문장을 그대로 흘려보내므로,
  * 가입에서 온 것과 로그인에서 온 것을 다르게 말할 수 있다.
  */
-const notStored = (opening: string): Error => Object.assign(
-  new Error(`${opening} 이 브라우저가 로그인 상태를 저장하지 못했습니다. `
-    + '쿠키 차단(사파리 「크로스 사이트 추적 방지」)을 끄거나 다른 브라우저에서 '
-    + '다시 시도해 주세요.'),
+const notStored = (opening: string, next: string): Error => Object.assign(
+  new Error(`${opening} 이 브라우저에 로그인 상태가 남지 않습니다. ${next}`),
   { code: 'session_not_stored' },
 );
 
@@ -80,13 +83,27 @@ function metaName(user: AuthUser): string {
   return '';
 }
 
+/** 세션이 안 남을 때 갈아탈 길. 평소에는 `neon.ts` 의 것을 쓴다. */
+interface ProxyRoute {
+  /** 이미 그 길로 붙어 있는가. */
+  on: () => boolean;
+  /** 그 길로 붙은 새 클라이언트. */
+  use: () => ReturnType<typeof neon>;
+  /** 그 길도 소용없었다 — 다음에는 원래 길에서 시작한다. */
+  forget: () => void;
+}
+
 /**
  * @param client 시험에서만 넘긴다. 평소에는 `neon()` 한 대를 그대로 쓴다.
  *   세션이 언제 알려지는지는 눈으로 봐서는 모르는 종류의 규칙이라
  *   (`tools/auth-check.mjs`) 클라이언트를 갈아 끼울 자리를 하나 열어 둔다.
+ * @param route 세션이 안 남을 때 갈아탈 길. 시험에서만 바꿔 끼운다.
  */
-export function createNeonStore(client?: ReturnType<typeof neon>): BoxStore {
-  const db = client ?? neon();
+export function createNeonStore(
+  client?: ReturnType<typeof neon>,
+  route: ProxyRoute = { on: onAuthProxy, use: useAuthProxy, forget: forgetAuthProxy },
+): BoxStore {
+  let db = client ?? neon();
 
   let session: Session | null = null;
   const listeners = new Set<(s: Session | null) => void>();
@@ -122,6 +139,25 @@ export function createNeonStore(client?: ReturnType<typeof neon>): BoxStore {
   };
 
   /**
+   * **다른 탭**에서 로그인·로그아웃했을 때만 온다.
+   *
+   * Neon 어댑터(@neondatabase/auth 0.5.0-beta)의 `onAuthStateChange` 는
+   * BroadcastChannel 위에 얹혀 있고, 자기 탭이 보낸 메시지는 `clientId` 로
+   * 걸러 낸다. 그래서 **내가 로그인한 탭에는 이 콜백이 오지 않는다** —
+   * 여기에 기대면 로그인해도 화면이 그대로이고 새로고침해야 들어가진다.
+   *
+   * 그래서 내 탭의 변화는 아래 signIn / signUp / signOut 이 직접 반영한다.
+   * 이 구독은 다른 탭과 보조를 맞추는 몫만 맡는다.
+   *
+   * 클라이언트를 갈아타면 구독도 새 클라이언트에 다시 건다.
+   */
+  const watchOtherTabs = (): void => {
+    db.auth.onAuthStateChange((_event, auth) => {
+      void apply(auth ?? null);
+    });
+  };
+
+  /**
    * 로그인하고 세션을 돌려준다. 없으면 null — 던지지 않는다.
    *
    * 어댑터가 `session_not_found` 로 실패해도 한 번 더 직접 물어본다. 그 오류는
@@ -137,25 +173,37 @@ export function createNeonStore(client?: ReturnType<typeof neon>): BoxStore {
     return again.data.session ?? null;
   };
 
+  /**
+   * 로그인하고, 세션이 남지 않으면 **길을 바꿔 한 번 더** 해 본다.
+   *
+   * 세션이 안 잡히는 이유는 거의 언제나 브라우저가 다른 사이트의 쿠키를
+   * 막고 있어서다(사파리의 크로스 사이트 추적 방지가 기본으로 켜져 있다).
+   * 그럴 때 로그인만 우리 주소 밑으로 돌리면 쿠키가 퍼스트파티가 되어
+   * 그 차단과 무관해진다 — 브라우저 설정을 바꾸라고 할 일이 아니다.
+   *
+   * 평소 경로는 건드리지 않는다. 이미 세션이 잡히는 사람은 첫 줄에서 끝난다.
+   */
+  const loginMaybeProxy = async (mail: string, password: string): Promise<AuthSession | null> => {
+    const first = await login(mail, password);
+    if (first || route.on()) return first;
+    db = route.use();
+    watchOtherTabs();
+    try {
+      return await login(mail, password);
+    } catch {
+      // 바꾼 길에서 난 오류는 그대로 내보내지 않는다. 중계가 배포되지 않았다면
+      // 404 가 오는데, 그건 "가입되지 않은 이메일" 로 옮겨져 엉뚱한 말이 된다.
+      // 여기서는 세션을 못 얻었다는 사실만 알리고, 부른 쪽이 사정을 말한다.
+      return null;
+    }
+  };
+
   const booted = (async () => {
     const { data } = await db.auth.getSession();
     await apply(data.session ?? null);
   })();
 
-  /**
-   * **다른 탭**에서 로그인·로그아웃했을 때만 온다.
-   *
-   * Neon 어댑터(@neondatabase/auth 0.5.0-beta)의 `onAuthStateChange` 는
-   * BroadcastChannel 위에 얹혀 있고, 자기 탭이 보낸 메시지는 `clientId` 로
-   * 걸러 낸다. 그래서 **내가 로그인한 탭에는 이 콜백이 오지 않는다** —
-   * 여기에 기대면 로그인해도 화면이 그대로이고 새로고침해야 들어가진다.
-   *
-   * 그래서 내 탭의 변화는 아래 signIn / signUp / signOut 이 직접 반영한다.
-   * 이 구독은 다른 탭과 보조를 맞추는 몫만 맡는다.
-   */
-  db.auth.onAuthStateChange((_event, auth) => {
-    void apply(auth ?? null);
-  });
+  watchOtherTabs();
 
   /**
    * PostgrestError 를 그대로 던진다. 문구 변환은 errors.ts 가 한 곳에서 한다.
@@ -211,13 +259,13 @@ export function createNeonStore(client?: ReturnType<typeof neon>): BoxStore {
          */
         if (NOT_CREATED.has(errCode(made.error))) throw made.error;
         try {
-          session_ = await login(mail, password);
+          session_ = await loginMaybeProxy(mail, password);
         } catch {
           throw made.error;   // 되살리기도 실패했다 — 원래 오류를 그대로 보여준다
         }
         // 계정은 섰는데 세션이 이 브라우저에 남지 않는다. 여기서 멈추면 사용자는
         // 무엇이 막혔는지 모른 채 "문제가 생겼습니다" 만 본다.
-        if (!session_) throw notStored('계정은 만들었지만');
+        if (!session_) { route.forget(); throw notStored('계정은 만들었지만', '다른 브라우저에서 로그인해 주세요.'); }
       }
 
       await apply(session_);
@@ -225,10 +273,10 @@ export function createNeonStore(client?: ReturnType<typeof neon>): BoxStore {
     },
 
     async signIn({ email, password }) {
-      const session_ = await login(email.trim().toLowerCase(), password);
+      const session_ = await loginMaybeProxy(email.trim().toLowerCase(), password);
       // 비밀번호가 틀렸으면 login() 이 이미 던졌다. 여기까지 와서 비어 있다는 것은
       // 자격은 통과했는데 세션이 이 브라우저에 남지 않는다는 뜻이다.
-      if (!session_) throw notStored('비밀번호는 맞았지만');
+      if (!session_) { route.forget(); throw notStored('비밀번호는 맞았지만', '다른 브라우저에서 다시 시도해 주세요.'); }
       // 돌려받은 세션을 바로 반영한다. onAuthStateChange 를 기다리면 내 탭에는
       // 영영 오지 않아, 화면이 로그인 폼으로 되돌아간다.
       await apply(session_);

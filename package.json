@@ -15,7 +15,8 @@
     "ui:check5": "node tools/ui-check-ritual.mjs",
     "sound:check": "node tools/sound-check.mjs",
     "auth:check": "node tools/auth-check.mjs",
-    "errors:check": "node tools/errors-check.mjs"
+    "errors:check": "node tools/errors-check.mjs",
+    "proxy:check": "node tools/proxy-check.mjs"
   },
   "dependencies": {
     "@neondatabase/neon-js": "0.7.0-beta",

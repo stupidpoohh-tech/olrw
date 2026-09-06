@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "description": "로그인만 함수를 탄다. 나머지는 전부 정적 파일이다 — /* → index.html 인 SPA 를 함수가 가로채면 앱이 뜨지 않는다.",
+  "include": ["/auth/*"],
+  "exclude": []
+}
