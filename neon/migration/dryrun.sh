@@ -94,6 +94,13 @@ if [[ -n "$SKIP" ]]; then
   profiles_from "$WORK/legacy-full.sql" > "$WORK/profiles-full.sql"
 fi
 
+# 앞선 실행이 오류로 끝나 트랜잭션이 열린 채 남은 상태를 만든다.
+# 그 세션에서 이관 SQL 을 이어 부어도 통해야 한다 — 편집기의 ROLLBACK 버튼을
+# 찾지 못하는 사람이 있다.
+#
+#   STUCK=1 neon/migration/dryrun.sh
+printf 'begin;\nselect 1/0;\n' > "$WORK/stuck.sql"
+
 cat > "$WORK/report.sql" <<'SQL'
 \pset border 2
 select b.name as "전보함", b.invite_code as "초대코드", b.current_vol as "이번 권",
@@ -135,6 +142,11 @@ if [[ -n "${PGHOST:-}" ]]; then
   psql -v ON_ERROR_STOP=1 -q -c "create database \"$DB\";" postgres
   trap 'psql -q -c "drop database if exists \"$DB\";" postgres >/dev/null 2>&1 || true; rm -rf "$WORK"' EXIT
   psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$HARNESS" -f "$INIT" -f "$WORK/profiles.sql"
+  if [[ -n "${STUCK:-}" ]]; then
+    echo "── 앞선 실행이 오류로 끝난 세션에서 이어 붓는다 ──"
+    psql -q -d "$DB" -f "$WORK/stuck.sql" -f "$WORK/legacy.sql" 2>&1 |
+      grep -Ev "ERROR:  division by zero|WARNING:  there is no transaction" || true
+  fi
   psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$WORK/legacy.sql"
   echo "── 두 번째 적용 (행이 늘지 않아야 한다) ──"
   psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$WORK/legacy.sql"
@@ -163,6 +175,11 @@ run "pg_ctl -D $DIR/data -l $DIR/pg.log -o '-k $DIR -p 5598 -c listen_addresses=
 
 PSQL="psql -h $DIR -p 5598 -U postgres"
 run "$PSQL -v ON_ERROR_STOP=1 -q -f $HARNESS -f $INIT -f $WORK/profiles.sql"
+if [[ -n "${STUCK:-}" ]]; then
+  echo "── 앞선 실행이 오류로 끝난 세션에서 이어 붓는다 ──"
+  run "$PSQL -q -f $WORK/stuck.sql -f $WORK/legacy.sql" 2>&1 |
+    grep -Ev "^psql:.*ERROR:  division by zero|^psql:.*WARNING:  there is no transaction" || true
+fi
 run "$PSQL -v ON_ERROR_STOP=1 -q -f $WORK/legacy.sql"
 echo "── 두 번째 적용 (행이 늘지 않아야 한다) ──"
 run "$PSQL -v ON_ERROR_STOP=1 -q -f $WORK/legacy.sql"

@@ -339,6 +339,11 @@ line(`-- '${PHOTO_FALLBACK}' 로 들어간다. 올릴 곳이 생기면 이 목�
 for (const p of photoVolumes) line(`--   ${p}`);
 line(bar);
 line();
+line('-- 앞선 실행이 오류로 끝났으면 그 트랜잭션이 열린 채 남아 있고, 그대로는');
+line('-- 아무 문장도 통하지 않는다. 편집기에서 ROLLBACK 버튼을 찾을 필요 없이');
+line('-- 여기서 정리한다. 열린 것이 없으면 경고 한 줄만 나오고 지나간다.');
+line('rollback;');
+line();
 line('begin;');
 line();
 
