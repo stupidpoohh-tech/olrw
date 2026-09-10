@@ -1,9 +1,15 @@
 # MIGRATION — GitHub + Supabase + Vercel 자동배포 이관
 
-> **이 문서는 옛 기록이다.** 이관 당시의 계획을 남겨 둔 것이고, 실제 구성은
-> Supabase 가 아니라 **Neon** 이다 (`docs/decisions.md` D14). 지금 연결하려면
-> `docs/SETUP.md` 를 본다. 아래의 Supabase CLI · 환경변수 두 개 · Storage 부분은
-> 더 이상 맞지 않는다.
+> ## ⛔ 옛 기록입니다 (deprecated)
+>
+> 이관 당시의 **계획**을 남겨 둔 것입니다. 실제로는 Supabase 가 아니라 **Neon**
+> 으로, Vercel 이 아니라 **Cloudflare Pages** 로 갔습니다 (`docs/decisions.md` D14).
+>
+> - 지금 상태 → `docs/RELEASE.md`
+> - 연결하는 법 → `docs/SETUP.md`
+>
+> 아래의 Supabase CLI · 환경변수 두 개 · Storage · `main` 가지 부분은 더 이상
+> 맞지 않습니다.
 
 현재: 단일 `index.html` + 브라우저 Babel + Firebase compat CDN. 빌드 없음, 배포 파이프라인 없음.
 목표: 커밋하면 자동으로 배포되는 구조. Preview(PR) / Production(main) 분리.

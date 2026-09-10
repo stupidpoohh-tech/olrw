@@ -1,8 +1,11 @@
 # OLRW — Our love, rightly written (전보함)
 
+> **지금 상태는 `docs/RELEASE.md` 가 정본이다.** 무엇이 끝났고 무엇이 남았는지는
+> 거기서 본다 — 다른 문서와 어긋나면 그쪽이 맞다.
 > 제품 설계 정본은 `docs/PORTING-SPEC.md`. 값에 대한 판단이 필요하면 그 문서를 따른다.
 > **확정된 변경은 `docs/decisions.md`가 우선한다.** 스펙과 어긋나면 그쪽이 최신이다.
-> 진단 근거는 `docs/AUDIT.md`.
+> 진단 근거는 `docs/AUDIT.md` (포팅 전 기록).
+> `docs/HANDOFF-README.md` · `docs/MIGRATION.md` 는 **옛 기록**이다.
 
 ## 일하는 방식 (사용자와의 약속)
 
@@ -68,7 +71,10 @@
 - 스타일: CSS 변수 + 모듈 CSS. UI 프레임워크 없음, 애니메이션 라이브러리 없음
 - 사운드: Web Audio API 합성. **타건음 둘만 실제 녹음**이다 — 참나무는 나무 자판
   (16.7KB · D15), 이끼는 풀 스치는 소리(20KB · D18). 자연물은 합성으로 자연물처럼
-  안 들렸다. 강철·설탕과 벨·캐리지는 전부 합성이라 에셋 0바이트
+  안 들렸다. 강철·설탕과 벨·캐리지는 전부 합성이라 에셋 0바이트.
+  **녹음 여부는 소리의 길이로 어림잡지 않는다.** 여섯 벌을 RMS 로 맞춰 잘라
+  피크가 두 배까지 벌어지므로, 길이를 자로 쓰면 판정이 흔들린다 — `sounds.ts`
+  가 열어 둔 `keyBuffer` 로 버퍼를 직접 본다
 
 ## 디렉터리
 
@@ -177,14 +183,27 @@ neon/tests/concurrency_test.sh # 동시 마감
 pnpm auth:check                    # 세션이 제때 알려지는가 (Neon 불필요)
 pnpm errors:check                  # 어댑터가 내는 오류 코드를 하나도 빠짐없이 옮기는가
 pnpm proxy:check                   # 로그인 중계 함수 (Cloudflare 없이 Node 에서 돈다)
+pnpm secrets:check                 # 실사용 데이터가 저장소·번들로 돌아오지 않았는가
+
+neon/tests/prod_smoke_selftest.sh  # 운영 표본 SQL 이 어긋난 데이터에서 실패하는가
+neon/migration/dryrun.sh           # 이관 파이프라인 (견본만으로도 돈다)
 
 pnpm build && pnpm preview &       # 아래 셋은 미리보기 서버가 떠 있어야 한다
 pnpm ui:check                      # 인증 · 온보딩 · 전환 바
 pnpm ui:check4                     # 타전실 · 수신함(봉투) · 서가
 pnpm ui:check5                     # 만남 마감 5단계 · 제본 애니메이션
-pnpm sound:check                   # §6-1 합성음 (미리보기 서버 불필요)
+pnpm sound:check                   # §6-1 합성음 · 녹음 (미리보기 서버 불필요)
 pnpm tint:check                    # 타자기 네 대가 한눈에 다른지 (D9)
+pnpm smoke:prod                    # 배포된 주소를 연다 (체험 모드만 — 운영 데이터 무접촉)
+SMOKE_URL=http://localhost:4173 pnpm smoke:prod   # 방금 빌드한 것으로
 ```
+
+**CI 가 이것들을 전부 건다.** `.github/workflows/release-gate.yml` 이 프로덕션
+가지(`claude/telegram-messenger-migration-eggni4`)와 작업 가지를 본다. 하나라도
+실패하면 게이트 전체가 실패한다. 자세히는 `docs/RELEASE.md`.
+
+옛 `ci.yml` 은 없앴다 — 존재하지 않는 `main` 을 기다리느라 **한 번도 돌지
+않았다**(실행 0회). 검증을 붙일 때는 실제 가지를 보는지부터 확인한다.
 
 **스키마를 건드리면 테스트를 돌린다.** 봉인·제본·소유자 이양은 눈으로 봐서는 깨진 걸 모른다.
 
