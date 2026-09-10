@@ -339,7 +339,12 @@ try {
   ok('새로고침해도 서가에 남는다 (DB 에 제본됐다)', (await pageA.$$('.spine')).length === 1);
   await pageA.click('.spine');
   await pageA.waitForSelector('.book-title-page', { timeout: 20000 });
-  ok('책을 펴면 제본된 쪽이 들어 있다', (await pageA.textContent('body')).includes(MSG_A));
+  // 표제지는 바로 서지만 쪽은 DB 에서 따로 받아 온다. 그것을 기다리지 않으면
+  // 아직 안 온 것을 「없다」고 읽는다 — memoryStore 는 즉시라 로컬에서만 통과한다.
+  await pageA.waitForSelector('.book-page-body', { timeout: 20000 }).catch(() => {});
+  ok('책을 펴면 제본된 쪽이 들어 있다',
+     (await pageA.textContent('body')).includes(MSG_A),
+     `${(await pageA.$$('.book-page')).length}쪽`);
   // 펼친 책은 모달이라 탭을 가린다. 닫고 나온다.
   await pageA.keyboard.press('Escape');
   await pageA.waitForSelector('.book-stage', { state: 'detached', timeout: 10000 }).catch(() => {});
