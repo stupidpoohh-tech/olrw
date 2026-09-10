@@ -14,6 +14,7 @@
  *      길이로 가른다. 녹음은 62ms, 합성 fallback 은 100ms 다. (D15)
  */
 import { chromium } from 'playwright';
+import { launchPath } from './chromium.mjs';
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
 
@@ -36,7 +37,7 @@ const SHAPE = {
 };
 
 const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  ...launchPath(),
 });
 const page = await browser.newPage();
 await page.goto('about:blank');
@@ -97,6 +98,58 @@ const data = await page.evaluate(async ({ soundsSrc, twSrc, shapeNames }) => {
     shape[name] = { peak: +r.peak.toFixed(4), duration: +(r.last / RATE).toFixed(3) };
   }
 
+  /**
+   * 녹음이 실제로 들어왔는가 — 길이로 어림잡지 않고 버퍼를 직접 본다.
+   *
+   * 앞서는 렌더한 소리가 "절대 진폭 0.002 를 마지막으로 넘긴 지점" 을 길이로
+   * 삼아 합성 fallback 과 갈랐다. 그런데 여섯 벌은 RMS(체감 크기)로 맞춰 잘라
+   * 두었을 뿐 파형 모양이 서로 달라 **피크가 두 배까지 벌어진다**. 꼬리가
+   * 완만한 이끼에서는 그 절대선을 지나는 지점이 벌마다 20ms 씩 달라져 판정이
+   * 기준선을 넘나들었다 — 제품이 아니라 자(尺)가 흔들린 것이다.
+   *
+   * 버퍼는 랜덤과 무관하다. 여섯 벌을 전부, 매번 같은 값으로 확인한다.
+   */
+  const samples = [];
+  for (const t of tw.TYPEWRITERS) {
+    if (t.voice.key.kind !== 'sample') continue;
+    const ctx = new OfflineAudioContext(1, RATE, RATE);
+    const bufs = t.voice.key.srcs.map((src) => {
+      const b = snd.keyBuffer(ctx, src);
+      return b ? { dur: +b.duration.toFixed(4), rate: b.sampleRate, len: b.length } : null;
+    });
+    samples.push({ id: t.id, label: t.label, gain: t.voice.key.gain,
+                   count: t.voice.key.srcs.length, bufs,
+                   fallbackKind: t.voice.key.fallback.kind });
+  }
+
+  /**
+   * 그 버퍼가 출력까지 실제로 가는가. 변주를 **양 끝으로 고정**해 재현 가능하게
+   * 잰다. 녹음 경로는 난수를 세 번(벌 고르기·속도·크기)만 쓰고 잡음을 만들지
+   * 않으므로, 고정해도 파형이 왜곡되지 않는다. 합성 경로에는 쓰지 않는다.
+   */
+  const fixedRender = async (synth, rnd) => {
+    const real = Math.random;
+    Math.random = () => rnd;
+    try { return await render(synth); } finally { Math.random = real; }
+  };
+  for (const s of samples) {
+    const t = tw.TYPEWRITERS.find((x) => x.id === s.id);
+    s.plays = [];
+    // 0 → 가장 느리고 작게, 0.999 → 가장 빠르고 크게. 벌도 양 끝을 고른다.
+    for (const rnd of [0, 0.999]) {
+      const r = await fixedRender(snd.SYNTHS.playKey(t.voice), rnd);
+      let sum = 0, n = 0;
+      for (const x of r.d) if (Math.abs(x) > 1e-5) { sum += x * x; n++; }
+      s.plays.push({ rnd, peak: +r.peak.toFixed(4), rms: +(n ? Math.sqrt(sum / n) : 0).toFixed(5) });
+    }
+    // 녹음을 못 쓸 때 무엇이 나는가 — fallback 경로도 실제로 소리가 나야 한다.
+    const f = t.voice.key.fallback;
+    const fb = await render(f.kind === 'droplet'
+      ? snd.SYNTHS.playKey({ ...t.voice, key: { ...f } })
+      : snd.SYNTHS.playKey({ ...t.voice, key: { ...f } }));
+    s.fallback = { peak: +fb.peak.toFixed(4), dur: +(fb.last / RATE).toFixed(3) };
+  }
+
   const voices = [];
   for (const t of tw.TYPEWRITERS) {
     // 랜덤 성분이 있으니 여러 번 내서 평균을 본다
@@ -115,7 +168,7 @@ const data = await page.evaluate(async ({ soundsSrc, twSrc, shapeNames }) => {
                   keyCentroid: Math.round(c / 5),
                   bell: t.voice.bell, bellMag: probes, off: mag(bellR, 700) });
   }
-  return { shape, voices };
+  return { shape, voices, samples };
 }, { soundsSrc, twSrc, shapeNames: Object.keys(SHAPE) });
 
 await browser.close();
@@ -158,12 +211,43 @@ ok('강철은 스트라이크다', kinds.steel === 'strike', `steel.kind = ${kin
 ok('참나무는 녹음이다 (D15)', kinds.oak === 'sample', `oak.kind = ${kinds.oak}`);
 ok('이끼는 녹음이다 (D18)', kinds.moss === 'sample', `moss.kind = ${kinds.moss}`);
 
-// 녹음을 못 받아오면 조용히 합성으로 떨어진다. 길이로 가른다.
-const dur = Object.fromEntries(data.voices.map((v) => [v.id, v.keyDur]));
-ok('참나무 녹음이 실제로 울린다 (합성 fallback 아님)', dur.oak > 0.04 && dur.oak < 0.08,
-   `길이 ${dur.oak}s — 녹음 62ms · fallback 100ms`);
-ok('이끼 녹음이 실제로 울린다 (물방울 fallback 아님)', dur.moss > 0.12 && dur.moss < 0.19,
-   `길이 ${dur.moss}s — 녹음 145ms · fallback 300ms`);
+/* ── 녹음이 실제로 울리는가 (D15 · D18) ──────────────────────────────────
+   못 받아오면 조용히 합성으로 떨어지므로 반드시 가려야 한다.
+
+   앞서는 렌더한 소리의 길이로 어림잡았는데, 그 자가 흔들렸다 — 여섯 벌은
+   RMS(체감 크기)를 맞춰 잘랐을 뿐 파형 모양이 달라 피크가 두 배까지 벌어지고,
+   꼬리가 완만한 이끼에서 "절대 진폭 0.002 를 마지막으로 넘긴 지점" 이 벌마다
+   20ms 씩 달라졌다. 제품이 아니라 측정이 비결정적이었다.
+
+   이제 버퍼를 직접 보고, 출력까지 가는지는 변주를 양 끝으로 고정해 잰다. */
+
+ok('녹음을 쓰는 타자기가 둘이다 (참나무 · 이끼)', data.samples.length === 2,
+   data.samples.map((s) => s.id).join(', '));
+
+for (const s of data.samples) {
+  const bufs = s.bufs;
+  ok(`${s.label} 녹음 ${s.count}벌이 전부 디코드됐다 (합성 fallback 아님)`,
+     bufs.length === s.count && bufs.every((b) => b !== null),
+     `${bufs.filter(Boolean).length}/${s.count}벌`);
+
+  const durs = bufs.filter(Boolean).map((b) => b.dur);
+  ok(`${s.label} 벌마다 길이가 들을 만하다`,
+     durs.length > 0 && durs.every((d) => d > 0.02 && d < 0.30),
+     `${Math.min(...durs)}–${Math.max(...durs)}s`);
+
+  // 크기 변주는 ±8% 로 설계했다. 체감 크기(RMS)가 그보다 크게 벌어지면
+  // 타건음이 들쭉날쭉하게 들린다 — 그건 자가 아니라 제품 문제다.
+  const [lo, hi] = s.plays;
+  const spread = Math.max(lo.rms, hi.rms) / Math.min(lo.rms, hi.rms);
+  ok(`${s.label} 녹음이 출력까지 간다 (변주 양 끝 모두)`,
+     lo.rms > 0.001 && hi.rms > 0.001, `RMS ${lo.rms} / ${hi.rms}`);
+  ok(`${s.label} 변주해도 체감 크기가 고르다`, spread < 1.6, `${spread.toFixed(2)}×`);
+
+  // fallback 도 살아 있어야 한다. 녹음이 늦게 오는 첫 글자 한두 개가 그것이다.
+  ok(`${s.label} 합성 fallback 도 소리가 난다 (${s.fallbackKind})`,
+     s.fallback.peak > 0.01, `피크 ${s.fallback.peak} · 길이 ${s.fallback.dur}s`);
+}
+
 
 ok('강철이 참나무보다 높게 친다', by.steel > by.oak, `${by.steel}Hz > ${by.oak}Hz`);
 

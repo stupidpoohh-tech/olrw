@@ -16,7 +16,9 @@
     "sound:check": "node tools/sound-check.mjs",
     "auth:check": "node tools/auth-check.mjs",
     "errors:check": "node tools/errors-check.mjs",
-    "proxy:check": "node tools/proxy-check.mjs"
+    "proxy:check": "node tools/proxy-check.mjs",
+    "secrets:check": "node tools/secrets-check.mjs",
+    "smoke:prod": "node tools/smoke-prod.mjs"
   },
   "dependencies": {
     "@neondatabase/neon-js": "0.7.0-beta",

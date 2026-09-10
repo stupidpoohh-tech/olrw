@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<!-- 이 파일은 옛 구현의 **디자인 레퍼런스**다. 동작하는 앱이 아니다.
+     파이어베이스 설정값은 자리표("…")로 비워 두었다 — 공개 저장소에 실사용
+     프로젝트를 특정할 값을 두지 않는다. 새 앱은 Neon 을 쓴다 (D14). -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -8,7 +11,7 @@
 
   <!--
     Firebase backend — real-time sync between two devices via Email/Password Auth + Firestore.
-    To finish setup: open Firebase console for project `our-love-rightly-written` and
+    To finish setup: open Firebase console for project `<옛 파이어베이스 프로젝트>` and
       1. Authentication → Sign-in method → Enable "Email/Password"
       2. Firestore → Create database (location: asia-northeast3 / Seoul)
       3. Paste the security rules from DEPLOY.md
@@ -20,12 +23,12 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script>
     window.FIREBASE_CONFIG = {
-      apiKey: "AIzaSyAwyYKMsdpIm-Vhf-zp-5SSISwxc4tG24E",
-      authDomain: "our-love-rightly-written.firebaseapp.com",
-      projectId: "our-love-rightly-written",
-      storageBucket: "our-love-rightly-written.firebasestorage.app",
-      messagingSenderId: "450715176844",
-      appId: "1:450715176844:web:dc24c7d4b93a07743a90a9"
+      apiKey: "…",
+      authDomain: "…",
+      projectId: "…",
+      storageBucket: "…",
+      messagingSenderId: "…",
+      appId: "…"
     };
   </script>
 </head>

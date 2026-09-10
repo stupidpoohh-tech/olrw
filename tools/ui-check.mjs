@@ -11,6 +11,7 @@
  * --headed 로 눈으로 볼 수 있다. SHOTS=<디렉터리> 로 화면을 남긴다.
  */
 import { chromium } from 'playwright';
+import { launchPath } from './chromium.mjs';
 import { mkdirSync } from 'node:fs';
 
 const PORT = process.env.PORT ?? '4173';
@@ -25,7 +26,7 @@ const ok = (label, cond, detail = '') => {
 
 const browser = await chromium.launch({
   headless: !process.argv.includes('--headed'),
-  executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  ...launchPath(),
 });
 const page = await (await browser.newContext({
   viewport: { width: 430, height: 900 }, deviceScaleFactor: 2,

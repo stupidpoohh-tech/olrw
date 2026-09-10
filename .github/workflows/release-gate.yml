@@ -1,0 +1,185 @@
+# OLRW 릴리스 게이트
+#
+# 옛 ci.yml 은 `main` push 를 기다렸다. 이 저장소에 `main` 은 없다 —
+# 프로덕션 가지는 `claude/telegram-messenger-migration-eggni4` 이고 그것이
+# 기본 가지다. 그래서 CI 가 한 번도 돌지 않았다 (실행 0회).
+#
+# 여기서는 실제 가지를 보고, **출하를 막아야 할 검증을 전부** 건다.
+# 하나라도 실패하면 게이트 전체가 실패한다 — job 을 나눠도 required 는 같다.
+name: release-gate
+
+on:
+  push:
+    branches:
+      - claude/telegram-messenger-migration-eggni4   # 프로덕션 (기본 가지)
+      - claude/data-migration-docs-zmcfg6            # 작업 가지
+  pull_request:
+  workflow_dispatch:
+
+# 같은 가지에 연달아 밀면 앞선 실행을 접는다.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 앱: 타입 · 빌드 · 순수 노드 검증 · 브라우저 회귀 ──────────────────────
+  app:
+    name: 앱 (typecheck · build · checks · UI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      - name: 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: 타입
+        run: pnpm typecheck
+
+      - name: 프로덕션 빌드
+        run: pnpm build
+
+      # 실사용 데이터가 저장소·번들로 돌아오지 않았는지 (P0-1 재발 방지).
+      - name: 민감 데이터
+        run: pnpm secrets:check
+
+      # 아래 셋은 브라우저도 서버도 필요 없다.
+      - name: 세션 계약
+        run: pnpm auth:check
+      - name: 오류 문구 표
+        run: pnpm errors:check
+      - name: 로그인 중계 함수
+        run: pnpm proxy:check
+
+      - name: 브라우저 준비
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: 타자기 구분 (D9)
+        run: pnpm tint:check
+      - name: 소리 (§6-1 · D15 · D18)
+        run: pnpm sound:check
+
+      - name: 미리보기 서버
+        run: |
+          pnpm preview --port 4173 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:4173/ -o /dev/null && exit 0
+            sleep 1
+          done
+          echo "미리보기 서버가 뜨지 않았습니다"; exit 1
+
+      - name: UI — 인증 · 온보딩 · 전환 바
+        run: pnpm ui:check
+      - name: UI — 타전실 · 수신함 · 서가
+        run: pnpm ui:check4
+      - name: UI — 만남 마감 5단계 · 제본
+        run: pnpm ui:check5
+
+      # 배포된 번들이 아니라 방금 빌드한 것을 같은 스모크로 한 번 더 훑는다.
+      # 프로덕션 스모크와 같은 코드라 셀렉터가 어긋나면 여기서 먼저 걸린다.
+      - name: 스모크 (로컬 빌드)
+        run: SMOKE_URL=http://localhost:4173 pnpm smoke:prod
+
+  # ── 스키마: RLS · 서버 함수 · 동시 마감 ───────────────────────────────────
+  schema:
+    name: 스키마 (RLS · 서버 함수 · 동시 마감)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # 러너에 PostgreSQL 바이너리가 있다. 서비스는 띄우지 않는다 —
+      # 두 스크립트가 각자 일회용 클러스터를 직접 세운다.
+      - name: postgres 확인
+        run: |
+          ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1
+          "$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1)/initdb" --version
+
+      - name: RLS · 서버 함수
+        run: neon/tests/run.sh
+
+      - name: 동시 마감
+        run: neon/tests/concurrency_test.sh
+
+  # ── 이관 파이프라인: 견본만으로 생성 → 적재까지 ───────────────────────────
+  migration:
+    name: 이관 파이프라인 (견본)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      # 진짜 데이터는 저장소에 없다. 지어낸 견본으로 같은 경로를 밟는다.
+      - name: SQL 생성 (견본)
+        run: node neon/migration/build.mjs --sample
+
+      - name: 일회용 Postgres 에 부어 보기
+        run: neon/migration/dryrun.sh
+
+      # 운영 데이터 표본 SQL 은 시크릿이 있을 때만 돈다. 그대로 두면 아무도
+      # 문법조차 확인하지 않으니, 견본 DB 로 여기서 자가 시험을 돌린다.
+      - name: 운영 표본 SQL 자가 시험
+        run: neon/tests/prod_smoke_selftest.sh
+
+  # ── 실제 배포 주소 ────────────────────────────────────────────────────────
+  # 운영 데이터는 건드리지 않는다 — 체험 모드(D14)만 돈다.
+  smoke:
+    name: 프로덕션 스모크
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [app]
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+
+      # Cloudflare 배포가 끝날 시간을 준다. 프로덕션 가지 push 에서만 의미가 있다.
+      - name: 배포를 기다린다
+        if: github.ref_name == 'claude/telegram-messenger-migration-eggni4'
+        run: sleep 90
+
+      - name: 배포된 앱
+        env:
+          SMOKE_URL: ${{ vars.SMOKE_URL || 'https://olrw-8pt.pages.dev' }}
+        run: pnpm smoke:prod
+
+  # ── 운영 DB 표본 (읽기 전용) ──────────────────────────────────────────────
+  # 시크릿이 없으면 조용히 건너뛴다. 넣는 법은 docs/RELEASE.md 에 있다.
+  data:
+    name: 운영 데이터 표본 (읽기 전용)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - name: 시크릿이 있는가
+        id: have
+        run: echo "yes=${{ secrets.NEON_READONLY_URL != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: 표본 검증
+        if: steps.have.outputs.yes == 'true'
+        env:
+          PGURL: ${{ secrets.NEON_READONLY_URL }}
+        run: |
+          sudo apt-get install -y --no-install-recommends postgresql-client >/dev/null
+          psql "$PGURL" -v ON_ERROR_STOP=1 -f neon/tests/prod_smoke.sql
+
+      - name: 시크릿이 없으면 알린다
+        if: steps.have.outputs.yes != 'true'
+        run: |
+          echo "NEON_READONLY_URL 시크릿이 없어 운영 데이터 표본을 건너뜁니다."
+          echo "넣는 법: docs/RELEASE.md"

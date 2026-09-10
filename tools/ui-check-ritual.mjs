@@ -5,6 +5,7 @@
  *   pnpm ui:check5
  */
 import { chromium } from 'playwright';
+import { launchPath } from './chromium.mjs';
 import { mkdirSync } from 'node:fs';
 
 const PORT = process.env.PORT ?? '4173';
@@ -19,7 +20,7 @@ const ok = (label, cond, detail = '') => {
 
 const browser = await chromium.launch({
   headless: !process.argv.includes('--headed'),
-  executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  ...launchPath(),
 });
 
 /** 두 사람이 전보를 쌓아 둔 전보함 하나를 만든다. */

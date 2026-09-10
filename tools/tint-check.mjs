@@ -11,6 +11,7 @@
  *   2) UI 의 점 색(tint)이 서로 충분히 떨어져 있는가 (전환 바에서 구분되는가)
  */
 import { chromium } from 'playwright';
+import { launchPath } from './chromium.mjs';
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
 
@@ -32,7 +33,7 @@ const { outputFiles } = await build({
 const source = outputFiles[0].text;
 
 const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  ...launchPath(),
 });
 const page = await browser.newPage();
 await page.goto('about:blank');

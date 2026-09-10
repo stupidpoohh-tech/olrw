@@ -7,6 +7,7 @@
  * 두 사람을 만들어 한 전보함에 넣고, 봉인이 실제로 남의 본문을 가리는지 본다.
  */
 import { chromium } from 'playwright';
+import { launchPath } from './chromium.mjs';
 import { mkdirSync } from 'node:fs';
 
 const PORT = process.env.PORT ?? '4173';
@@ -21,7 +22,7 @@ const ok = (label, cond, detail = '') => {
 
 const browser = await chromium.launch({
   headless: !process.argv.includes('--headed'),
-  executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  ...launchPath(),
 });
 const page = await (await browser.newContext({
   viewport: { width: 430, height: 900 }, deviceScaleFactor: 2,
