@@ -29,8 +29,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      # 버전은 package.json 의 packageManager 가 정한다. 여기서 또 적으면
+      # action-setup 이 "여러 버전이 지정됐다" 며 멈춘다.
       - uses: pnpm/action-setup@v4
-        with: { version: 10 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
 
@@ -112,8 +113,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      # 버전은 package.json 의 packageManager 가 정한다. 여기서 또 적으면
+      # action-setup 이 "여러 버전이 지정됐다" 며 멈춘다.
       - uses: pnpm/action-setup@v4
-        with: { version: 10 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
@@ -140,8 +142,9 @@ jobs:
     if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
+      # 버전은 package.json 의 packageManager 가 정한다. 여기서 또 적으면
+      # action-setup 이 "여러 버전이 지정됐다" 며 멈춘다.
       - uses: pnpm/action-setup@v4
-        with: { version: 10 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
