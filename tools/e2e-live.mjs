@@ -94,6 +94,21 @@ async function openAuth(page, which) {
   await page.waitForSelector('.auth', { timeout: 15000 });
 }
 
+/**
+ * 인증 화면이 **끝났는지** 기다린다.
+ *
+ * `.auth-title` 로 기다리면 안 된다 — 그것은 로그인 화면에 처음부터 서 있어서
+ * 누르자마자 통과해 버린다. 실제로 그렇게 해서 요청이 날아가는 중에 「가입이
+ * 끝나지 않았다」고 판정했다. 끝났다는 것은 셋 중 하나다:
+ * 화면이 사라졌거나(들어갔다), 오류가 떴거나, 메일 확인을 기다린다.
+ */
+const authSettled = (page) => page.waitForFunction(() => {
+  if (!document.querySelector('.auth')) return true;
+  if (document.querySelector('.auth-error')) return true;
+  const t = document.querySelector('.auth-title');
+  return Boolean(t && t.textContent && t.textContent.includes('메일함'));
+}, null, { timeout: 60000 }).catch(() => {});
+
 async function signUp(page, who) {
   await openAuth(page, '계정 만들기');
   await page.click('.auth-tab >> nth=1');
@@ -101,9 +116,9 @@ async function signUp(page, who) {
   await page.fill('input[type=email]', who.email);
   await page.fill('input[type=password]', PW);
   await page.click('button[type=submit]');
-  // 셋 중 하나로 끝난다: 온보딩(성공) · 메일 확인 대기 · 오류
-  await page.waitForSelector('.onb-tabs-row, .auth-title, .auth-error', { timeout: 40000 })
-    .catch(() => {});
+  await authSettled(page);
+  // 세션이 서면 셸이 다시 그려진다. 온보딩이 뜰 때까지 한 번 더 기다린다.
+  await page.waitForSelector('.onb-tabs-row', { timeout: 30000 }).catch(() => {});
 }
 
 async function signIn(page, who) {
@@ -112,7 +127,8 @@ async function signIn(page, who) {
   await page.fill('input[type=email]', who.email);
   await page.fill('input[type=password]', PW);
   await page.click('button[type=submit]');
-  await page.waitForSelector('.app, .pair, .auth-error', { timeout: 40000 }).catch(() => {});
+  await authSettled(page);
+  await page.waitForSelector('.app, .pair', { timeout: 30000 }).catch(() => {});
 }
 
 async function send(page, text) {
@@ -133,6 +149,11 @@ const screenError = async (page) => {
   for (const sel of ['.auth-error', '.shell-error', '.onb-error', '.boxbar-error']) {
     const el = await page.$(sel);
     if (el) return (await el.textContent()).trim().slice(0, 120);
+  }
+  // 오류 문구가 없으면 화면이 어디에 서 있는지라도 말한다.
+  if (await page.$('.auth')) {
+    const t = await page.$('.auth-title');
+    return `인증 화면에 머물러 있습니다 (${t ? (await t.textContent()).trim().replace(/\s+/g, ' ') : '제목 없음'})`;
   }
   return '';
 };
