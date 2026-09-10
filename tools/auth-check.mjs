@@ -34,8 +34,8 @@ const ok = (label, cond, detail = '') => {
 
 const USER = {
   id: '11111111-1111-4111-8111-111111111111',
-  email: 'dada@olrw.test',
-  user_metadata: { displayName: '안' },
+  email: 'ann@olrw.test',
+  user_metadata: { displayName: 'Ann' },
 };
 const SESSION = { access_token: 'tok', user: USER };
 
@@ -66,9 +66,9 @@ function fakeClient() {
       signOut: async () => { signedIn = false; return { error: null }; },
     },
     from: () => ({
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { display_name: '안' }, error: null }) }) }),
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { display_name: 'Ann' }, error: null }) }) }),
     }),
-    rpc: async (name, args) => { rpcCalls.push([name, args]); return { data: '안', error: null }; },
+    rpc: async (name, args) => { rpcCalls.push([name, args]); return { data: 'Ann', error: null }; },
   };
 }
 
@@ -106,8 +106,8 @@ const { createNeonStore } = await import(
 );
 
 for (const [label, act] of [
-  ['로그인', (s) => s.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) })],
-  ['가입', (s) => s.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: '안' })],
+  ['로그인', (s) => s.signIn({ email: 'ann@olrw.test', password: 'x'.repeat(8) })],
+  ['가입', (s) => s.signUp({ email: 'ann@olrw.test', password: 'x'.repeat(8), displayName: 'Ann' })],
 ]) {
   const client = fakeClient();
   const store = createNeonStore(client);
@@ -121,7 +121,7 @@ for (const [label, act] of [
 
   ok(`${label} 하면 resolve 전에 세션을 알린다`, seen.length > 0 && seen.at(-1) !== null,
     `알림 ${seen.length}회`);
-  ok(`${label} 뒤 getSession() 이 사람을 안다`, store.getSession()?.displayName === '안',
+  ok(`${label} 뒤 getSession() 이 사람을 안다`, store.getSession()?.displayName === 'Ann',
     JSON.stringify(store.getSession()));
 
   seen.length = 0;
@@ -148,11 +148,11 @@ for (const [label, act] of [
   await store.ready();
   let threw = null;
   try {
-    await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: '안' });
+    await store.signUp({ email: 'ann@olrw.test', password: 'x'.repeat(8), displayName: 'Ann' });
   } catch (e) { threw = e; }
   ok('세션만 못 받아온 가입은 그 자리에서 로그인해 살린다', threw === null,
     threw ? String(threw.message ?? threw) : `signUp 1회 · 세션 ${store.getSession() ? '있음' : '없음'}`);
-  ok('그러고 나면 들어가 있다', store.getSession()?.displayName === '안');
+  ok('그러고 나면 들어가 있다', store.getSession()?.displayName === 'Ann');
   void tried;
 }
 
@@ -167,7 +167,7 @@ for (const [label, act] of [
   await store.ready();
   let code = '';
   try {
-    await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: '안' });
+    await store.signUp({ email: 'ann@olrw.test', password: 'x'.repeat(8), displayName: 'Ann' });
   } catch (e) { code = e?.code ?? ''; }
   ok('되살리기도 실패하면 원래 오류가 올라온다', code === 'session_not_found', `code = ${code}`);
 }
@@ -180,11 +180,11 @@ for (const [label, act] of [
   });
   const store = createNeonStore(client);
   await store.ready();
-  await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) });
+  await store.signIn({ email: 'ann@olrw.test', password: 'x'.repeat(8) });
   ok('프로필이 없으면 ensure_profile 로 세운다',
-    client.rpcCalls.some(([n, a]) => n === 'ensure_profile' && a?.p_display_name === '안'),
+    client.rpcCalls.some(([n, a]) => n === 'ensure_profile' && a?.p_display_name === 'Ann'),
     JSON.stringify(client.rpcCalls));
-  ok('그 이름이 세션에 실린다', store.getSession()?.displayName === '안');
+  ok('그 이름이 세션에 실린다', store.getSession()?.displayName === 'Ann');
 }
 
 /* ═══ 세션이 이 브라우저에 남지 않을 때 ═══════════════════════════════════
@@ -225,7 +225,7 @@ const NO_ROUTE = {
   const store = createNeonStore(client, NO_ROUTE);
   await store.ready();
   let e = null;
-  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  try { await store.signIn({ email: 'ann@olrw.test', password: 'x'.repeat(8) }); }
   catch (err) { e = err; }
   ok('세션이 안 남으면 로그인은 그 사실을 말한다', e?.code === 'session_not_stored',
     `code = ${e?.code} · ${e?.message ?? ''}`);
@@ -244,7 +244,7 @@ const NO_ROUTE = {
   await store.ready();
   let e = null;
   try {
-    await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: '안' });
+    await store.signUp({ email: 'ann@olrw.test', password: 'x'.repeat(8), displayName: 'Ann' });
   } catch (err) { e = err; }
   ok('세션이 안 남으면 가입도 그 사실을 말한다', e?.code === 'session_not_stored',
     `code = ${e?.code} · ${e?.message ?? ''}`);
@@ -269,10 +269,10 @@ const NO_ROUTE = {
   const store = createNeonStore(client);
   await store.ready();
   let e = null;
-  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  try { await store.signIn({ email: 'ann@olrw.test', password: 'x'.repeat(8) }); }
   catch (err) { e = err; }
   ok('세션이 한 박자 늦게 서면 그대로 들어간다',
-    e === null && store.getSession()?.displayName === '안', e ? String(e.message ?? e) : '');
+    e === null && store.getSession()?.displayName === 'Ann', e ? String(e.message ?? e) : '');
 }
 
 /* 가입이 세션 저장에서 끊긴 경우(internal_error). 계정은 이미 섰다 —
@@ -287,10 +287,10 @@ const NO_ROUTE = {
   const store = createNeonStore(client);
   await store.ready();
   let e = null;
-  try { await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: '안' }); }
+  try { await store.signUp({ email: 'ann@olrw.test', password: 'x'.repeat(8), displayName: 'Ann' }); }
   catch (err) { e = err; }
   ok('세션 저장에서 끊긴 가입도 로그인으로 살린다',
-    e === null && store.getSession()?.displayName === '안', e ? String(e.message ?? e) : '');
+    e === null && store.getSession()?.displayName === 'Ann', e ? String(e.message ?? e) : '');
   ok('그때 로그인을 한 번 시도한다', client.calls.signIn === 1, `signIn ${client.calls.signIn}회`);
 }
 
@@ -307,7 +307,7 @@ const NO_ROUTE = {
   await store.ready();
   let code = '';
   try {
-    await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: '안' });
+    await store.signUp({ email: 'ann@olrw.test', password: 'x'.repeat(8), displayName: 'Ann' });
   } catch (e) { code = e?.code ?? ''; }
   ok('계정이 서기 전에 끊긴 가입은 그대로 알린다', code === 'weak_password', `code = ${code}`);
   ok('그때는 로그인을 시도하지 않는다', client.calls.signIn === 0, `signIn ${client.calls.signIn}회`);
@@ -332,11 +332,11 @@ const NO_ROUTE = {
   const store = createNeonStore(blocked, route);
   await store.ready();
   let e = null;
-  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  try { await store.signIn({ email: 'ann@olrw.test', password: 'x'.repeat(8) }); }
   catch (err) { e = err; }
 
   ok('세션이 안 잡히면 길을 바꿔 한 번 더 해 본다', switched === 1, `갈아타기 ${switched}회`);
-  ok('그 길로 들어가진다', e === null && store.getSession()?.displayName === '안',
+  ok('그 길로 들어가진다', e === null && store.getSession()?.displayName === 'Ann',
     e ? String(e.message ?? e) : '');
   ok('바꾼 길로 로그인을 한 번만 시도한다', working.calls.signIn === 1,
     `signIn ${working.calls.signIn}회`);
@@ -351,7 +351,7 @@ const NO_ROUTE = {
   const store = createNeonStore(blocked, route);
   await store.ready();
   let e = null;
-  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  try { await store.signIn({ email: 'ann@olrw.test', password: 'x'.repeat(8) }); }
   catch (err) { e = err; }
   ok('갈아탄 뒤에도 안 되면 그때 사정을 말한다', e?.code === 'session_not_stored',
     `code = ${e?.code}`);
@@ -366,7 +366,7 @@ const NO_ROUTE = {
   const store = createNeonStore(blocked, route);
   await store.ready();
   let e = null;
-  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  try { await store.signIn({ email: 'ann@olrw.test', password: 'x'.repeat(8) }); }
   catch (err) { e = err; }
   ok('이미 그 길이면 갈아타지 않는다', switched === 0 && e?.code === 'session_not_stored');
 }
@@ -378,8 +378,8 @@ const NO_ROUTE = {
   const route = { on: () => false, use: () => { switched++; return client; }, forget: () => {} };
   const store = createNeonStore(client, route);
   await store.ready();
-  await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) });
-  ok('잘 되는 사람의 경로는 그대로다', switched === 0 && store.getSession()?.displayName === '안');
+  await store.signIn({ email: 'ann@olrw.test', password: 'x'.repeat(8) });
+  ok('잘 되는 사람의 경로는 그대로다', switched === 0 && store.getSession()?.displayName === 'Ann');
 }
 
 {
@@ -391,9 +391,9 @@ const NO_ROUTE = {
   const store = createNeonStore(blocked, route);
   await store.ready();
   let e = null;
-  try { await store.signUp({ email: 'dada@olrw.test', password: 'x'.repeat(8), displayName: '안' }); }
+  try { await store.signUp({ email: 'ann@olrw.test', password: 'x'.repeat(8), displayName: 'Ann' }); }
   catch (err) { e = err; }
-  ok('가입도 길을 바꿔 살린다', e === null && store.getSession()?.displayName === '안',
+  ok('가입도 길을 바꿔 살린다', e === null && store.getSession()?.displayName === 'Ann',
     e ? String(e.message ?? e) : '');
 }
 
@@ -420,7 +420,7 @@ ok('길을 바꿔도 안 되면 그 기억을 지운다', forgotten === 2, `지�
   const store = createNeonStore(blocked, route);
   await store.ready();
   let e = null;
-  try { await store.signIn({ email: 'dada@olrw.test', password: 'x'.repeat(8) }); }
+  try { await store.signIn({ email: 'ann@olrw.test', password: 'x'.repeat(8) }); }
   catch (err) { e = err; }
   ok('바꾼 길이 없더라도 엉뚱한 말을 하지 않는다', e?.code === 'session_not_stored',
     `code = ${e?.code} · ${e?.message ?? ''}`);

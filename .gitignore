@@ -4,3 +4,10 @@ dist/
 .env
 .env*.local
 .DS_Store
+
+# 옛 전보함 이관 — 실제 사용자 데이터는 저장소에 들어오지 않는다.
+#   local/legacy-export.json  파이어베이스에서 꺼낸 원본 (이메일·uid·전보 본문)
+#   local/people.json         옛 uid ↔ 새 계정 uuid 짝짓기
+#   local/0002_legacy.sql     위 둘로 만든 생성물
+# 공개용 견본은 neon/migration/sample/ 에 있다.
+neon/migration/local/

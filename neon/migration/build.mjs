@@ -2,84 +2,79 @@
 /**
  * legacy-export.json → 0002_legacy.sql
  *
- * 손으로 117줄을 옮겨 적지 않는다. 원본이 바뀌거나 아래 짝짓기 값이 바뀌면
- * 이 스크립트를 다시 돌려 SQL 을 새로 뽑는다.
+ * 손으로 백 줄 넘게 옮겨 적지 않는다. 원본이나 짝짓기 값이 바뀌면 이 스크립트를
+ * 다시 돌려 SQL 을 새로 뽑는다.
  *
- *   node neon/migration/build.mjs
+ *   node neon/migration/build.mjs            진짜 데이터 (neon/migration/local/)
+ *   node neon/migration/build.mjs --sample   견본 데이터 (neon/migration/sample/)
  *
- * 옛 uid ↔ 새 uuid 짝짓기는 여기서 하지 않는다. 생성된 SQL 맨 위 한 곳에
- * 빈칸으로 남고, 사람이 Neon 콘솔에서 받아 채운다 (docs/DATA-MIGRATION.md §1).
+ * **실제 사용자 데이터는 이 파일에도, 저장소 어디에도 두지 않는다.**
+ * 원본(이메일·옛 uid·전보 본문)과 짝짓기 값(새 계정 uuid)은 전부
+ * `neon/migration/local/` 에 있고 그 디렉터리는 `.gitignore` 에 있다.
+ * 여기 남는 것은 옮기는 규칙뿐이다.
+ *
+ *   local/legacy-export.json   파이어베이스에서 꺼낸 원본
+ *   local/people.json          어느 전보함을 옮기고 누가 누구인지
+ *   local/0002_legacy.sql      생성물
+ *
+ * 두 입력의 모양은 `neon/migration/sample/` 의 견본과 같다. 견본만으로도
+ * 파이프라인 전체가 돌아가므로(`--sample`), 진짜 데이터 없이 검증할 수 있다.
  */
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const SRC = join(HERE, 'legacy-export.json');
-const OUT = join(HERE, '0002_legacy.sql');
+const SAMPLE = process.argv.includes('--sample');
+
+const SRC = SAMPLE
+  ? join(HERE, 'sample/legacy-export.sample.json')
+  : join(HERE, 'local/legacy-export.json');
+const CFG = SAMPLE
+  ? join(HERE, 'sample/people.sample.json')
+  : join(HERE, 'local/people.json');
+const OUT = SAMPLE
+  ? join(HERE, 'sample/0002_legacy.sample.sql')
+  : join(HERE, 'local/0002_legacy.sql');
+
+for (const [f, what] of [[SRC, '원본 export'], [CFG, '짝짓기 값']]) {
+  if (existsSync(f)) continue;
+  console.error(`${what} 을 찾지 못했습니다: ${f}\n`
+    + '  진짜 데이터는 neon/migration/local/ 에 둡니다 (저장소에 올라가지 않습니다).\n'
+    + '  모양은 neon/migration/sample/ 의 견본과 같습니다.\n'
+    + '  견본으로 돌려 보려면: node neon/migration/build.mjs --sample');
+  process.exit(1);
+}
 
 /* ── 짝짓기 값 ─────────────────────────────────────────────────────────────
-   uuid 만 사람이 채운다. 나머지 대응은 옛 앱과 새 앱의 어휘가 달라 생긴 것이고,
-   근거는 각 표 위에 적었다. */
+   전부 `local/people.json` 에서 온다. 실사용 식별자(옛 uid · 이름 · 이메일 ·
+   새 계정 uuid)라 저장소에 두지 않는다. 무엇을 담는지는 아래 주석과
+   `sample/people.sample.json` 이 설명한다.
 
-/**
- * **옮길 전보함.** 여기 없는 것은 SQL 에 들어가지 않는다.
- *
- * 원본에는 넷이 있지만 둘만 옮기기로 했다 (사용자 결정). 나머지 둘은 지우는 것이
- * 아니라 그대로 `legacy-export.json` 에 남아 있다 — 마음이 바뀌면 여기에 한 줄
- * 더하고 다시 뽑으면 된다.
- *
- * roomId 로 적는다. 이름은 바뀔 수 있고 roomId 는 안 바뀐다.
- */
-const BOXES = [
-  'sampleRoom0',   // 견본 전보함 1 — 3권 34통 (안 · 보 · 에피)
-  'sampleRoom1',   // 견본 전보함 2   — 7권 75통 (안 · 에피)
-];
+     boxes          옮길 전보함의 roomId. 여기 없는 것은 SQL 에 들어가지 않는다.
+                    이름은 바뀌지만 roomId 는 안 바뀐다
+     labels         옛 uid → 표시용 이름. 생성된 SQL 의 §1 에 주석으로 붙는다.
+                    고른 전보함에 실제로 등장하는 사람만 SQL 로 나간다
+     known          이미 받아 둔 새 계정 uuid. 적힌 사람은 §1 이 채워진 채로 나온다.
+                    Neon 콘솔 → Tables → profiles 의 `id` (= Auth → Users 의 `ID`)
+     ownerFallback  ownerUid 가 빈 문자열인 옛 전보함의 주인
+     alias          더 옛 형식의 발신인. 옛 export 에는 uid 대신 'a' / 'b' 만
+                    적히고 이름·용지색이 비어 있는 권이 있다. 그대로 두면 한 권
+                    안에서 같은 사람이 두 색으로 보여 "용지색이 발신인" 규칙이
+                    그 책에서만 깨진다. 그래서 이름도 용지색도 여기 값으로 통일한다 */
 
-/**
- * 옛 uid → 표시용 이름. 생성된 SQL 의 빈칸에 주석으로 붙는다.
- *
- * 여기 다 적어 두되, SQL 에는 **고른 전보함에 실제로 등장하는 사람만** 나간다.
- * 아무 데도 없는 사람의 uuid 를 받아 오라고 하면 그 자리에서 막힌다.
- */
-const LABELS = {
-  'AAAAAAAAAAAAAAAAAAAAAAAAAAA1': '안 (you@example.com)',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBB2': '보',
-  'CCCCCCCCCCCCCCCCCCCCCCCCCCC3': '에피',
-  'DDDDDDDDDDDDDDDDDDDDDDDDDDD4': '라',
+const cfg = JSON.parse(readFileSync(CFG, 'utf8'));
+const need = (k) => {
+  if (cfg[k] === undefined) throw new Error(`${CFG} 에 '${k}' 가 없습니다.`);
+  return cfg[k];
 };
 
-/**
- * 이미 받아 둔 새 계정 uuid. 여기 적힌 사람은 §1 에 채워진 채로 나온다.
- *
- * 손으로 SQL 을 고치는 대신 여기에 적는다 — 0002_legacy.sql 은 생성물이라
- * 다시 뽑으면 손댄 자리가 사라진다.
- *
- * 값은 Neon 콘솔 → Tables → profiles 의 `id`(= Auth → Users 의 `ID`)다.
- */
-const KNOWN = {
-  'AAAAAAAAAAAAAAAAAAAAAAAAAAA1': '00000000-0000-4000-8000-000000000001', // 안
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBB2': '00000000-0000-4000-8000-000000000002', // 보
-  'CCCCCCCCCCCCCCCCCCCCCCCCCCC3': '00000000-0000-4000-8000-000000000003', // 에피
-};
-
-/** 소유자가 비어 있는 전보함의 주인. `견본 전보함 2` 가 그렇다. */
-const OWNER_FALLBACK = 'AAAAAAAAAAAAAAAAAAAAAAAAAAA1';
-
-/**
- * 더 옛 형식의 발신인. `견본 전보함 2` VOL.3~7 은 uid 대신 'a' / 'b' 만 적혀 있고
- * 이름·용지색이 비어 있다. VOL.7 에서 'a' 의 전보가 07.21 13:20 에 끊기고
- * 같은 날 저녁부터 안 의 실제 uid 로 이어지는 것으로 사람을 확정했다.
- *
- * VOL.7 의 'a' 행에만 이름 '?' · 용지 'ivory' 가 남아 있다. 그대로 두면 한 권
- * 안에서 같은 사람이 두 색으로 보인다 — 용지색이 발신인이라는 규칙이 그 책에서만
- * 깨진다. 그래서 'a' / 'b' 행은 이름도 용지색도 아래 값으로 통일한다.
- */
-const LEGACY_ALIAS = {
-  a: { uid: 'AAAAAAAAAAAAAAAAAAAAAAAAAAA1', name: '안', paper: 'powder' },
-  b: { uid: 'CCCCCCCCCCCCCCCCCCCCCCCCCCC3', name: '에피', paper: 'blush' },
-};
+const BOXES = need('boxes');
+const LABELS = need('labels');
+const KNOWN = need('known');
+const OWNER_FALLBACK = need('ownerFallback');
+const LEGACY_ALIAS = need('alias');
 
 /**
  * 타자기. 옛 앱은 전보함을 여섯 가지 색으로 구분했고, 새 앱은 타자기 네 대로
@@ -194,7 +189,7 @@ const pageBlocks = [];
 
 for (const box of chosen) {
   const boxId = uuidOf('box', box.roomId);
-  // `견본 전보함 2` 는 ownerUid 가 빈 문자열이다. 안 를 소유자로 놓는다.
+  // `아무개` 는 ownerUid 가 빈 문자열이다. Ann 를 소유자로 놓는다.
   const owner = box.ownerUid || OWNER_FALLBACK;
   tally.boxes += 1;
   const acc = boxOf(boxId, box.name);
@@ -312,7 +307,8 @@ const head = (t) => line(`-- ═══ ${t} ${'═'.repeat(Math.max(3, 69 - widt
 line(bar);
 line('-- OLRW — 옛 전보함 이관 (Firestore → Neon)');
 line('--');
-line(`--   원본: neon/migration/legacy-export.json (${data.exportedAt} 에 꺼냄)`);
+line(`--   원본: ${SAMPLE ? 'sample/legacy-export.sample.json' : 'local/legacy-export.json'}` +
+       ` (${data.exportedAt} 에 꺼냄 · 저장소에 올리지 않는다)`);
 line('--   생성: node neon/migration/build.mjs  ← 이 파일을 손으로 고치지 않는다');
 line('--   절차: docs/DATA-MIGRATION.md');
 line('--');

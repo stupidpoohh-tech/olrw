@@ -1,0 +1,26 @@
+{
+  "_note": "견본입니다. 진짜 값은 neon/migration/local/people.json 에 두고 저장소에 올리지 않습니다.",
+  "boxes": [
+    "sampleRoomAlpha0001",
+    "sampleRoomBeta0002"
+  ],
+  "labels": {
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAA1": "안 (ann@example.test)",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBBB2": "보",
+    "CCCCCCCCCCCCCCCCCCCCCCCCCCC3": "초"
+  },
+  "known": {},
+  "ownerFallback": "AAAAAAAAAAAAAAAAAAAAAAAAAAA1",
+  "alias": {
+    "a": {
+      "uid": "AAAAAAAAAAAAAAAAAAAAAAAAAAA1",
+      "name": "안",
+      "paper": "powder"
+    },
+    "b": {
+      "uid": "BBBBBBBBBBBBBBBBBBBBBBBBBBB2",
+      "name": "보",
+      "paper": "blush"
+    }
+  }
+}

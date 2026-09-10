@@ -74,7 +74,7 @@ const silent = codes.filter((c) => c !== 'unknown_error'
 ok('어느 코드도 "문제가 생겼습니다" 로 떨어지지 않는다', silent.length === 0,
   silent.length ? silent.join(', ') : '');
 
-// 보가 막혔던 자리. 이 셋이 fallback 이면 같은 일이 다시 벌어진다.
+// 아무개가 막혔던 자리. 이 셋이 fallback 이면 같은 일이 다시 벌어진다.
 for (const [code, must] of [
   ['session_not_found', '다시 로그인'],
   ['internal_error', '저장하지 못했습니다'],

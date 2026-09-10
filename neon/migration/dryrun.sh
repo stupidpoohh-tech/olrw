@@ -5,7 +5,7 @@
 #   neon/migration/dryrun.sh
 #
 # 하는 일
-#   1. 빈 클러스터에 harness + 0001_init.sql 을 올린다
+#   1. 빈 클러스터에 harness + neon/migrations/ 전체를 번호순으로 올린다
 #   2. §1 에 적힌 사람 수만큼 profiles 를 가짜 uuid 로 만든다
 #   3. 0002_legacy.sql 의 §1 빈칸을 그 uuid 로 채워 실행한다
 #   4. 한 번 더 실행해 두 번 부어도 행이 늘지 않는지 확인한다
@@ -23,10 +23,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HARNESS="$ROOT/neon/tests/harness.sql"
-INIT="$ROOT/neon/migrations/0001_init.sql"
-LEGACY="$ROOT/neon/migration/0002_legacy.sql"
+INIT_ARGS=""; for f in "$ROOT"/neon/migrations/*.sql; do INIT_ARGS="$INIT_ARGS -f $f"; done
+# 진짜 데이터는 local/ 에 있고 저장소에 올라가지 않는다. 없으면 견본으로 돈다 —
+# 공개 저장소만 받은 사람도 파이프라인 전체를 검증할 수 있다.
+LEGACY="$ROOT/neon/migration/local/0002_legacy.sql"
+if [[ ! -f "$LEGACY" ]]; then
+  LEGACY="$ROOT/neon/migration/sample/0002_legacy.sample.sql"
+  echo "진짜 데이터가 없어 견본으로 돕니다: ${LEGACY#$ROOT/}"
+fi
 
-[[ -f "$LEGACY" ]] || { echo "0002_legacy.sql 이 없습니다. node neon/migration/build.mjs 를 먼저 돌리세요."; exit 1; }
+[[ -f "$LEGACY" ]] || { echo "SQL 이 없습니다. node neon/migration/build.mjs --sample 를 먼저 돌리세요."; exit 1; }
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -141,7 +147,7 @@ if [[ -n "${PGHOST:-}" ]]; then
   DB="olrw_legacy_$$"
   psql -v ON_ERROR_STOP=1 -q -c "create database \"$DB\";" postgres
   trap 'psql -q -c "drop database if exists \"$DB\";" postgres >/dev/null 2>&1 || true; rm -rf "$WORK"' EXIT
-  psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$HARNESS" -f "$INIT" -f "$WORK/profiles.sql"
+  psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$HARNESS" $INIT_ARGS -f "$WORK/profiles.sql"
   if [[ -n "${STUCK:-}" ]]; then
     echo "── 앞선 실행이 오류로 끝난 세션에서 이어 붓는다 ──"
     psql -q -d "$DB" -f "$WORK/stuck.sql" -f "$WORK/legacy.sql" 2>&1 |
@@ -174,7 +180,7 @@ run "initdb -D $DIR/data -U postgres -A trust" >"$DIR/initdb.log" 2>&1
 run "pg_ctl -D $DIR/data -l $DIR/pg.log -o '-k $DIR -p 5598 -c listen_addresses=' -w start" >/dev/null
 
 PSQL="psql -h $DIR -p 5598 -U postgres"
-run "$PSQL -v ON_ERROR_STOP=1 -q -f $HARNESS -f $INIT -f $WORK/profiles.sql"
+run "$PSQL -v ON_ERROR_STOP=1 -q -f $HARNESS$INIT_ARGS -f $WORK/profiles.sql"
 if [[ -n "${STUCK:-}" ]]; then
   echo "── 앞선 실행이 오류로 끝난 세션에서 이어 붓는다 ──"
   run "$PSQL -q -f $WORK/stuck.sql -f $WORK/legacy.sql" 2>&1 |

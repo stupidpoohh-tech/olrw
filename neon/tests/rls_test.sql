@@ -107,8 +107,48 @@ select ok('[D1] 봉인된 봉투의 본문은 null이다',
           (select count(*) from telegram_envelopes where not unsealed and body is null) = 2);
 select ok('[D1] 봉투가 분량은 알려준다',
           (select count(*) from telegram_envelopes where length_bucket in ('short','medium','long')) = 3);
-select denied('[D1] 봉인을 직접 풀 수 없다',
+select denied('[D1] 봉인을 직접 풀 수 없다 (reading_started_at)',
   format('update boxes set reading_started_at = now() where id = %L', :'box'));
+
+-- ── 봉인 우회 회귀 (P0-2) ────────────────────────────────────────────────
+-- boxes 에는 멤버 UPDATE 정책이 열려 있다(이름을 바꿔야 하므로). 그래서 무엇을
+-- 바꿀 수 있는지는 전적으로 boxes_guard() 가 정한다. 그 트리거가 보호 컬럼을
+-- **열거**하고 있었고 sealed 하나가 빠져 있었다 — UI 를 거치지 않고 Data API 로
+-- `PATCH /boxes` `{"sealed": false}` 를 보내면 남의 전보 본문이 그대로 열렸다.
+-- 지금은 이름 말고는 아무것도 바꿀 수 없다.
+select denied('[P0-2] 멤버가 sealed 를 직접 끌 수 없다',
+  format('update boxes set sealed = false where id = %L', :'box'));
+select ok('[P0-2] 시도해도 봉인은 그대로다',
+          (select sealed from boxes where id = :'box'));
+select ok('[P0-2] 시도해도 남의 전보 본문은 여전히 안 보인다',
+          (select count(*) from telegrams) = 1);
+select ok('[P0-2] 봉투는 여전히 본문을 숨긴다',
+          (select count(*) from telegram_envelopes where not unsealed and body is null) = 2);
+
+-- 같은 원인(열거 방식)으로 뚫릴 수 있던 나머지 컬럼도 함께 막혔는지 본다.
+select denied('[P0-2] 멤버가 current_vol 을 직접 올릴 수 없다',
+  format('update boxes set current_vol = current_vol + 1 where id = %L', :'box'));
+select denied('[P0-2] 멤버가 초대 코드를 직접 바꿀 수 없다',
+  format('update boxes set invite_code = %L where id = %L', 'ZZZZ-9999', :'box'));
+select denied('[P0-2] 멤버가 소유자를 직접 바꿀 수 없다',
+  format('update boxes set owner_id = %L where id = %L',
+         '22222222-2222-2222-2222-222222222222', :'box'));
+select denied('[P0-2] 멤버가 created_at 을 직접 바꿀 수 없다',
+  format('update boxes set created_at = now() where id = %L', :'box'));
+
+-- 정상 흐름은 그대로여야 한다. 이름은 멤버가 바꾼다 (SettingsModal).
+update boxes set name = '퇴근길 전보함' where id = :'box';
+select ok('[P0-2] 이름은 여전히 멤버가 바꿀 수 있다',
+          (select name from boxes where id = :'box') = '퇴근길 전보함');
+
+-- 전보함 밖의 사람은 애초에 행이 보이지 않는다.
+select as_user('99999999-9999-9999-9999-999999999999');
+select ok('[P0-2] 비멤버에게는 전보함 행 자체가 없다',
+          (select count(*) from boxes where id = :'box') = 0);
+select denied('[P0-2] 비멤버의 sealed UPDATE 도 거부된다',
+  format('update boxes set sealed = false where id = %L', :'box'));
+select as_user('11111111-1111-1111-1111-111111111111');
+select ok('[P0-2] 그 뒤에도 봉인은 그대로다', (select sealed from boxes where id = :'box'));
 
 \echo ''
 \echo '━━━ 함께 읽기 (D2) ━━━'

@@ -43,6 +43,14 @@
    바닥색(`--bg`)과 여백 단위(`--gap-xl/lg/md`)는 D17 에서 정한 값이 최신이다.
 8. **봉인을 우회하지 않는다.** 남의 이번 권 전보는 `telegram_envelopes` 뷰로만 읽는다. `telegrams`를 직접 조회해 본문을 꺼내는 코드를 쓰지 않는다.
 9. **쓰기는 정해진 문으로만.** 전보함 생성·참여·제본·탈퇴는 서버 함수(`create_box` `join_box` `close_volume` `leave_box`)로만 한다. 테이블에 직접 INSERT 하는 것은 `telegrams` 하나뿐이다.
+10. **직접 UPDATE 는 화이트리스트로 막는다.** 사용자가 Data API 로 바꿀 수 있는
+    컬럼은 컬럼 단위 `grant` 와 `*_guard()` 트리거 **두 겹**으로 정한다. 보호할
+    컬럼을 열거하지 않는다 — 열거하면 컬럼이 늘 때 구멍이 생긴다. 실제로
+    `boxes_guard()` 에서 `sealed` 하나가 빠져 있어 봉인(D1)을 `PATCH /boxes`
+    한 번으로 우회할 수 있었다 (0002_seal_guard.sql).
+11. **실제 사용자 데이터를 저장소에 두지 않는다.** 이관 원본·짝짓기 값·생성된
+    SQL 은 `neon/migration/local/` 에만 둔다. 문서에 적는 이메일·초대 코드·uuid 는
+    전부 지어낸 값이다.
 
 ## 스택
 
@@ -88,7 +96,12 @@ src/
     sounds.ts     §6-1
     keySamples.ts 참나무 녹음을 동기로 뜯어 쓴다 (D15)
     neon.ts       클라이언트
-neon/migrations/       번호순 SQL. 손으로 DB 만지지 않는다
+neon/migrations/       번호순 SQL. 손으로 DB 만지지 않는다. 시험은 이 디렉터리를
+                       **번호순으로 전부** 올린다 — 0001 만 올리면 뒤에 붙은
+                       보안 수정이 빠져 시험은 통과하는데 DB 는 뚫려 있게 된다
+neon/migration/        옛 전보함 이관. **실제 사용자 데이터는 `local/` 에만 두고
+                       저장소에 올리지 않는다** (.gitignore). 공개되는 것은 옮기는
+                       규칙과 지어낸 견본뿐이다 — neon/migration/README.md
 docs/PORTING-SPEC.md
 ```
 

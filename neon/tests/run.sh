@@ -9,7 +9,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-MIG="$ROOT/neon/migrations/0001_init.sql"
+# 번호순으로 전부 올린다. 0001 만 올리면 뒤에 붙은 보안 수정(0002)이 빠져
+# 시험은 통과하는데 실제 DB 는 뚫려 있는 상태가 된다.
+MIGS=("$ROOT"/neon/migrations/*.sql)
+MIG_ARGS=(); for f in "${MIGS[@]}"; do MIG_ARGS+=(-f "$f"); done
 HARNESS="$ROOT/neon/tests/harness.sql"
 TESTS="$ROOT/neon/tests/rls_test.sql"
 
@@ -17,7 +20,7 @@ if [[ -n "${PGHOST:-}" ]]; then
   DB="olrw_test_$$"
   psql -v ON_ERROR_STOP=1 -q -c "create database \"$DB\";" postgres
   trap 'psql -q -c "drop database if exists \"$DB\";" postgres >/dev/null 2>&1 || true' EXIT
-  psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$HARNESS" -f "$MIG"
+  psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$HARNESS" "${MIG_ARGS[@]}"
   psql -q -d "$DB" -f "$TESTS" 2>&1 | grep -v '^NOTICE:  ' | sed 's/^NOTICE:  //'
   exit
 fi
@@ -39,5 +42,5 @@ run "initdb -D $DIR/data -U postgres -A trust" >"$DIR/initdb.log" 2>&1
 run "pg_ctl -D $DIR/data -l $DIR/pg.log -o '-k $DIR -p 5599 -c listen_addresses=' -w start" >/dev/null
 
 PSQL="psql -h $DIR -p 5599 -U postgres"
-run "$PSQL -v ON_ERROR_STOP=1 -q -f $HARNESS -f $MIG"
+run "$PSQL -v ON_ERROR_STOP=1 -q -f $HARNESS ${MIG_ARGS[*]}"
 run "$PSQL -q -f $TESTS" 2>&1 | grep -v '^NOTICE:  ' | sed 's/^NOTICE:  //'

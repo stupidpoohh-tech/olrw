@@ -24,7 +24,9 @@ trap cleanup EXIT
 run "initdb -D $DIR/data -U postgres -A trust" >"$DIR/initdb.log" 2>&1
 run "pg_ctl -D $DIR/data -l $DIR/pg.log -o '-k $DIR -p 5598 -c listen_addresses=' -w start" >/dev/null
 PSQL="psql -h $DIR -p 5598 -U postgres"
-run "$PSQL -v ON_ERROR_STOP=1 -q -f $ROOT/neon/tests/harness.sql -f $ROOT/neon/migrations/0001_init.sql"
+# 번호순으로 전부 올린다 — 0001 만 올리면 뒤에 붙은 보안 수정이 빠진다.
+MIG_ARGS=""; for f in "$ROOT"/neon/migrations/*.sql; do MIG_ARGS="$MIG_ARGS -f $f"; done
+run "$PSQL -v ON_ERROR_STOP=1 -q -f $ROOT/neon/tests/harness.sql$MIG_ARGS"
 
 cat > "$DIR/setup.sql" <<'SQL'
 select seed_user('11111111-1111-1111-1111-111111111111','나');

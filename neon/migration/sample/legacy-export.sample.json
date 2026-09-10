@@ -1,0 +1,156 @@
+{
+  "_note": "견본입니다. 실제 사용자 데이터가 아니며 값은 전부 지어낸 것입니다. 진짜 원본은 neon/migration/local/legacy-export.json 에 두고 저장소에 올리지 않습니다.",
+  "exportedAt": "2026-01-02T03:04:05.678Z",
+  "me": "AAAAAAAAAAAAAAAAAAAAAAAAAAA1",
+  "boxes": [
+    {
+      "roomId": "sampleRoomAlpha0001",
+      "name": "견본 전보함",
+      "coupleCode": "ABCD-2345",
+      "ownerUid": "AAAAAAAAAAAAAAAAAAAAAAAAAAA1",
+      "currentVol": 3,
+      "createdAt": "2026-01-02T00:00:00.000Z",
+      "members": {
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAA1": {
+          "name": "안",
+          "paper": "powder",
+          "type": "violet",
+          "joinedAt": "2026-01-02T00:00:00.000Z"
+        },
+        "BBBBBBBBBBBBBBBBBBBBBBBBBBB2": {
+          "name": "보",
+          "paper": "lilac",
+          "type": "green",
+          "joinedAt": "2026-01-02T01:00:00.000Z"
+        },
+        "CCCCCCCCCCCCCCCCCCCCCCCCCCC3": {
+          "name": "초",
+          "paper": "blush",
+          "type": "blue",
+          "joinedAt": "2026-01-02T02:00:00.000Z"
+        }
+      },
+      "telegrams": [
+        {
+          "id": "tgA1",
+          "from": "AAAAAAAAAAAAAAAAAAAAAAAAAAA1",
+          "text": "아직 제본되지 않은 전보",
+          "time": "2026-01-20T04:05:06.000Z",
+          "vol": 3
+        }
+      ],
+      "volumes": [
+        {
+          "id": "volA1",
+          "vol": 1,
+          "label": "VOL.1",
+          "title": "VOL.1",
+          "count": 3,
+          "period": "2026.01.02 — 2026.01.05",
+          "closedAt": "2026-01-06T00:00:00.000Z",
+          "cover": "sage",
+          "telegrams": [
+            {
+              "from": "AAAAAAAAAAAAAAAAAAAAAAAAAAA1",
+              "name": "안",
+              "paper": "powder",
+              "text": "첫 견본 전보",
+              "time": "01.02 09:00"
+            },
+            {
+              "from": "BBBBBBBBBBBBBBBBBBBBBBBBBBB2",
+              "name": "보",
+              "paper": "lilac",
+              "text": "둘째 견본 전보",
+              "time": "01.03 10:00"
+            },
+            {
+              "from": "CCCCCCCCCCCCCCCCCCCCCCCCCCC3",
+              "name": "초",
+              "paper": "blush",
+              "text": "셋째 견본 전보",
+              "time": "01.05 11:00"
+            }
+          ]
+        },
+        {
+          "id": "volA2",
+          "vol": 2,
+          "label": "VOL.2",
+          "title": "견본 제목",
+          "count": 2,
+          "period": "2026.01.07 — 2026.01.09",
+          "closedAt": "2026-01-10T00:00:00.000Z",
+          "cover": "photo",
+          "telegrams": [
+            {
+              "from": "AAAAAAAAAAAAAAAAAAAAAAAAAAA1",
+              "name": "안",
+              "paper": "powder",
+              "text": "사진 표지 권의 전보",
+              "time": "01.07 08:00"
+            },
+            {
+              "from": "BBBBBBBBBBBBBBBBBBBBBBBBBBB2",
+              "name": "보",
+              "paper": "lilac",
+              "text": "그 권의 마지막 전보",
+              "time": "01.09 20:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "roomId": "sampleRoomBeta0002",
+      "name": "견본 둘",
+      "coupleCode": "EFGH-6789",
+      "ownerUid": "",
+      "currentVol": 2,
+      "createdAt": "2026-02-01T00:00:00.000Z",
+      "members": {
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAA1": {
+          "name": "안",
+          "paper": "powder",
+          "type": "ochre",
+          "joinedAt": "2026-02-01T00:00:00.000Z"
+        },
+        "BBBBBBBBBBBBBBBBBBBBBBBBBBB2": {
+          "name": "보",
+          "paper": "blush",
+          "type": "teal",
+          "joinedAt": "2026-02-01T01:00:00.000Z"
+        }
+      },
+      "telegrams": [],
+      "volumes": [
+        {
+          "id": "volB1",
+          "vol": 1,
+          "label": "VOL.1",
+          "title": "VOL.1",
+          "count": 2,
+          "period": "2026.02.01 — 2026.02.03",
+          "closedAt": "2026-02-04T00:00:00.000Z",
+          "cover": "navy",
+          "telegrams": [
+            {
+              "from": "a",
+              "name": "",
+              "paper": "",
+              "text": "옛 형식 전보 (a)",
+              "time": "02.01 09:00"
+            },
+            {
+              "from": "b",
+              "name": "?",
+              "paper": "ivory",
+              "text": "옛 형식 전보 (b)",
+              "time": "02.03 18:00"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
