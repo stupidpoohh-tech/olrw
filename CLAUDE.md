@@ -195,6 +195,8 @@ pnpm ui:check5                     # 만남 마감 5단계 · 제본 애니메�
 pnpm sound:check                   # §6-1 합성음 · 녹음 (미리보기 서버 불필요)
 pnpm tint:check                    # 타자기 네 대가 한눈에 다른지 (D9)
 pnpm smoke:prod                    # 배포된 주소를 연다 (체험 모드만 — 운영 데이터 무접촉)
+# 실제 계정으로 배포된 앱을 한 바퀴 도는 시험은 운영 DB 에 쓴다. 그래서 CI 에
+# 넣지 않고 GitHub → Actions → live-e2e → Run workflow (확인 칸에 RUN) 로만 돈다
 SMOKE_URL=http://localhost:4173 pnpm smoke:prod   # 방금 빌드한 것으로
 ```
 

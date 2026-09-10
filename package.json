@@ -18,7 +18,8 @@
     "errors:check": "node tools/errors-check.mjs",
     "proxy:check": "node tools/proxy-check.mjs",
     "secrets:check": "node tools/secrets-check.mjs",
-    "smoke:prod": "node tools/smoke-prod.mjs"
+    "smoke:prod": "node tools/smoke-prod.mjs",
+    "e2e:live": "node tools/e2e-live.mjs"
   },
   "dependencies": {
     "@neondatabase/neon-js": "0.7.0-beta",

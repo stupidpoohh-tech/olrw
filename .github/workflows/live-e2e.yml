@@ -1,0 +1,51 @@
+# 실제 배포 주소에서 실제로 가입해 한 사이클을 돈다.
+#
+# release-gate 의 「프로덕션 스모크」는 체험 모드(D14)만 돈다 — 브라우저 안
+# memoryStore 위라 Neon 에 닿지 않는다. 그래서 그것이 통과해도 브라우저 →
+# Neon Auth → 실제 DB → RLS → 화면 이 이어져 있는지는 알 수 없다.
+#
+# **이것은 운영 DB 에 쓴다.** 그래서 push 에서 돌지 않는다. 손으로 돌리고,
+# 실수로 눌리지 않게 확인 문구를 받는다.
+name: live-e2e
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: '운영 DB 에 테스트 계정을 만듭니다. 계속하려면 RUN 을 입력하세요.'
+        required: true
+        default: ''
+      url:
+        description: '대상 주소 (비우면 배포 주소)'
+        required: false
+        default: ''
+
+concurrency:
+  group: live-e2e
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    name: 실제 계정 왕복 (운영 DB 에 쓴다)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: 확인 문구
+        run: |
+          if [ "${{ inputs.confirm }}" != "RUN" ]; then
+            echo "확인 문구가 RUN 이 아닙니다. 아무것도 하지 않습니다."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+      # 버전은 package.json 의 packageManager 가 정한다.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - name: 실제 계정으로 한 사이클
+        env:
+          E2E_URL: ${{ inputs.url || vars.SMOKE_URL || 'https://olrw-8pt.pages.dev' }}
+        run: pnpm e2e:live
