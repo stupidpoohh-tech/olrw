@@ -183,6 +183,25 @@ select ok('[S9] 그러나 파기되지 않고 소프트 삭제로 남는다',
           (select count(*) from telegrams where deleted_at is not null) = 3);
 set role authenticated;
 select as_user('22222222-2222-2222-2222-222222222222');
+
+-- ── 제본된 것은 못 고친다 (P0-2 인접) ─────────────────────────────────────
+-- volumes · volume_pages 에는 select 정책만 있고 update 권한도 없다. 제본은
+-- 스냅샷이라 나중에 고칠 수 있으면 과거가 흔들린다. INSERT 는 위 [S3] 가
+-- 이미 막았고, 여기서는 UPDATE · DELETE 를 본다.
+select denied('[P0-2] 멤버가 제본된 권을 고칠 수 없다',
+  format('update volumes set title = %L where box_id = %L', '고쳐 쓴 제목', :'box'));
+select denied('[P0-2] 멤버가 제본된 쪽을 고칠 수 없다',
+  format('update volume_pages set body = %L where volume_id = %L', '고쳐 쓴 본문', :'vid'));
+select denied('[P0-2] 멤버가 제본된 권의 쪽수를 고칠 수 없다',
+  format('update volumes set page_count = 99 where box_id = %L', :'box'));
+select denied('[P0-2] 멤버가 제본된 권을 지울 수 없다',
+  format('delete from volumes where box_id = %L', :'box'));
+select denied('[P0-2] 멤버가 제본된 쪽을 지울 수 없다',
+  format('delete from volume_pages where volume_id = %L', :'vid'));
+select ok('[P0-2] 그래서 지난 권은 그대로다',
+          (select page_count from volumes where id = :'vid') = 3
+          and (select count(*) from volume_pages where volume_id = :'vid') = 3);
+
 select denied('전보 0건 마감은 조용히 실패하지 않고 막는다',
   format('select close_volume(%L,%L,%L,%L,false)', :'box','빈 권','color','sage'));
 
