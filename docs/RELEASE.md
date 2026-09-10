@@ -71,8 +71,43 @@ P0 두 건(봉인 우회 · 공개 저장소의 실사용 데이터)을 닫았�
 
 끝나면 테스트 계정 둘과 전보함 하나가 남는다. **나가기로 지우지 않는다** —
 마지막 사람이 나가면 멤버 없는 전보함이 되어 운영 표본 SQL 의
-「참여자 없는 전보함」이 어긋난다. 지우려면 Neon 콘솔 SQL Editor 에서
-전보함 행까지 함께 지운다.
+「참여자 없는 전보함」이 어긋난다.
+
+#### 남은 테스트 데이터를 지우려면
+
+Neon 콘솔 → 왼쪽 **SQL Editor** 에 아래를 붙여넣는다. 실행하기 전에 **먼저 §1
+만 실행해** 지워질 것이 테스트 것뿐인지 눈으로 본다. 테스트 전보함 이름은 늘
+`E2E ` 로 시작하고, 테스트 계정 이름은 `E2E가` · `E2E나` 다.
+
+```sql
+-- ── §1. 무엇이 지워지는지 먼저 본다 ───────────────────────────────────────
+select id, name, created_at from boxes where name like 'E2E %';
+select id, display_name from profiles where display_name in ('E2E가', 'E2E나');
+
+-- ── §2. 위 목록이 테스트 것뿐이라면 지운다 ────────────────────────────────
+begin;
+set local olrw.internal = 'on';
+
+create temp table doomed_box on commit drop as
+  select id from boxes where name like 'E2E %';
+
+delete from volume_pages where volume_id in
+  (select id from volumes where box_id in (select id from doomed_box));
+delete from volumes     where box_id  in (select id from doomed_box);
+delete from telegrams   where box_id  in (select id from doomed_box);
+delete from box_members where box_id  in (select id from doomed_box);
+delete from boxes       where id      in (select id from doomed_box);
+
+-- 다른 전보함에 속하지 않은 테스트 프로필만 지운다
+delete from profiles p
+ where p.display_name in ('E2E가', 'E2E나')
+   and not exists (select 1 from box_members m where m.user_id = p.id);
+
+commit;
+```
+
+Neon Auth 의 계정 자체는 이 SQL 로 지워지지 않는다. **Auth** → **Users** 에서
+그 주소(`olrw-e2e-…@example.com`)를 찾아 지운다.
 
 ### 프로덕션 스모크가 운영 데이터를 건드리지 않는 이유
 
