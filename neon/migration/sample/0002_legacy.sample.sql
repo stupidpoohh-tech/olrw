@@ -130,16 +130,21 @@ begin
 end $$;
 
 -- ═══ 2. 전보함 ════════════════════════════════════════════════════════════
--- 옛 coupleCode 를 새 초대 코드로 그대로 쓴다 — 네 사람이 외우고 있는 값이고,
--- 넷 다 새 형식(혼동 문자 I O 0 1 제외)에 맞는다.
+-- **초대 코드는 새로 뽑는다.** 옛 coupleCode 는 한때 공개 저장소에 올라가
+-- 있었다. 그대로 살리면 그 코드를 본 사람이 이관된 전보함에 그냥 들어온다 —
+-- 정원 4명에 빈자리가 있으면 그것으로 끝이다.
+--
+-- 새 코드는 이관을 마친 뒤 앱의 전보함 설정에서 볼 수 있고, §7 이 마칠 때
+-- 한 번 찍어 준다. 옛 코드를 기억하고 있던 사람에게는 새 코드를 알려 준다.
+--
 -- 봉인은 기본값 그대로 true (D1). 권 번호의 구멍은 메꾸지 않는다.
 
 insert into boxes (id, name, invite_code, owner_id, current_vol, sealed, created_at)
-select t.id::uuid, t.name, t.code, u.id, t.vol, true, t.created_at::timestamptz
+select t.id::uuid, t.name, gen_invite_code(), u.id, t.vol, true, t.created_at::timestamptz
 from (values
-  ('c76e5337-152b-9171-e047-b83b9c21d55c', '견본 전보함', 'ABCD-2345', 'AAAAAAAAAAAAAAAAAAAAAAAAAAA1', 3, '2026-01-02T00:00:00.000Z'), -- 견본 전보함
-  ('01618838-922b-cebc-597e-823baf3c0d06', '견본 둘',     'EFGH-6789', 'AAAAAAAAAAAAAAAAAAAAAAAAAAA1', 2, '2026-02-01T00:00:00.000Z')  -- 견본 둘
-) as t(id, name, code, legacy_uid, vol, created_at)
+  ('c76e5337-152b-9171-e047-b83b9c21d55c', '견본 전보함', 'AAAAAAAAAAAAAAAAAAAAAAAAAAA1', 3, '2026-01-02T00:00:00.000Z'), -- 견본 전보함
+  ('01618838-922b-cebc-597e-823baf3c0d06', '견본 둘',     'AAAAAAAAAAAAAAAAAAAAAAAAAAA1', 2, '2026-02-01T00:00:00.000Z')  -- 견본 둘
+) as t(id, name, legacy_uid, vol, created_at)
 join legacy_user u on u.legacy_uid = t.legacy_uid
 -- 한 사람이라도 아직 없으면 이 전보함은 통째로 건너뛴다. 반쪽만 넣으면
 -- 권의 쪽수가 어긋나 서가가 거짓말을 한다.
@@ -295,6 +300,13 @@ begin
                    join legacy_user u on u.legacy_uid = n.legacy_uid
                   where n.box_id = e.box_id and u.id is null);
   raise notice '들어간 전보함 % · 건너뛴 전보함 %', v_done, v_skip;
+
+  -- 초대 코드는 새로 뽑았다. 옛 코드는 더 이상 통하지 않는다.
+  for r in select b.name, b.invite_code from boxes b
+             join legacy_box_expect e on e.box_id = b.id order by b.name
+  loop
+    raise notice '새 초대 코드 · % : %', r.name, r.invite_code;
+  end loop;
   if v_done = 0 then
     raise exception '들어간 전보함이 하나도 없습니다. §1 에 uuid 를 채우세요.';
   end if;
