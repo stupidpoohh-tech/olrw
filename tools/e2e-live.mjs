@@ -421,7 +421,14 @@ try {
     await pageA.waitForSelector('.onb-code', { timeout: 30000 });
     await pageA.click('text=전보함 열기');
     await pageA.waitForSelector('.stage', { timeout: 30000 });
-    ok('두 번째 전보함이 선다', (await pageA.$$('.boxbar-member')).length === 1);
+    // 바가 새 전보함으로 바뀔 때까지 기다린다. 이름이 바뀌기 전에 세면 앞
+    // 전보함의 참여자를 센다.
+    await pageA.waitForFunction((want) => {
+      const el = document.querySelector('.boxbar-name');
+      return Boolean(el && el.textContent && el.textContent.trim() === want);
+    }, `${BOX} 둘`, { timeout: 15000 }).catch(() => {});
+    ok('두 번째 전보함이 선다', (await pageA.$$('.boxbar-member')).length === 1,
+       `${(await pageA.textContent('.boxbar-name')).trim()} · ${(await pageA.$$('.boxbar-member')).length}명`);
 
     // 첫 전보함으로 돌아가 메뉴가 뭐라고 하는지 본다. 바는 2명이어야 한다.
     await pageA.click('.boxbar-switch');

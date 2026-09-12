@@ -326,37 +326,45 @@ export function createNeonStore(
       emit();
     },
 
+    /**
+     * 내 전보함 목록.
+     *
+     * **인원수를 따로 세지 않는다.** 전에는 전보함을 먼저 받고 `box_members` 를
+     * 한 번 더 물어 세었는데, 그 집계에 전보함이 없으면 `?? 1` 로 메꿨다.
+     * 세지 못한 것을 「1명」 이라고 말해 버리는 자리였다 — 전환 메뉴가 세 사람이
+     * 든 전보함을 1명이라고 한 화면이 실제로 있었다. 같은 화면의 이름 줄은
+     * `getBox()` 로 세 명을 보여 주고 있었으니, 한 화면이 두 소리를 낸 것이다.
+     *
+     * 그래서 `boxes` 에서 시작해 참여자를 곁들여 받는다. `boxes_read` 가 이미
+     * 내가 든 전보함만 돌려주므로 조건을 따로 걸 필요가 없고, 참여자는 그
+     * 전보함의 행 전부다 (`members_read`). 세는 자리와 읽는 자리가 하나가 되어
+     * 메꿀 일이 없어진다.
+     */
     async listBoxes() {
       const me = requireSession();
       const rows = check(await db
-        .from('box_members')
-        .select('type_color, boxes!inner(id, name, invite_code, current_vol, sealed)')
-        .eq('user_id', me.userId)
-        .order('joined_at', { ascending: true }));
+        .from('boxes')
+        .select('id, name, invite_code, current_vol, sealed, box_members(user_id, type_color, joined_at)'));
 
       const boxes = (rows ?? []) as unknown as {
-        type_color: string;
-        boxes: { id: string; name: string; invite_code: string; current_vol: number; sealed: boolean };
+        id: string; name: string; invite_code: string; current_vol: number; sealed: boolean;
+        box_members: { user_id: string; type_color: string; joined_at: string }[];
       }[];
-      if (boxes.length === 0) return [];
 
-      const counts = check(await db
-        .from('box_members')
-        .select('box_id')
-        .in('box_id', boxes.map((b) => b.boxes.id))) as { box_id: string }[] | null;
-
-      const tally = new Map<string, number>();
-      for (const c of counts ?? []) tally.set(c.box_id, (tally.get(c.box_id) ?? 0) + 1);
-
-      return boxes.map<BoxSummary>((r) => ({
-        id: r.boxes.id,
-        name: r.boxes.name,
-        inviteCode: r.boxes.invite_code,
-        currentVol: r.boxes.current_vol,
-        memberCount: tally.get(r.boxes.id) ?? 1,
-        myType: asType(r.type_color),
-        sealed: r.boxes.sealed,
-      }));
+      return boxes
+        .map((b) => ({ b, mine: b.box_members?.find((m) => m.user_id === me.userId) }))
+        // 내가 없는 전보함은 애초에 오지 않는다. 그래도 와 버렸다면 내 목록이 아니다.
+        .filter((x) => x.mine !== undefined)
+        .sort((x, y) => x.mine!.joined_at.localeCompare(y.mine!.joined_at))
+        .map<BoxSummary>(({ b, mine }) => ({
+          id: b.id,
+          name: b.name,
+          inviteCode: b.invite_code,
+          currentVol: b.current_vol,
+          memberCount: b.box_members.length,
+          myType: asType(mine!.type_color),
+          sealed: b.sealed,
+        }));
     },
 
     async getBox(boxId) {
