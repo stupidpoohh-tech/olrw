@@ -406,8 +406,43 @@ try {
   await tab(pageA, '서가');
   ok('재로그인해도 서가가 그대로다', (await pageA.$$('.spine')).length === 1);
 
-  /* ── 13. 조용한가 ───────────────────────────────────────────────────── */
-  console.log('\n━━━ 13. 조용한가 ━━━');
+  /* ── 13. 전보함이 둘일 때의 인원수 ──────────────────────────────────── */
+  // 전보함 하나에서는 메뉴가 제대로 세는 것을 위에서 봤다. 실제 화면이 틀리게
+  // 말한 경우는 전보함이 **둘**이었다. 그때 집계 질의는 `in.(a,b)` 가 된다 —
+  // 아무도 밟아 보지 않은 갈래다. 여기서 그 갈래를 밟는다.
+  console.log('\n━━━ 13. 전보함이 둘일 때 ━━━');
+  {
+    await tab(pageA, '타전실');
+    await pageA.click('.boxbar-switch');
+    await pageA.locator('.boxbar-menu-action', { hasText: '새 전보함' }).click();
+    await pageA.waitForSelector('.onb-tabs-row', { timeout: 20000 });
+    await pageA.fill('.onb-input', `${BOX} 둘`);
+    await pageA.click('button[type=submit]:has-text("전보함 만들기")');
+    await pageA.waitForSelector('.onb-code', { timeout: 30000 });
+    await pageA.click('text=전보함 열기');
+    await pageA.waitForSelector('.stage', { timeout: 30000 });
+    ok('두 번째 전보함이 선다', (await pageA.$$('.boxbar-member')).length === 1);
+
+    // 첫 전보함으로 돌아가 메뉴가 뭐라고 하는지 본다. 바는 2명이어야 한다.
+    await pageA.click('.boxbar-switch');
+    await pageA.locator('.boxbar-menu-item', { hasText: BOX }).first().click();
+    await pageA.waitForSelector('.stage', { timeout: 30000 });
+    await pageA.waitForTimeout(800);
+    const bar = (await pageA.$$('.boxbar-member')).length;
+    ok('전보함이 둘이어도 바는 그대로 센다', bar === 2, `${bar}명`);
+
+    await pageA.click('.boxbar-switch');
+    await pageA.waitForSelector('.boxbar-menu-meta', { timeout: 10000 });
+    const metas = await pageA.$$eval('.boxbar-menu-meta', (els) => els.map((e) => e.textContent.trim()));
+    ok('전보함이 둘일 때도 메뉴가 같은 인원수를 말한다',
+       metas.some((m) => m.includes('2명')),
+       `바 ${bar}명 · 메뉴 ${metas.map((m) => `「${m}」`).join(' ')}`);
+    await pageA.keyboard.press('Escape');
+    await pageA.click('.header', { position: { x: 5, y: 5 } }).catch(() => {});
+  }
+
+  /* ── 14. 조용한가 ───────────────────────────────────────────────────── */
+  console.log('\n━━━ 14. 조용한가 ━━━');
   ok('치명적 런타임 오류가 없다', pageErrors.length === 0, pageErrors.slice(0, 2).join(' / '));
 } catch (e) {
   if (!blocked) blocked = String(e.message).slice(0, 200);
@@ -422,7 +457,7 @@ try {
   }
 
   console.log('\n━━━ 남는 것 ━━━');
-  console.log(`테스트 계정 2개(꼬리표 ${RUN}) 와 전보함 「${BOX}」 가 운영 DB 에 남습니다.`);
+  console.log(`테스트 계정 2개(꼬리표 ${RUN}) 와 전보함 「${BOX}」 · 「${BOX} 둘」 이 운영 DB 에 남습니다.`);
   console.log('전보함을 나가면 멤버 없는 전보함이 되어 운영 표본 SQL 의 무결성 항목이');
   console.log('어긋납니다. 그래서 나가지 않고 그대로 둡니다 — 지우려면 콘솔에서');
   console.log('전보함 행까지 함께 지워야 합니다 (docs/RELEASE.md).');
