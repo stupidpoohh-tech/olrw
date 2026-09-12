@@ -29,6 +29,8 @@ const RUN = (process.env.GITHUB_RUN_ID ?? String(Date.now())) + '-' +
 /** 지어낸 주소만 쓴다. example.com 은 RFC 2606 이 예약해 둔 도메인이라 실존하지 않는다. */
 const A = { name: 'E2E가', email: `olrw-e2e-a-${RUN}@example.com` };
 const B = { name: 'E2E나', email: `olrw-e2e-b-${RUN}@example.com` };
+/** 셋째. 실제로 틀린 화면은 세 사람이 든 전보함이었다 — 그 수까지 밟아 본다. */
+const C = { name: 'E2E다', email: `olrw-e2e-c-${RUN}@example.com` };
 /** 비밀번호는 이 실행 안에서만 산다. 로그에도 보고서에도 남기지 않는다. */
 const PW = randomBytes(12).toString('base64url');
 
@@ -178,6 +180,7 @@ const screenError = async (page) => {
 
 const pageA = await open();
 let pageB = null;
+let pageC = null;
 let code = '';
 
 try {
@@ -287,6 +290,21 @@ try {
   await send(pageB, MSG_B1);
   await send(pageB, MSG_B2);
   ok('B 의 전보 두 통이 쌓인다', (await pageB.$$('.recent-list .tg')).length === 2);
+
+  /* 셋째 사람. 전보는 쓰지 않는다 — 통수를 흔들지 않고 인원만 셋으로 만든다. */
+  pageC = await open();
+  await pageC.goto(`${BASE}/`, { waitUntil: 'networkidle', timeout: 45000 });
+  await pageC.evaluate(() => { try { localStorage.clear(); } catch { /* 접근 거부 */ } });
+  await pageC.reload({ waitUntil: 'networkidle' });
+  await signUp(pageC, C);
+  await pageC.click('.onb-tab >> nth=1');
+  await pageC.fill('.onb-code-input', code);
+  await pageC.click('button[type=submit]:has-text("전보함 참여하기")');
+  await pageC.waitForSelector('.stage', { timeout: 30000 });
+  ok('셋째도 같은 전보함에 들어간다',
+     (await pageC.textContent('.boxbar-name')).trim() === BOX, await screenError(pageC));
+  ok('세 사람이 보인다', (await pageC.$$('.boxbar-member')).length === 3,
+     `${(await pageC.$$('.boxbar-member')).length}명`);
 
   /* ── 8. 봉인 (D1) — 서로의 본문이 보이지 않는가 ──────────────────────── */
   console.log('\n━━━ 8. 봉인 (D1) ━━━');
@@ -436,13 +454,13 @@ try {
     await pageA.waitForSelector('.stage', { timeout: 30000 });
     await pageA.waitForTimeout(800);
     const bar = (await pageA.$$('.boxbar-member')).length;
-    ok('전보함이 둘이어도 바는 그대로 센다', bar === 2, `${bar}명`);
+    ok('전보함이 둘이어도 바는 그대로 센다', bar === 3, `${bar}명`);
 
     await pageA.click('.boxbar-switch');
     await pageA.waitForSelector('.boxbar-menu-meta', { timeout: 10000 });
     const metas = await pageA.$$eval('.boxbar-menu-meta', (els) => els.map((e) => e.textContent.trim()));
     ok('전보함이 둘일 때도 메뉴가 같은 인원수를 말한다',
-       metas.some((m) => m.includes('2명')),
+       metas.some((m) => m.includes(`${bar}명`)),
        `바 ${bar}명 · 메뉴 ${metas.map((m) => `「${m}」`).join(' ')}`);
     await pageA.keyboard.press('Escape');
     await pageA.click('.header', { position: { x: 5, y: 5 } }).catch(() => {});
@@ -458,13 +476,14 @@ try {
   /* ── 남는 것 ─────────────────────────────────────────────────────────── */
   if (memberCalls.length) {
     console.log('\n━━━ box_members 질의 (값은 가림) ━━━');
-    for (const c of memberCalls.slice(0, 12)) {
+    // **뒤에서부터** 본다. 앞쪽은 아직 아무도 들어오기 전의 질의라 늘 한 줄이다.
+    for (const c of memberCalls.slice(-14)) {
       console.log(`  HTTP ${c.status}  ${c.n === null ? '본문 없음' : `${c.n}줄`}   ${c.q.slice(0, 150)}`);
     }
   }
 
   console.log('\n━━━ 남는 것 ━━━');
-  console.log(`테스트 계정 2개(꼬리표 ${RUN}) 와 전보함 「${BOX}」 · 「${BOX} 둘」 이 운영 DB 에 남습니다.`);
+  console.log(`테스트 계정 3개(꼬리표 ${RUN}) 와 전보함 「${BOX}」 · 「${BOX} 둘」 이 운영 DB 에 남습니다.`);
   console.log('전보함을 나가면 멤버 없는 전보함이 되어 운영 표본 SQL 의 무결성 항목이');
   console.log('어긋납니다. 그래서 나가지 않고 그대로 둡니다 — 지우려면 콘솔에서');
   console.log('전보함 행까지 함께 지워야 합니다 (docs/RELEASE.md).');
