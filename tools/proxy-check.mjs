@@ -36,13 +36,21 @@ const ENV = { VITE_NEON_URL: NEON };
 /* ── 어디까지 함수를 타는가 ───────────────────────────────────────────────
    `_routes.json` 이 없으면 Cloudflare 는 **모든 요청**을 함수로 보낸다.
    그러면 `/* → index.html` 인 SPA 를 함수가 가로채 앱이 아예 뜨지 않는다.
-   반대로 `/auth/*` 가 빠지면 프록시가 붙지 않는다. */
+   반대로 `/auth/*` 가 빠지면 프록시가 붙지 않는다.
+
+   함수는 하나가 아니다 (표지 업로드가 있다). 그러니 "하나뿐인가" 를 묻지
+   않는다 — 물으면 함수를 더할 때마다 여기가 틀린 이유로 빨개진다. 물어야 할
+   것은 **로그인이 함수를 타는가** 와 **전부를 삼키지 않는가** 둘이다. */
 
 {
   const routes = JSON.parse(readFileSync(join(ROOT, 'public/_routes.json'), 'utf8'));
-  ok('로그인 경로만 함수를 탄다',
-    Array.isArray(routes.include) && routes.include.length === 1 && routes.include[0] === '/auth/*',
-    JSON.stringify(routes.include));
+  const include = Array.isArray(routes.include) ? routes.include : [];
+  ok('로그인이 함수를 탄다', include.includes('/auth/*'), JSON.stringify(include));
+  ok('SPA 를 통째로 가로채지 않는다',
+    include.length > 0 && !include.some((p) => p === '/*' || p === '/'),
+    JSON.stringify(include));
+  ok('함수를 타는 경로는 전부 정적 파일과 겹치지 않는다',
+    include.every((p) => /^\/[a-z0-9-]+\/\*$/.test(p)), JSON.stringify(include));
   ok('빌드하면 dist 로 따라간다', existsSync(join(ROOT, 'dist/_routes.json')));
 }
 
