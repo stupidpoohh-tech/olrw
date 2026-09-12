@@ -77,12 +77,12 @@ P0 두 건(봉인 우회 · 공개 저장소의 실사용 데이터)을 닫았�
 
 Neon 콘솔 → 왼쪽 **SQL Editor** 에 아래를 붙여넣는다. 실행하기 전에 **먼저 §1
 만 실행해** 지워질 것이 테스트 것뿐인지 눈으로 본다. 테스트 전보함 이름은 늘
-`E2E ` 로 시작하고, 테스트 계정 이름은 `E2E가` · `E2E나` 다.
+`E2E ` 로 시작하고, 테스트 계정 이름은 `E2E가` · `E2E나` · `E2E다` 다.
 
 ```sql
 -- ── §1. 무엇이 지워지는지 먼저 본다 ───────────────────────────────────────
 select id, name, created_at from boxes where name like 'E2E %';
-select id, display_name from profiles where display_name in ('E2E가', 'E2E나');
+select id, display_name from profiles where display_name in ('E2E가', 'E2E나', 'E2E다');
 
 -- ── §2. 위 목록이 테스트 것뿐이라면 지운다 ────────────────────────────────
 begin;
@@ -100,7 +100,7 @@ delete from boxes       where id      in (select id from doomed_box);
 
 -- 다른 전보함에 속하지 않은 테스트 프로필만 지운다
 delete from profiles p
- where p.display_name in ('E2E가', 'E2E나')
+ where p.display_name in ('E2E가', 'E2E나', 'E2E다')
    and not exists (select 1 from box_members m where m.user_id = p.id);
 
 commit;
