@@ -70,16 +70,29 @@ export async function isMember(dataApi, token, boxId, fetchImpl = fetch) {
 
 export async function onRequest({ request, params, env }) {
   const bucket = env.COVERS;
-  if (!bucket) return json(503, { error: '표지 저장소가 아직 연결되지 않았습니다.' });
-
   const segments = Array.isArray(params.path) ? params.path : (params.path ? [params.path] : []);
 
   /* ── 살아 있는가 ──────────────────────────────────────────────────────── */
-  // 앱이 부팅할 때 한 번 묻는다. 여기까지 왔다는 것은 버킷이 묶여 있다는 뜻이다
-  // (안 묶였으면 위에서 503 으로 끝났다). 사진 칸을 내줄지 이 답으로 정한다.
+  /**
+   * 앱이 부팅할 때 한 번 묻는다. 사진 칸을 내줄지 이 답으로 정한다.
+   *
+   * **묶이지 않았어도 200 이다.** 아직 안 붙었다는 것은 오류가 아니라 사실이고,
+   * 오류 코드로 답하면 매 접속마다 콘솔과 네트워크에 빨간 줄이 하나씩 남는다 —
+   * 프로덕션 스모크가 그걸 「내려오지 못한 자산」으로 세어 게이트가 엉뚱한
+   * 이유로 막힌다. 상태를 묻는 자리는 상태를 돌려주면 된다.
+   */
   if ((request.method === 'GET' || request.method === 'HEAD') && segments.length === 0) {
-    return new Response(null, { status: 204, headers: { 'cache-control': 'no-store' } });
+    return new Response(request.method === 'HEAD' ? null : JSON.stringify({ ready: Boolean(bucket) }), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        'x-olrw-covers': bucket ? 'ready' : 'unbound',
+      },
+    });
   }
+
+  if (!bucket) return json(503, { error: '표지 저장소가 아직 연결되지 않았습니다.' });
 
   /* ── 내려주기 ─────────────────────────────────────────────────────────── */
   if (request.method === 'GET' || request.method === 'HEAD') {

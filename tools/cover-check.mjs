@@ -84,21 +84,35 @@ console.log('\n━━━ 경로 ━━━');
      JSON.stringify(routes.include));
 }
 
-/* ── 3. 버킷이 없으면 ────────────────────────────────────────────────── */
+/* ── 3. 버킷이 없으면 ──────────────────────────────────────────────────
+   묶이지 않은 것은 오류가 아니다. 오류 코드로 답하면 매 접속마다 콘솔에 빨간
+   줄이 남고, 프로덕션 스모크가 그걸 「내려오지 못한 자산」으로 센다. */
 console.log('\n━━━ 버킷이 없을 때 ━━━');
 {
-  const res = await call('HEAD', '', { env: { VITE_NEON_URL: NEON } });
-  ok('묶이지 않았으면 503 이다', res.status === 503, `HTTP ${res.status}`);
-  ok('그 답을 "된다"로 읽을 수 없다', res.status !== 204 && res.status !== 200);
+  const env = { VITE_NEON_URL: NEON };
+  const res = await call('GET', '', { env });
+  ok('상태를 묻는 자리는 오류를 내지 않는다', res.status === 200, `HTTP ${res.status}`);
+  const body = await res.json();
+  ok('아직 아니라고 말한다', body.ready === false, JSON.stringify(body));
+
+  // 그래도 실제로 올리려 하면 막아야 한다.
+  const put = await call('PUT', BOX, {
+    env, body: JPEG, headers: { authorization: 'Bearer good' },
+  });
+  ok('올리려 하면 503 으로 막는다', put.status === 503, `HTTP ${put.status}`);
 }
 
 /* ── 4. 살아 있는가 ──────────────────────────────────────────────────── */
 console.log('\n━━━ 살아 있을 때 ━━━');
 {
   const env = { VITE_NEON_URL: NEON, COVERS: makeBucket() };
-  const res = await call('HEAD', '', { env });
-  ok('묶여 있으면 204 다', res.status === 204, `HTTP ${res.status}`);
+  const res = await call('GET', '', { env });
+  ok('묶여 있으면 200 이다', res.status === 200, `HTTP ${res.status}`);
+  ok('됐다고 말한다', (await res.json()).ready === true);
   ok('그 답을 캐시하지 않는다', res.headers.get('cache-control') === 'no-store');
+
+  const head = await call('HEAD', '', { env });
+  ok('HEAD 로도 알 수 있다', head.headers.get('x-olrw-covers') === 'ready');
 }
 
 /* ── 5. 권한 ─────────────────────────────────────────────────────────── */

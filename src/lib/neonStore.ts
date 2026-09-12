@@ -210,16 +210,23 @@ export function createNeonStore(
    * 칸을 내주면, 사용자는 함께 읽기까지 다 끝낸 **뒤에** 표지에서 막힌다 —
    * 되돌릴 수 없는 자리에서 처음 알게 되는 셈이다. 그래서 미리 한 번 묻는다.
    *
-   * 경로가 없는 `/cover/` 는 묶여 있으면 204, 아니면 503 이다. **204 만** 참으로
-   * 읽는다 — 함수가 아예 배포되지 않았다면 Cloudflare 가 SPA 로 떨어뜨려 200 을
-   * 주는데, 그걸 "된다" 로 읽으면 같은 자리에서 또 막힌다. 몸통이 없어 값싸고,
+   * 경로가 없는 `/cover/` 는 묶였든 아니든 200 에 `{ ready }` 를 돌려준다.
+   * 아직 안 붙었다는 것은 오류가 아니므로 오류 코드로 답하지 않는다 — 그러면
+   * 매 접속마다 콘솔에 빨간 줄이 남는다.
+   *
+   * **`ready` 가 참일 때만** 참으로 읽는다. 함수가 아예 배포되지 않았다면
+   * Cloudflare 가 SPA 로 떨어뜨려 index.html 을 200 으로 주는데, 그건 JSON 이
+   * 아니라 파싱에서 걸린다. 상태 코드만 봤다면 "된다" 로 읽었을 자리다.
+   *
    * 부팅을 붙잡지 않는다 — 의식이 열릴 때쯤이면 이미 답이 와 있다.
    */
   let coversReady = false;
   void (async () => {
     try {
-      const res = await fetch(`${location.origin}/cover/`, { method: 'HEAD' });
-      coversReady = res.status === 204;
+      const res = await fetch(`${location.origin}/cover/`, { headers: { accept: 'application/json' } });
+      if (!res.ok) return;
+      const body = await res.json() as { ready?: unknown };
+      coversReady = body?.ready === true;
     } catch { coversReady = false; }
   })();
 
