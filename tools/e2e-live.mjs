@@ -68,10 +68,28 @@ const browser = await chromium.launch({ headless: !process.argv.includes('--head
 const seenHosts = new Set();
 const pageErrors = [];
 
+/**
+ * `box_members` 를 어떻게 묻고 몇 줄을 받았는지 적어 둔다.
+ *
+ * 전보함 전환 메뉴가 늘 「1명」 이라고 말한 적이 있다. 세어서 1 이 아니라
+ * 집계가 비어 `?? 1` 로 떨어진 것이었는데, 코드만 봐서는 어느 쪽 질의가
+ * 비는지 알 수 없었다. 그래서 질의의 **모양**과 **줄 수**를 남긴다.
+ * uuid 는 가린다 — 실제 값은 찍지 않는다.
+ */
+const memberCalls = [];
+const maskUuid = (s) => s.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '<uuid>');
+
 async function open() {
   const ctx = await browser.newContext({ viewport: { width: 430, height: 900 } });
   const page = await ctx.newPage();
   page.on('request', (r) => { try { seenHosts.add(new URL(r.url()).host); } catch { /* about:blank */ } });
+  page.on('response', async (r) => {
+    if (!/\/box_members\?/.test(r.url())) return;
+    const q = maskUuid(decodeURIComponent(new URL(r.url()).search));
+    let n = null;
+    try { const b = await r.json(); n = Array.isArray(b) ? b.length : null; } catch { /* 본문 없음 */ }
+    memberCalls.push({ q, status: r.status(), n });
+  });
   page.on('pageerror', (e) => pageErrors.push(String(e.message).slice(0, 160)));
   page.on('dialog', (d) => void d.accept());
   return page;
@@ -274,6 +292,19 @@ try {
   console.log('\n━━━ 8. 봉인 (D1) ━━━');
   await pageA.reload({ waitUntil: 'networkidle' });
   await pageA.waitForSelector('.stage', { timeout: 30000 });
+  /* 전환 메뉴가 박스 바와 같은 인원수를 말하는가. */
+  {
+    const bar = (await pageA.$$('.boxbar-member')).length;
+    await pageA.click('.boxbar-switch');
+    await pageA.waitForSelector('.boxbar-menu-meta', { timeout: 10000 });
+    const menu = (await pageA.textContent('.boxbar-menu-item.active .boxbar-menu-meta')).trim();
+    ok('전환 메뉴가 박스 바와 같은 인원수를 말한다',
+       menu.includes(`${bar}명`), `바 ${bar}명 · 메뉴 「${menu}」`);
+    await pageA.keyboard.press('Escape');
+    await pageA.click('.header', { position: { x: 5, y: 5 } }).catch(() => {});
+    await pageA.waitForSelector('.boxbar-menu', { state: 'detached', timeout: 5000 }).catch(() => {});
+  }
+
   await tab(pageA, '수신함');
   ok('A 의 수신함에 봉투 두 통이 서 있다', (await pageA.$$('.env')).length === 2,
      `${(await pageA.$$('.env')).length}통`);
@@ -383,6 +414,13 @@ try {
   console.log(`\n중단: ${blocked}`);
 } finally {
   /* ── 남는 것 ─────────────────────────────────────────────────────────── */
+  if (memberCalls.length) {
+    console.log('\n━━━ box_members 질의 (값은 가림) ━━━');
+    for (const c of memberCalls.slice(0, 12)) {
+      console.log(`  HTTP ${c.status}  ${c.n === null ? '본문 없음' : `${c.n}줄`}   ${c.q.slice(0, 150)}`);
+    }
+  }
+
   console.log('\n━━━ 남는 것 ━━━');
   console.log(`테스트 계정 2개(꼬리표 ${RUN}) 와 전보함 「${BOX}」 가 운영 DB 에 남습니다.`);
   console.log('전보함을 나가면 멤버 없는 전보함이 되어 운영 표본 SQL 의 무결성 항목이');
