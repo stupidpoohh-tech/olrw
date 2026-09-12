@@ -17,7 +17,8 @@ P0 두 건(봉인 우회 · 공개 저장소의 실사용 데이터)을 닫았�
 | 프로덕션 가지 | `claude/telegram-messenger-migration-eggni4` (기본 가지) |
 | 배포 | Cloudflare Pages · 프로덕션 가지 push 로 자동 |
 | 데이터 | Neon Postgres + Data API(PostgREST) + Managed Better Auth + RLS (D14) |
-| 서버 코드 | `functions/auth/[[path]].js` 하나 — 로그인만 우리 주소 밑으로 중계 |
+| 서버 코드 | `functions/auth/[[path]].js` (로그인 중계) · `functions/cover/[[path]].js` (표지 사진) |
+| 표지 저장소 | Cloudflare R2 — Pages 에 `COVERS` 로 묶는다 (아래) |
 | CI | `.github/workflows/release-gate.yml` |
 
 `main` 가지는 없다. 옛 `ci.yml` 이 그것을 기다리다 한 번도 돌지 않았다.
@@ -139,11 +140,31 @@ Neon Auth 의 계정 자체는 이 SQL 로 지워지지 않는다. **Auth** → 
 - **GitHub dangling commit.** P0-1 에서 이력을 다시 썼지만, GitHub 은 force push
   뒤에도 옛 커밋을 한동안 URL 로 열어 준다. 저장소 소유자가 Support 에 정리를
   요청해야 사라진다. 코드로 할 수 있는 일이 아니다.
-- **사진 표지.** 옛 권 여덟 개의 사진 표지는 색 표지로 들어갔다. Neon 에는
-  Storage 가 없다 (D14). 붙이려면 `volumes` 의 `cover_kind`/`cover_value` 만
-  UPDATE 하면 된다 — 스키마는 그대로다.
+- **옛 사진 표지 여덟 장.** 새 표지는 이제 올릴 수 있다(아래). 다만 옛 권 여덟
+  개의 사진은 이관 원본에 없다 — 꺼낼 때 용량 때문에 base64 를 `"photo"` 라는
+  글자로 바꿨고, 그때는 올릴 곳도 없었다. 그 이미지는 옛 Firestore 에만 있다.
+  되찾으려면 그 프로젝트가 아직 살아 있어야 한다. 되찾은 뒤에는 `volumes` 의
+  `cover_kind`/`cover_value` 만 UPDATE 하면 된다 — 스키마는 그대로다.
 - **유입·전환 계측.** 지금은 아무것도 붙어 있지 않다. Cloudflare Web Analytics
   는 대시보드 토글 하나로 켜진다.
+
+## 표지 사진 저장소를 켜려면
+
+`functions/cover/[[path]].js` 가 사진을 받아 Cloudflare R2 에 넣는다. 버킷이
+묶이기 전까지 그 함수는 503 을 돌려주고, 앱은 그걸 보고 **사진 칸을 아예 내주지
+않는다** — 함께 읽기를 다 끝낸 뒤 표지에서 막히는 일이 없도록 미리 확인한다.
+
+1. Cloudflare 대시보드 → 왼쪽 **R2 Object Storage** → **Create bucket**
+2. Bucket name 에 `olrw-covers` 를 넣고 **Create bucket**
+3. 왼쪽 **Workers & Pages** → **olrw-8pt** → **Settings** → **Bindings**
+4. **Add** → **R2 bucket** 을 고른다
+5. Variable name 에 `COVERS`, R2 bucket 에 `olrw-covers` 를 고르고 **Save**
+6. **Deployments** 탭 → 맨 위 배포의 **⋯** → **Retry deployment**
+   (바인딩은 새 배포부터 붙는다)
+
+그 버킷을 **공개(Public access)로 열지 않는다.** 사진은 함수를 거쳐서만 나가고,
+파일 이름이 128비트 난수라 주소를 아는 사람만 볼 수 있다. 공개로 열면 버킷 주소
+규칙만 알면 누구나 뒤질 수 있게 된다.
 
 ## 옛 문서
 

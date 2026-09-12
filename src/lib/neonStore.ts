@@ -203,6 +203,26 @@ export function createNeonStore(
     await apply(data.session ?? null);
   })();
 
+  /**
+   * 표지 저장소가 실제로 붙어 있는가.
+   *
+   * R2 버킷을 묶지 않으면 업로드 함수가 503 을 돌려준다. 그걸 모른 채 사진
+   * 칸을 내주면, 사용자는 함께 읽기까지 다 끝낸 **뒤에** 표지에서 막힌다 —
+   * 되돌릴 수 없는 자리에서 처음 알게 되는 셈이다. 그래서 미리 한 번 묻는다.
+   *
+   * 경로가 없는 `/cover/` 는 묶여 있으면 204, 아니면 503 이다. **204 만** 참으로
+   * 읽는다 — 함수가 아예 배포되지 않았다면 Cloudflare 가 SPA 로 떨어뜨려 200 을
+   * 주는데, 그걸 "된다" 로 읽으면 같은 자리에서 또 막힌다. 몸통이 없어 값싸고,
+   * 부팅을 붙잡지 않는다 — 의식이 열릴 때쯤이면 이미 답이 와 있다.
+   */
+  let coversReady = false;
+  void (async () => {
+    try {
+      const res = await fetch(`${location.origin}/cover/`, { method: 'HEAD' });
+      coversReady = res.status === 204;
+    } catch { coversReady = false; }
+  })();
+
   watchOtherTabs();
 
   /**
@@ -227,8 +247,12 @@ export function createNeonStore(
     onSessionChange(cb) { listeners.add(cb); cb(session); return () => listeners.delete(cb); },
     ready: () => booted,
 
-    /** 표지 사진은 Neon 쪽 저장소가 아직 없다. 색 표지만 고르게 한다. (D14) */
-    canUploadCover: false,
+    /**
+     * 사진 표지를 내줄지. Neon 에는 저장소가 없어 (D14) 한동안 색만 냈다.
+     * 지금은 우리 주소 밑의 업로드 함수(`functions/cover/[[path]].js`)가 R2 에
+     * 대신 써 준다. 그 버킷이 실제로 묶여 있을 때만 참이다.
+     */
+    get canUploadCover() { return coversReady; },
 
     async signUp({ email, password, displayName }) {
       const name = displayName.trim().slice(0, 12);
@@ -542,12 +566,35 @@ export function createNeonStore(
     },
 
     /**
-     * Neon 에는 Storage 가 없다 — Object Storage 는 베타이고, 브라우저에서 바로
-     * 올리려면 presigned URL 을 발급할 서버가 필요한데 이 앱에는 서버 코드가 없다.
-     * canUploadCover 가 false 라 화면이 애초에 사진 버튼을 내주지 않는다.
+     * 표지 사진을 우리 주소 밑으로 올린다 (`functions/cover/[[path]].js`).
+     *
+     * 토큰을 실어 보내면 그쪽이 **그 토큰으로** Data API 에 물어 멤버인지 본다.
+     * 권한 규칙을 클라이언트가 정하지 않는다 — RLS 가 이미 아는 것을 다시 쓰지
+     * 않기 위해서다. 돌아오는 것은 경로 하나이고, 그것이 `cover_value` 가 된다
+     * (데이터 규칙 3: base64 를 행에 넣지 않는다).
      */
-    async uploadCover() {
-      throw new Error('표지 사진은 아직 올릴 수 없습니다. 색 표지를 골라 주세요.');
+    async uploadCover(boxId, file) {
+      const { data, error } = await db.auth.getSession();
+      if (error) throw error;
+      const token = (data.session as { access_token?: string } | null)?.access_token;
+      if (!token) throw new Error('로그인이 필요합니다.');
+
+      let res: Response;
+      try {
+        res = await fetch(`${location.origin}/cover/${boxId}`, {
+          method: 'PUT',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'image/jpeg' },
+          body: file,
+        });
+      } catch {
+        throw new Error('표지를 올리지 못했습니다. 연결을 확인해 주세요.');
+      }
+
+      const body = await res.json().catch(() => null) as { path?: string; error?: string } | null;
+      if (!res.ok || !body?.path) {
+        throw new Error(body?.error ?? `표지를 올리지 못했습니다. (HTTP ${res.status})`);
+      }
+      return body.path;
     },
 
     coverUrl: (path) => path,

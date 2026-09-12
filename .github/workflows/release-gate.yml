@@ -55,6 +55,8 @@ jobs:
         run: pnpm errors:check
       - name: 로그인 중계 함수
         run: pnpm proxy:check
+      - name: 표지 업로드 함수
+        run: pnpm cover:check
 
       - name: 브라우저 준비
         run: pnpm exec playwright install --with-deps chromium

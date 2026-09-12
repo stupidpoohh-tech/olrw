@@ -59,11 +59,14 @@
 
 - Vite + React 18 + TypeScript (strict)
 - Neon: Postgres + Data API(PostgREST) + Managed Better Auth + RLS (D14)
-- 배포: Cloudflare Pages, GitHub 연동 자동배포. 서버 코드는 **하나뿐**이다 —
+- 배포: Cloudflare Pages, GitHub 연동 자동배포. 서버 코드는 **둘뿐**이다.
   `functions/auth/[[path]].js` 가 로그인만 우리 주소 밑으로 중계한다. 사파리의
   크로스 사이트 추적 방지가 로그인 쿠키를 막기 때문이고, 앱은 평소 Neon 에 직접
-  붙다가 세션이 안 남는 그 사람에게만 그 자리에서 갈아탄다. 어디까지 함수를
-  타는지는 `public/_routes.json` 이 정한다 (`/auth/*` 하나).
+  붙다가 세션이 안 남는 그 사람에게만 그 자리에서 갈아탄다.
+  `functions/cover/[[path]].js` 가 표지 사진을 R2 에 대신 써 준다 — Neon 에는
+  파일을 둘 곳이 없다 (D14). **권한은 새로 정하지 않는다**: 올리는 사람의
+  토큰으로 Data API 에 물어 멤버인지 확인한다(RLS 가 답한다). 어디까지 함수를
+  타는지는 `public/_routes.json` 이 정한다 (`/auth/*` · `/cover/*`).
   **프로덕션 가지 = `claude/telegram-messenger-migration-eggni4`** → `olrw-8pt.pages.dev`.
   그 밖의 가지는 전부 미리보기 주소로만 뜬다. `main` 은 없다 —
   이 가지를 바꾸려면 Cloudflare 대시보드에서 사용자가 바꿔야 하므로, 그 전까지는
@@ -116,6 +119,9 @@ docs/PORTING-SPEC.md
 1. **제본은 스냅샷이다.** 권을 닫을 때 발신인 이름·용지색을 그 시점 값으로 `volume_pages`에 복사한다. 나중에 이름/색을 바꿔도 과거 책은 변하지 않는다.
 2. **RLS는 멤버십 기준.** `box_members`에 행이 있는 사용자만 접근. 초대 코드 조회는 RPC로만 열고 반환 컬럼을 최소화한다.
 3. **표지 이미지는 Storage.** base64를 행에 넣지 않는다. URL만 저장.
+   Neon 에는 저장소가 없어 Cloudflare R2 에 둔다 — `functions/cover/[[path]].js`
+   가 올리고 내려준다. 읽기는 `<img src>` 라 토큰을 실을 수 없으므로 이름을
+   128비트 난수로 짓고 목록을 열지 않는다. 주소를 아는 사람만 볼 수 있다.
 4. **스키마 변경은 항상 마이그레이션 파일로.** Studio에서 직접 수정 금지.
 5. **soft delete.** 전보/권 삭제는 `deleted_at`. 즉시 파기하지 않는다.
 
@@ -155,7 +161,9 @@ docs/PORTING-SPEC.md
 스키마 쪽(RLS, 0건 마감, 동시 마감, 소유자 이양)은 1단계에서 이미 해결했다.
 남은 것은 전부 프런트엔드다 — 자세한 근거는 `docs/AUDIT.md` §04-3, §04-4.
 
-- ~~표지 base64가 문서에 인라인~~ → 지금은 색 표지만. Neon 에는 Storage 가 없다 (D14)
+- ~~표지 base64가 문서에 인라인~~ → R2 에 올리고 경로만 저장한다
+  (`functions/cover/[[path]].js`). 옛 권 여덟 개의 사진은 이관 원본에 없다 —
+  꺼낼 때 용량 때문에 `"photo"` 라는 글자로 바뀌었다. 옛 Firestore 에만 있다
 - 상태 계층 이중 구현 → `interface BoxStore` 하나
 - ~~`prefers-reduced-motion` 미지원~~ — 해결. `useReducedMotion()` 이 5.8초 타임라인을
   건너뛴다. CSS 로 애니메이션만 꺼 두면 그동안 빈 화면을 본다
@@ -183,6 +191,7 @@ neon/tests/concurrency_test.sh # 동시 마감
 pnpm auth:check                    # 세션이 제때 알려지는가 (Neon 불필요)
 pnpm errors:check                  # 어댑터가 내는 오류 코드를 하나도 빠짐없이 옮기는가
 pnpm proxy:check                   # 로그인 중계 함수 (Cloudflare 없이 Node 에서 돈다)
+pnpm cover:check                   # 표지 업로드 함수 (같은 방식. 가짜 R2 로 돈다)
 pnpm secrets:check                 # 실사용 데이터가 저장소·번들로 돌아오지 않았는가
 
 neon/tests/prod_smoke_selftest.sh  # 운영 표본 SQL 이 어긋난 데이터에서 실패하는가
@@ -218,9 +227,10 @@ SMOKE_URL=http://localhost:4173 pnpm smoke:prod   # 방금 빌드한 것으로
 없다 — 비밀번호가 맞는데 가입도 로그인도 안 되는 사람이 그 문장만 보고 서 있었다.
 `pnpm errors:check` 가 설치된 패키지와 표를 대조한다.
 
-**`functions/` 를 건드리면 `pnpm proxy:check` 를 돌린다.** 그 코드는 Cloudflare
-위에서만 돌아 배포 전에는 아무도 실행해 보지 않는데, 어긋나면 로그인이 통째로
-막힌다. 시험은 `fetch` 만 가짜로 끼워 Node 에서 그대로 돌려 본다.
+**`functions/` 를 건드리면 `pnpm proxy:check` 와 `pnpm cover:check` 를 돌린다.**
+그 코드는 Cloudflare 위에서만 돌아 배포 전에는 아무도 실행해 보지 않는데,
+어긋나면 로그인이 통째로 막히거나 남의 전보함에 사진이 들어간다. 시험은 `fetch`
+와 R2 만 가짜로 끼워 Node 에서 그대로 돌려 본다.
 
 ## 커밋
 

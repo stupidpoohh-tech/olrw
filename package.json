@@ -17,6 +17,7 @@
     "auth:check": "node tools/auth-check.mjs",
     "errors:check": "node tools/errors-check.mjs",
     "proxy:check": "node tools/proxy-check.mjs",
+    "cover:check": "node tools/cover-check.mjs",
     "secrets:check": "node tools/secrets-check.mjs",
     "smoke:prod": "node tools/smoke-prod.mjs",
     "e2e:live": "node tools/e2e-live.mjs"
